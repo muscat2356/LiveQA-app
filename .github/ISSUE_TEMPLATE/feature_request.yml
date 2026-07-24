@@ -1,0 +1,69 @@
+name: 機能追加
+description: 新機能・画面追加などの提案です。ブランチ接頭辞は feature/ を使います。
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        機能追加の提案ありがとうございます！以下の項目を埋めてください。
+        着手ブランチは `担当分野/feature/機能ID番号`（例: `front/feature/05`）で作成します。
+  - type: textarea
+    id: summary
+    attributes:
+      label: 機能概要 / 目的
+      description: どんな機能か、なぜ必要かを記載してください。
+      placeholder: 例）質問一覧を人気順・新着順で切り替えられるようにする。
+    validations:
+      required: true
+  - type: dropdown
+    id: scope
+    attributes:
+      label: 対応スコープ
+      description: README のスコープ区分を選んでください。
+      options:
+        - MVP-A（必須・F-01〜F-09）
+        - MVP-B（F-10〜F-13）
+        - ストレッチ（F-14〜F-15）
+        - スコープ外検討
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: 担当分野
+      description: ブランチ命名の1階層目（front / back / infra）になります。
+      options:
+        - front
+        - back
+        - infra
+        - 両方以上
+    validations:
+      required: true
+  - type: input
+    id: feature-id
+    attributes:
+      label: 関連機能ID
+      description: README の機能ID。ブランチ命名の3階層目（番号のみ）になります。
+      placeholder: 例）F-05（ブランチ → front/feature/05）
+    validations:
+      required: false
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 受け入れ条件チェックリスト
+      description: この機能が完成したと判断できる条件をチェックリストで記載してください。
+      placeholder: |
+        - [ ] 並び替え切替で人気順・新着順が切り替わる
+        - [ ] OPEN なルームでのみ投稿できる
+        - [ ] STOMP で新規質問がライブ反映される
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: 補足・参考リンク
+      description: 設計資料、デザイン、関連 Issue などがあれば記載してください。
+      placeholder: 例）docs/design/screen-transition.md / docs/api/openapi-notes.md を参照
+    validations:
+      required: false

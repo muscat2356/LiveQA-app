@@ -1,0 +1,66 @@
+name: バグ修正
+description: 不具合の報告・修正依頼です。ブランチ接頭辞は bug/ を使います。
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        バグ報告ありがとうございます！以下の項目を埋めてください。
+        着手ブランチは `担当分野/bug/機能ID番号`（例: `front/bug/05`）で作成します。
+  - type: textarea
+    id: summary
+    attributes:
+      label: 概要
+      description: どのような不具合かを簡潔に記載してください。
+      placeholder: 例）いいねを押しても upvoteCount が増えない。
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 再現手順
+      description: 不具合を再現する手順を順番に記載してください。
+      placeholder: |
+        1. 参加コードでルームに入る
+        2. 質問に「いいね」を押す
+        3. カウントが変化しない
+    validations:
+      required: true
+  - type: textarea
+    id: expected-actual
+    attributes:
+      label: 期待する挙動 / 実際の挙動
+      description: 本来どうなるべきか、実際にどうなったかを記載してください。
+      placeholder: |
+        期待: upvoteCount が 1 増える / STOMP で QUESTION_UPVOTED が届く
+        実際: カウントが変わらない
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: 担当分野
+      description: ブランチ命名の1階層目（front / back / infra）になります。
+      options:
+        - front
+        - back
+        - infra
+    validations:
+      required: true
+  - type: input
+    id: feature-id
+    attributes:
+      label: 関連機能ID
+      description: README の機能ID。ブランチ命名の3階層目（番号のみ）になります。
+      placeholder: 例）F-05（ブランチ → front/bug/05）
+    validations:
+      required: false
+  - type: textarea
+    id: environment
+    attributes:
+      label: 環境・補足
+      description: ブラウザ、OS、ログ、スクリーンショットなど補足があれば記載してください。
+      placeholder: 例）Chrome 126 / WSL2 / API ログにスタックトレースあり
+    validations:
+      required: false

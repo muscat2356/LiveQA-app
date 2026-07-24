@@ -1,0 +1,53 @@
+---
+description: live-qa-app バックエンド規約（Spring / Session / Flyway / STOMP / API）
+globs: backend/**/*.{java,yml,yaml,sql}
+alwaysApply: false
+---
+
+# バックエンド規約
+
+## 構成（目標）
+
+```
+backend/src/main/java/.../
+├── config/        # Security, Session, WebSocket, CORS
+├── controller/
+├── service/
+├── repository/
+├── domain/
+└── dto/request|response/
+
+backend/src/main/resources/
+├── application.yml
+└── db/migration/  # Flyway（追加のみ）
+```
+
+## 確定方針
+
+- 認証: Keycloak `oauth2Login` → Spring Session(Redis)。以降は `SESSION` Cookie（JWT再検証しない）
+- CSRF有効。状態変更は `X-XSRF-TOKEN`
+- 参加者は匿名セッション。`voter_key = g:{guestId}`（HOSTは `u:{userId}`）
+- ルーム: `DRAFT → OPEN ⇔ CLOSED`。投稿・いいねは `OPEN` のみ
+- `upvote_count` は原子的インクリメント（楽観ロック `version` は使わない）
+- エラー: `{ status, error, message }`。400 / 401 / 403 / 404 / 409
+- Poll（MVP-B）: `V2__polls.sql` 想定。Q&Aと共存
+
+## パターン
+
+- Controller → Service → Repository。Controller に業務分岐を書かない
+- 認可は `@PreAuthorize` + 所有者チェック
+- DB変更は Flyway 追加のみ（既存 V* を書き換えない）
+
+## 「実装」依頼時（Member B / C）
+
+- ① docs と実装の現在地を特定
+- ② 次タスクを差分最小順で提示（推奨: Flyway → Entity → Auth/Session → Event/Question API → STOMP）
+- ③ 写経コード + 機能 / 依存 / データの流れ / 初出注釈の解説
+
+## 参照
+
+- `docs/api/openapi-notes.md`
+- `docs/design/er-diagram.md`
+- `docs/design/constraints.md`
+- `docs/design/websocket-sequence.md`
+- `AGENTS.md`

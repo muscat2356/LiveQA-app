@@ -1,0 +1,61 @@
+name: 共通のタスク
+description: 改善・ドキュメント・テスト・統合など、機能追加/バグ修正以外の作業です。
+title: "[Task]: "
+labels: ["task"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        タスク登録ありがとうございます！以下の項目を埋めてください。
+        着手ブランチは `担当分野/種別接頭辞/番号`（例: `front/docs/00`）で作成します。
+  - type: textarea
+    id: summary
+    attributes:
+      label: タスク概要
+      description: 何をするタスクかを記載してください。
+      placeholder: 例）README のセットアップ手順を最新の docker compose 構成に更新する。
+    validations:
+      required: true
+  - type: dropdown
+    id: category
+    attributes:
+      label: 種別
+      description: 作業種別を選んでください。カッコ内がブランチ接頭辞になります。
+      options:
+        - 改善系 (refactor/)
+        - ドキュメント (docs/)
+        - テスト (test/)
+        - 統合作業 (merge/)
+        - その他
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: 担当分野
+      description: ブランチ命名の1階層目（front / back / infra）になります。
+      options:
+        - front
+        - back
+        - infra
+        - 両方以上
+    validations:
+      required: true
+  - type: textarea
+    id: done-criteria
+    attributes:
+      label: 完了条件
+      description: このタスクが完了したと判断できる条件を記載してください。
+      placeholder: |
+        - [ ] README のセットアップ手順が最新化されている
+        - [ ] 記載どおりに環境構築できることを確認した
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: 補足
+      description: 参考リンクや関連 Issue などがあれば記載してください。
+      placeholder: "例）関連: #12"
+    validations:
+      required: false

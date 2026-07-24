@@ -1,0 +1,47 @@
+---
+description: live-qa-app フロントエンド規約（Next.js / SSR / Cookie / STOMP）
+globs: frontend/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# フロントエンド規約
+
+## 構成（目標）
+
+```
+frontend/
+├── app/           # App Router（SSR / ルート）
+├── components/    # UI部品
+├── lib/           # APIクライアント、STOMP、Zodスキーマ
+└── ...
+```
+
+## 確定方針
+
+- Next.js App Router + TypeScript
+- 主催者ログインは Keycloak へリダイレクト（自前ログインフォームなし）
+- RESTは Cookie（`SESSION`）付き。状態変更は `X-XSRF-TOKEN`
+- 参加者はログイン不要。参加コード / URL から参加
+- STOMP購読: `/topic/events/{eventId}/questions`（MVP-B: `/polls`）
+- 配信ペイロードに `votedByMe` / `myOptionIds` は含まれない（クライアント側で保持）
+- ルームが `DRAFT` / `CLOSED` のときは投稿・いいねUIを無効化
+
+## パターン
+
+- データ取得: TanStack Query（クライアント）/ Server Component（SSR）
+- バリデーション: Zod（制約は `docs/design/constraints.md`）
+- UI: Tailwind + shadcn/ui
+- 権限制御は UI 出し分け + 401/403。正は API
+
+## 「実装」依頼時（Member A）
+
+- ① docs と実装の現在地を特定
+- ② 次タスクを差分最小順で提示
+- ③ 写経コード + 機能 / 依存 / データの流れ / 初出要素の解説
+
+## 参照
+
+- `docs/design/screen-transition.md`
+- `docs/api/openapi-notes.md`
+- `docs/design/constraints.md`
+- `AGENTS.md`
