@@ -1,5 +1,6 @@
 services:
   backend:
+    container_name: Live-qa-backend
     build: ./backend
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
@@ -7,7 +8,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
-      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/live-qa-app
+      KEYCLOAK_ISSUER_URI: http://localhost:8080/realms/live-qa-app
     ports:
       - "8081:8080"
     depends_on:
@@ -16,9 +17,10 @@ services:
       redis:
         condition: service_started
       keycloak:
-        condition: service_started
+        condition: service_healthy
 
   frontend:
+    container_name: Live-qa-frontend
     build: ./frontend
     ports:
       - "3000:3000"
@@ -55,14 +57,23 @@ services:
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.0
-    command: ["start-dev"]
+    command: ["start-dev", "--import-realm"]
     environment:
+      KC_HEALTH_ENABLED: "true"
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgres:5432/${KC_DB_NAME}
       KC_DB_USERNAME: ${KC_DB_USER}
       KC_DB_PASSWORD: ${KC_DB_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000; echo -e 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3; grep -q '\"status\": \"up\"' <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+    volumes:
+      - ./docker/keycloak/import:/opt/keycloak/data/import
     ports:
       - "8080:8080"
     depends_on:
