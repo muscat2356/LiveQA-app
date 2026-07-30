@@ -38,11 +38,11 @@ backend/src/main/resources/
 - 認可は `@PreAuthorize` + 所有者チェック
 - DB変更は Flyway 追加のみ（既存 V* を書き換えない）
 
-## 「実装」依頼時（Member B / C）
+## 依頼時（Member B / C）
 
-- ① docs と実装の現在地を特定
-- ② 次タスクを差分最小順で提示（推奨: Flyway → Entity → Auth/Session → Event/Question API → STOMP）
-- ③ 写経コード + 機能 / 依存 / データの流れ / 初出注釈の解説
+- キーワードは `live-qa-keywords.mdc`（**実装** / **解説** / **確認** / **修復**）
+- 解説の書き方は `live-qa-learning-explain.mdc`（操作の意味・interface 等の正体）
+- **実装**時の推奨順: Flyway → Entity → Auth/Session → Event/Question API → STOMP
 
 ## 参照
 

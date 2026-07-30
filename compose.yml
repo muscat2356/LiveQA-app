@@ -3,12 +3,15 @@ services:
     container_name: Live-qa-backend
     build: ./backend
     environment:
+      SPRING_PROFILES_ACTIVE: docker
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
-      KEYCLOAK_ISSUER_URI: http://localhost:8080/realms/live-qa-app
+      # LibraShare realm に相乗り（サードパーティークライアント）
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-live-qa-app}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-live-qa-dev-secret}
     ports:
       - "8081:8080"
     depends_on:
@@ -66,14 +69,20 @@ services:
       KC_DB_URL: jdbc:postgresql://postgres:5432/${KC_DB_NAME}
       KC_DB_USERNAME: ${KC_DB_USER}
       KC_DB_PASSWORD: ${KC_DB_PASSWORD}
+      # ブラウザは localhost:8080、コンテナ間は keycloak:8080（フル URL 必須）
+      KC_HOSTNAME: http://localhost:8080
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+    # Keycloak 26 の /health/ready は "status": "UP"（大文字）。小文字 up だと永遠に unhealthy → backend が Waiting のまま
     healthcheck:
-      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000; echo -e 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3; grep -q '\"status\": \"up\"' <&3"]
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000; printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3; grep -q '\"status\": \"UP\"' <&3"]
       interval: 10s
       timeout: 5s
       retries: 30
-      start_period: 20s
+      start_period: 40s
     volumes:
-      - ./docker/keycloak/import:/opt/keycloak/data/import
+      # LibraShare realm の export をそのまま import（client / user は温存）
+      - ./keycloak:/opt/keycloak/data/import
     ports:
       - "8080:8080"
     depends_on:

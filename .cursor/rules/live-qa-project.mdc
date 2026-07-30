@@ -1,28 +1,25 @@
 ---
-description: live-qa-app プロジェクト共通ルール（チーム分担・MVP・アジャイル・依頼方針）
+description: live-qa-app プロジェクト共通（スコープ・チーム・言語）。依頼語は keywords、解説は learning-explain
 alwaysApply: true
 ---
 
 # live-qa-app 共通ルール
 
-LibraShare の AI 規定から共通方針（言語・「実装は本人」「実装依頼の進め方」）を引き継ぎ、本プロジェクト向けに適用する。
-
 ## 言語
 
-常に日本語で回答。コードコメントも日本語。明るくポジティブな口調。
+常に日本語。コードコメントも日本語。明るくポジティブな口調。
 
 ## 開発フロー
 
-アジャイル: 学習フェーズ（Day1-4）→ MVP-A（Day5-9）→ MVP-B（Day10-13）→ 仕上げ（Day14）。  
+アジャイル: 学習（Day1-4）→ MVP-A（Day5-9）→ MVP-B（Day10-13）→ 仕上げ（Day14）。  
 設計の正は `docs/` と `README.md`。
 
 ## スコープ
 
-- **MVP-A（死守）**: F-01〜F-09（認証 / ルーム / 匿名参加 / Q&A / STOMPライブ / Docker+CI）
-- **MVP-B**: F-10〜F-13（Poll / フィルタ / モデレーション）
-- **ストレッチ**: F-14 プレゼンス / F-15 QR
+- **MVP-A（死守）**: F-01〜F-09
+- **MVP-B**: F-10〜F-13 / **ストレッチ**: F-14〜F-15
 - MVP-A 未達なら MVP-B に進まず仕上げ優先
-- ルーム状態: `DRAFT → OPEN ⇔ CLOSED`。Poll: `DRAFT → OPEN → CLOSED`
+- ルーム: `DRAFT → OPEN ⇔ CLOSED`。Poll: `DRAFT → OPEN → CLOSED`
 - エラーJSON: `{ status, error, message }`（400は任意で `fields`）
 
 ## チーム
@@ -30,20 +27,16 @@ LibraShare の AI 規定から共通方針（言語・「実装は本人」「�
 | Member | 領域 |
 |--------|------|
 | A | Next.js（UI / SSR / STOMP受信） |
-| B | Cookieセッション+Redis / OIDC橋渡し / CRUD API / QueryDSL |
+| B | Session+Redis / OIDC / CRUD API / QueryDSL |
 | C | STOMP配信 / Compose / CI |
 
-## 依頼時（共通・LibraShare継承）
+## 依頼・解説（分割ルールへ）
 
-- **実装は本人が手で行う**。Agent は差分整理・設計確認・デバッグ支援を優先し、大規模な下書き生成は避ける
-- 機能 ID（F-01 / F-07 等）または `docs/` を参照して依頼する
-
-### 「実装」と送られた場合の進め方
-
-- ① **現状のコードを確認**: 関連する `docs/` と実装を読み、現在地（未実装・暫定・TODO）を特定する
-- ② **次タスクを提示**: 設計と差分が最小になる順で具体化する
-- ③ **写経コード + 解説**: 写経できるコード例 + 機能 / 依存 / データの流れ / 初出要素の解説（基本構文の説明は不要）
+- 二文字キーワード → [live-qa-keywords.mdc](live-qa-keywords.mdc)
+- 写経の言語化（操作の意味・型の正体）→ [live-qa-learning-explain.mdc](live-qa-learning-explain.mdc)
+- 質問回答の学習メモ → [live-qa-learning-memo.mdc](live-qa-learning-memo.mdc)（`docs/qa/` へ出力／追記）
+- **実装は本人が手で行う**。Agent は差分整理・写経単位・解説を優先
 
 ## 権限
 
-フロントは UI 出し分け + 401/403 表示。セキュリティの正は Spring API + Cookieセッション RBAC。参加者は匿名セッション。
+フロントは UI 出し分け + 401/403。正は Spring API + Cookieセッション RBAC。参加者は匿名セッション。

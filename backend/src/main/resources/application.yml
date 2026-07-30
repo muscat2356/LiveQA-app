@@ -1,0 +1,47 @@
+# live-qa-app backend（F-01 骨組み）
+# Keycloak / Redis は環境に合わせて変更。秘密は .env 等で渡す
+
+server:
+  port: 8080
+
+spring:
+  application:
+    name: live-qa-backend
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  session:
+    store-type: redis
+    redis:
+      namespace: live-qa
+
+  security:
+    oauth2:
+      client:
+        registration:
+          keycloak:
+            client-id: ${KEYCLOAK_CLIENT_ID:live-qa-app}
+            client-secret: ${KEYCLOAK_CLIENT_SECRET:live-qa-dev-secret}
+            scope: openid,profile,email
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+
+logging:
+  level:
+    org.springframework.security: INFO
+
+---
+# ホスト起動（mvn spring-boot:run）用。Compose の backend は profile=docker のためこの文書は読まない
+spring:
+  config:
+    activate:
+      on-profile: "!docker"
+  security:
+    oauth2:
+      client:
+        provider:
+          keycloak:
+            issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8080/realms/LibraShare}

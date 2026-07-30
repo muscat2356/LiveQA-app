@@ -101,43 +101,37 @@
 - [docs/design/constraints.md](docs/design/constraints.md) — 制約仕様
 - [docs/api/openapi-notes.md](docs/api/openapi-notes.md) — REST / STOMP契約
 
-## AI Agent への依頼方針（LibraShareから継承）
+## AI Agent への依頼方針（索引）
 
-### 共通
+詳細は `.cursor/rules/` に分割（漏れなく読むときは下表の順）。
 
-- **実装は本人が手で行う**。Agent は下書きの一括生成より、差分整理・設計確認・エラー原因の説明を優先する
-- 依頼時は**機能 ID（F-01 / F-07 等）**か `docs/` への参照を添える
-- 設計の正は `docs/` と `README.md`。矛盾があれば docs を優先し、差分を明示する
+| 順 | ファイル | 内容 |
+|----|----------|------|
+| 1 | [live-qa-project.mdc](.cursor/rules/live-qa-project.mdc) | スコープ・チーム・言語 |
+| 2 | [live-qa-keywords.mdc](.cursor/rules/live-qa-keywords.mdc) | **二文字キーワード**（実装 / 解説 / 確認 / 修復） |
+| 3 | [live-qa-learning-explain.mdc](.cursor/rules/live-qa-learning-explain.mdc) | 操作の意味・型の正体・写経の最低構成 |
+| 4 | [live-qa-learning-memo.mdc](.cursor/rules/live-qa-learning-memo.mdc) | 質問回答 → `docs/qa/` 出力／追記 |
+| 5 | [live-qa-backend.mdc](.cursor/rules/live-qa-backend.mdc) / [live-qa-frontend.mdc](.cursor/rules/live-qa-frontend.mdc) | 領域別規約 |
 
-### 「実装」と送られた場合の進め方（共通）
+### 共通（要約）
 
-- ① **現状のコードを確認**: 関連する `docs/` と担当領域の実装を読み、現在地（未実装・暫定・TODO）を特定する
-- ② **次タスクを提示**: 設計と差分が最小になる順で、次にやるべき作業を具体化する
-- ③ **写経コード + 解説**: 写経できるコード例 + 次を中心に説明する（基本構文の説明は不要）
-  - **機能**: 各単位が何をするか（入力→処理→出力 / HTTPステータス）
-  - **依存**: どのライブラリ・既存モジュールをなぜその層で使うか
-  - **データの流れ**: 状態 / Cookie / API / STOMP がどこから来てどこへ渡るか
-  - **初出の要素の解説**: 初めて登場する注釈・API・構文は直後に「何をするか / なぜ使うか / どこに効くか」を詳細に追記する
+- **実装は本人が手で行う**。Agent は差分整理・写経単位・解説を優先
+- 依頼は**機能 ID（F-01 等）**か `docs/` 参照 + 必要なら二文字キーワード
+- 設計の正は `docs/` と `README.md`。矛盾時は docs 優先し差分を明示
+- **学習メモ**: 仕組み・用語・トラブル原因などの回答は `docs/qa/` へ md 新規作成または追記（秘密情報は書かない）
 
-### Member A（フロント / Next.js）
+### 二文字キーワード（4種）
 
-- 既存（またはこれから整える）App Router 構成に合わせる
-- セキュリティの正は API 側。フロントの権限制御は UI 出し分け + 401/403 ハンドリング
-- Cookie（`SESSION` / `XSRF-TOKEN`）付きで REST を呼ぶ。STOMPも同じセッションCookie
+`実装` `解説` `確認` `修復`  
+→ 詳細・旧語エイリアスは [live-qa-keywords.mdc](.cursor/rules/live-qa-keywords.mdc)
 
-### Member B（バック / Session+API）
+### Member メモ
 
-- レイヤ構成（controller / service / repository / domain / dto / Flyway）に合わせる
-- エラーレスポンスは `{ status, error, message }`（400は任意で `fields`）。詳細は openapi-notes
-- DB変更は Flyway 追加のみ（既存 V* を書き換えない）
-
-### Member C（WebSocket+Docker）
-
-- STOMPトピック・配信ペイロードは [docs/api/openapi-notes.md](docs/api/openapi-notes.md) と [docs/design/websocket-sequence.md](docs/design/websocket-sequence.md) が正
-- Compose（`nextjs` / `api` / `postgres` / `redis` / `keycloak`）と CI の骨組みを主導
-
-フロント詳細は [frontend/AGENTS.md](frontend/AGENTS.md) と `.cursor/rules/live-qa-frontend.mdc`。  
-バック詳細は [backend/AGENTS.md](backend/AGENTS.md) と `.cursor/rules/live-qa-backend.mdc`。
+| Member | 要点 | 詳細 |
+|--------|------|------|
+| A | Cookie 付き REST / STOMP。権限制御は UI + 401/403 | [frontend/AGENTS.md](frontend/AGENTS.md) |
+| B | controller→service→repository。Flyway 追加のみ。エラー JSON | [backend/AGENTS.md](backend/AGENTS.md) |
+| C | STOMP・Compose・CI。契約は openapi-notes / websocket-sequence | 同上 backend + docs |
 
 ## フロントエンド規約（概要）
 

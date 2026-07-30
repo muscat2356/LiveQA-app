@@ -17,3 +17,10 @@ live-qa-app（リアルタイム ライブQ&A + 投票 / sli.do風）の方向�
 - [design/er-diagram.md](design/er-diagram.md) — ER図・テーブル定義・制約/インデックス・Flyway初期DDL案
 - [design/constraints.md](design/constraints.md) — 制約仕様（入力バリデーション・ビジネスルール・DB CHECK・HTTPステータス）
 - [api/openapi-notes.md](api/openapi-notes.md) — REST API / STOMP仕様メモ（Req/Res・DTO・CSRF・配信ペイロード）
+
+## 学習メモ（JIT）
+
+- [qa/README.md](qa/README.md) — 質問と回答の蓄積（Agent が説明のたびに追記。ルール: `.cursor/rules/live-qa-learning-memo.mdc`）
+- [qa/00-transplant-from-lab.md](qa/00-transplant-from-lab.md) — session-lab からの **移植判断**（F-01 素振りの持ち込み／除外）
+- [qa/08-backend-project-migrate.md](qa/08-backend-project-migrate.md) — **backend プロジェクト移行手順**（Maven 骨組み）
+- [backend/README.md](../backend/README.md) — 起動・疎通の入口
