@@ -1,5 +1,4 @@
-<!-- BEGIN:nextjs-agent-rules -->
-# This is NOT the Next.js you know
+# フロントエンド — AI Agent 向けガイド
 
 このディレクトリは live-qa-app の Next.js フロントです。
 
