@@ -1,0 +1,32 @@
+# Gemini Code Assist on GitHub — リポジトリ設定
+# 公式: https://developers.google.com/gemini-code-assist/docs/customize-gemini-behavior-github
+#
+# 事前に GitHub へ Gemini Code Assist アプリ連携が必要。
+# スタイルガイド本体: .gemini/styleguide.md
+
+have_fun: false
+
+ignore_patterns:
+  - "**/.env"
+  - "**/.env.*"
+  - "**/node_modules/**"
+  - "**/target/**"
+  - "**/.next/**"
+  - "**/dist/**"
+  - "**/*.lock"
+  - "**/package-lock.json"
+  - "**/pnpm-lock.yaml"
+  - "backend/.vscode/**"
+  - "**/*.iml"
+  - "**/flyway_schema_history*"
+
+code_review:
+  disable: false
+  # 学習リポでもセキュリティ・設計矛盾は拾いたい。軽微なスタイルは抑制
+  comment_severity_threshold: MEDIUM
+  max_review_comments: 30
+  pull_request_opened:
+    help: false
+    summary: true
+    code_review: true
+    include_drafts: true

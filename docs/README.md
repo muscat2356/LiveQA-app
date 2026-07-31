@@ -27,3 +27,7 @@ live-qa-app（リアルタイム ライブQ&A + 投票 / sli.do風）の方向�
 
 > Member B の GitHub Issue 案（B-01〜）は本番リポに置かず、ラボ  
 > [`../../live-qa-session-lab/docs/issues/member-b/`](../../live-qa-session-lab/docs/issues/member-b/) に避難。**確認** 時に参照（`.cursor/rules/live-qa-keywords.mdc`）。
+
+## AI レビュー（Gemini on GitHub）
+
+- [../.gemini/README.md](../.gemini/README.md) — Gemini Code Assist（`styleguide.md` / `config.yaml`）
