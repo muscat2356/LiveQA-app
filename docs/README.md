@@ -24,3 +24,6 @@ live-qa-app（リアルタイム ライブQ&A + 投票 / sli.do風）の方向�
 - [qa/00-transplant-from-lab.md](qa/00-transplant-from-lab.md) — session-lab からの **移植判断**（F-01 素振りの持ち込み／除外）
 - [qa/08-backend-project-migrate.md](qa/08-backend-project-migrate.md) — **backend プロジェクト移行手順**（Maven 骨組み）
 - [backend/README.md](../backend/README.md) — 起動・疎通の入口
+
+> Member B の GitHub Issue 案（B-01〜）は本番リポに置かず、ラボ  
+> [`../../live-qa-session-lab/docs/issues/member-b/`](../../live-qa-session-lab/docs/issues/member-b/) に避難。**確認** 時に参照（`.cursor/rules/live-qa-keywords.mdc`）。
