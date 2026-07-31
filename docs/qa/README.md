@@ -10,6 +10,10 @@ Agent は回答のたびにここへ **新規作成または追記**する（`.c
 | ファイル | 内容 |
 |----------|------|
 | [09-keycloak-realm-librashare.md](09-keycloak-realm-librashare.md) | **LibraShare realm への相乗り**（realm JSON・サードパーティー・最終的な Keycloak 共有イメージ / URL 2種） |
+| [10-get-api-events.md](10-get-api-events.md) | **GET /api/events**（Flyway〜一覧の写経順・EJ・データの流れ） |
+| [11-jpa.md](11-jpa.md) | **JPA 解説**（仕様と Hibernate / Entity・Repository・Flyway 分担） |
+| [12-delete-strategy.md](12-delete-strategy.md) | **削除方針**（物理 DELETE が少ない理由 / User は残す / status が論理相当） |
+| [13-unique-name-and-test-deps.md](13-unique-name-and-test-deps.md) | **UNIQUE 制約の命名** / **テスト依存**（レビュー指摘の解説） |
 
 > ラボ時代のメモ（04〜06）は Keycloak `8081` / realm `live-qa` 前提で書かれている。本番は Keycloak `8080` / realm `LibraShare`（09 参照）。
 

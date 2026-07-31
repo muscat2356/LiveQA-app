@@ -38,11 +38,29 @@ backend/src/main/resources/
 - 認可は `@PreAuthorize` + 所有者チェック
 - DB変更は Flyway 追加のみ（既存 V* を書き換えない）
 
+## Effective Java を考慮する
+
+Java 実装・写経・レビューでは **Effective Java（第3版）の考え方を意識する**。Spring の慣習と矛盾する場合は、本プロジェクトの確定方針（レイヤ・セキュリティ・Flyway）を優先し、そのうえで EJ で説明できる書き方を選ぶ。
+
+特に意識する例（網羅ではない）:
+
+- **不変性**: リクエスト/レスポンス DTO は `record` や不変オブジェクトを優先。可変な Entity と役割を混ぜない
+- **静的ファクトリ / コンストラクタ**: 生成意図が伝わる名前付き生成を検討（例: ステータス遷移・`joinCode` 発行）
+- **enum**: 状態や種別（ルーム / 質問 / Poll）は int 定数や裸の String 連打より enum（永続化は `EnumType.STRING` 等）
+- **equals / hashCode**: JPA Entity では安易に全フィールド equals しない。ビジネスキー方針を決めてから
+- **例外**: 業務エラーは unchecked + 共通エラーJSONへ。チェック例外の乱用や握りつぶしを避ける
+- **ジェネリクス / 生の型**: Repository・コレクションで raw type を使わない
+- **リソース**: 手動 close より try-with-resources（ストリームや外部接続を扱うとき）
+- **公開 API の最小化**: パッケージ／メソッドを必要以上に public にしない（Controller から触る面を狭く）
+
+解説・レビュー時は「EJ のどの考え方に沿っているか／あえて外しているか」を一言添えてよい。
+
 ## 依頼時（Member B / C）
 
 - キーワードは `live-qa-keywords.mdc`（**実装** / **解説** / **確認** / **修復**）
 - 解説の書き方は `live-qa-learning-explain.mdc`（操作の意味・interface 等の正体）
 - **実装**時の推奨順: Flyway → Entity → Auth/Session → Event/Question API → STOMP
+- **確認**時の Issue 案進捗: ラボ `../live-qa-session-lab/docs/issues/member-b/`（本番リポに載せない）
 
 ## 参照
 
