@@ -192,19 +192,21 @@ erDiagram
 ```sql
 CREATE TABLE users (
     id           BIGSERIAL PRIMARY KEY,
-    oidc_subject VARCHAR(255) NOT NULL UNIQUE,
+    oidc_subject VARCHAR(255) NOT NULL,
     role         VARCHAR(20)  NOT NULL DEFAULT 'HOST',
-    created_at   TIMESTAMPTZ  NOT NULL DEFAULT now()
+    created_at   TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    CONSTRAINT uq_users_oidc_subject UNIQUE (oidc_subject)
 );
 
 CREATE TABLE events (
     id         BIGSERIAL PRIMARY KEY,
     host_id    BIGINT       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     title      VARCHAR(200) NOT NULL,
-    join_code  VARCHAR(12)  NOT NULL UNIQUE,
+    join_code  VARCHAR(12)  NOT NULL,
     status     VARCHAR(20)  NOT NULL DEFAULT 'DRAFT',
     created_at TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    updated_at TIMESTAMPTZ  NOT NULL DEFAULT now()
+    updated_at TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    CONSTRAINT uq_events_join_code UNIQUE (join_code)
 );
 CREATE INDEX idx_events_host_id ON events(host_id);
 
@@ -231,7 +233,8 @@ CREATE TABLE votes (
 CREATE INDEX idx_votes_question_id ON votes(question_id);
 ```
 
-ポール（MVP-B）は別マイグレーション（例 `V2__polls.sql`）で追加する想定。
+ポール（MVP-B）は別マイグレーション（例 `V3__polls.sql`）で追加する想定。  
+UNIQUE の明示名は Entity の `@UniqueConstraint` と揃える。V1 の列レベル UNIQUE の自動名リネームは `V2__name_unique_constraints.sql`。
 
 ```sql
 CREATE TABLE polls (

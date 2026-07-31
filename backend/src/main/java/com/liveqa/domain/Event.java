@@ -15,13 +15,20 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 /**
  * Eventのドメイン
  * @author ichikura
  */
 @Entity
-@Table(name = "events")
+@Table(
+    name = "events",
+    uniqueConstraints = @UniqueConstraint(
+        name = "uq_events_join_code",
+        columnNames = "join_code"
+    )
+)
 public class Event {
 
     @Id
@@ -35,7 +42,7 @@ public class Event {
     @Column(nullable = false, length = 200)
     private String title;
 
-    @Column(name = "join_code", nullable = false, unique = true, length = 12)
+    @Column(name = "join_code", nullable = false, length = 12)
     private String joinCode;
 
     @Enumerated(EnumType.STRING)

@@ -8,6 +8,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 /**
  * Userドメイン
@@ -15,14 +16,20 @@ import jakarta.persistence.Table;
  */
 
 @Entity
-@Table(name = "users")
+@Table(
+    name = "users",
+    uniqueConstraints = @UniqueConstraint(
+        name = "uq_users_oidc_subject",
+        columnNames = "oidc_subject"
+    )
+)
 public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "oidc_subject", nullable = false, unique = true)
+    @Column(name = "oidc_subject", nullable = false)
     private String oidcSubject;
 
     @Column(nullable = false, length = 20)
