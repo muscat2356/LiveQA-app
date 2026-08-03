@@ -1,71 +1,64 @@
 ---
-description: live-qa-app バックエンド規約（Spring / Session / Flyway / STOMP / API）
-globs: backend/**/*.{java,yml,yaml,sql}
+description: バックエンド確定方針（三層・DTO・ResponseEntity・EJ・テスト・認証）。Java 形の正
+globs: "**/*.{java,yml,yaml,sql},backend/**/*.{java,yml,yaml,sql},**/db/migration/**"
 alwaysApply: false
 ---
 
-# バックエンド規約
+# バックエンド規約（Java 形の正）
 
-## 構成（目標）
+## レイヤ
 
 ```
-backend/src/main/java/.../
-├── config/        # Security, Session, WebSocket, CORS
-├── controller/
-├── service/
-├── repository/
-├── domain/
-└── dto/request|response/
-
-backend/src/main/resources/
-├── application.yml
-└── db/migration/  # Flyway（追加のみ）
+controller → service → repository → domain
+dto/ … request|response（record）
+db/migration/ … Flyway 追加のみ（既存 V* 不改変）
 ```
 
-## 確定方針
+| 層 | する | しない |
+|----|------|--------|
+| Controller | principal 受け取り、`@PreAuthorize`、`ResponseEntity` | 業務分岐、DTO 組み立ての本体 |
+| Service | ユースケース、DB 復元、**DTO 組み立て**（例: `toMeResponse` / `currentHost`） | `ResponseEntity` |
+| Repository | DB | DTO / HTTP |
+| Entity | 永続化 | API 直出し |
 
-- 認証: Keycloak `oauth2Login` → Spring Session(Redis)。以降は `SESSION` Cookie（JWT再検証しない）
-- CSRF有効。状態変更は `X-XSRF-TOKEN`
-- 参加者は匿名セッション。`voter_key = g:{guestId}`（HOSTは `u:{userId}`）
-- ルーム: `DRAFT → OPEN ⇔ CLOSED`。投稿・いいねは `OPEN` のみ
-- `upvote_count` は原子的インクリメント（楽観ロック `version` は使わない）
-- エラー: `{ status, error, message }`。400 / 401 / 403 / 404 / 409
-- Poll（MVP-B）: `V2__polls.sql` 想定。Q&Aと共存
+**Me 分割例:** `requireByOidcSubject`→`User` / `toMeResponse`→`MeResponse` / `currentHost`→オーケストレーション / Controller→`ResponseEntity.ok(...)`
 
-## パターン
+## HTTP・DTO
 
-- Controller → Service → Repository。Controller に業務分岐を書かない
-- 認可は `@PreAuthorize` + 所有者チェック
-- DB変更は Flyway 追加のみ（既存 V* を書き換えない）
+- Controller 戻り値は **`ResponseEntity` 統一**（200=`ok`、201=created/status、204=`noContent`）
+- DTO は **`record`**。Service が組み立て、Controller が箱に入れる
+- エラー JSON: `{ status, error, message }`（400 は任意 `fields`）
 
-## Effective Java を考慮する
+## 認証・認可
 
-Java 実装・写経・レビューでは **Effective Java（第3版）の考え方を意識する**。Spring の慣習と矛盾する場合は、本プロジェクトの確定方針（レイヤ・セキュリティ・Flyway）を優先し、そのうえで EJ で説明できる書き方を選ぶ。
+- oauth2Login → Session(Redis) → `SESSION` Cookie（JWT 都度検証に戻さない）
+- CSRF + `X-XSRF-TOKEN`。参加者は匿名。`voter_key` = `g:{id}` / `u:{id}`
+- mapper は `userAuthoritiesMapper` 差し込み必須（Bean だけでは不足）
+- **認可用 ROLE** → `Authentication` / `@PreAuthorize`（`OidcUser.getAuthorities()` だけ見ない）
+- **応答の role（openapi）** → ローカル `users.role`。表示用と認可用を混ぜない
+- ルーム: `DRAFT→OPEN⇔CLOSED`。投稿・いいねは OPEN のみ。`upvote_count` は原子的更新
 
-特に意識する例（網羅ではない）:
+## スタイル（可読性・EJ ≫ 短縮）
 
-- **不変性**: リクエスト/レスポンス DTO は `record` や不変オブジェクトを優先。可変な Entity と役割を混ぜない
-- **静的ファクトリ / コンストラクタ**: 生成意図が伝わる名前付き生成を検討（例: ステータス遷移・`joinCode` 発行）
-- **enum**: 状態や種別（ルーム / 質問 / Poll）は int 定数や裸の String 連打より enum（永続化は `EnumType.STRING` 等）
-- **equals / hashCode**: JPA Entity では安易に全フィールド equals しない。ビジネスキー方針を決めてから
-- **例外**: 業務エラーは unchecked + 共通エラーJSONへ。チェック例外の乱用や握りつぶしを避ける
-- **ジェネリクス / 生の型**: Repository・コレクションで raw type を使わない
-- **リソース**: 手動 close より try-with-resources（ストリームや外部接続を扱うとき）
-- **公開 API の最小化**: パッケージ／メソッドを必要以上に public にしない（Controller から触る面を狭く）
+- `final User x = ...`（明示型）。単純な型を `var` にしない
+- 静的ファクトリ（`hostOf` / `create`…）。enum + `EnumType.STRING`
+- Entity に安易な全フィールド equals 禁止。UNIQUE 名は Flyway と `@UniqueConstraint` 一致
+- 【EJ】形式は [explain](live-qa-learning-explain.mdc)
 
-解説・レビュー時は「EJ のどの考え方に沿っているか／あえて外しているか」を一言添えてよい。
+## テスト（実装とセット）
 
-## 依頼時（Member B / C）
+| 層 | 手段 |
+|----|------|
+| Service | JUnit + Mockito |
+| Controller | `@WebMvcTest` + security-test（本番 Security を無理に Import しない） |
 
-- キーワードは `live-qa-keywords.mdc`（**実装** / **解説** / **確認** / **修復**）
-- 解説の書き方は `live-qa-learning-explain.mdc`（操作の意味・interface 等の正体）
-- **実装**時の推奨順: Flyway → Entity → Auth/Session → Event/Question API → STOMP
-- **確認**時の Issue 案進捗: ラボ `../live-qa-session-lab/docs/issues/member-b/`（本番リポに載せない）
+正常 1 + 分岐 0〜1。E2E/100% 不要。CI: `.github/workflows/ci.yml`（`mvn test`）
+
+## 推奨順
+
+Flyway → Entity → Auth（JIT・me・logout）+テスト → Event/Question API → QueryDSL → STOMP  
+Issue 案（確認時）: ラボ `../live-qa-session-lab/docs/issues/member-b/`（本番禁止）
 
 ## 参照
 
-- `docs/api/openapi-notes.md`
-- `docs/design/er-diagram.md`
-- `docs/design/constraints.md`
-- `docs/design/websocket-sequence.md`
-- `AGENTS.md`
+openapi-notes / er-diagram / constraints / websocket-sequence / ルート AGENTS.md

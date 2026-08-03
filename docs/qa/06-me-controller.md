@@ -358,3 +358,67 @@ public MeResponse me(@AuthenticationPrincipal OidcUser user, Authentication auth
 3. アプリ再起動  
 4. **SESSION Cookie を捨てて再ログイン**（古い箱には古い権限が入っている）  
 5. `GET /api/me` → `"role": "HOST"`
+
+---
+
+## Q: lab では Authentication から ROLE を取っていた。OidcUser との差分は？取れない認識でよい？
+
+**認識はだいたい正しい。mapper で足した `ROLE_HOST` を見るなら `Authentication.getAuthorities()` が正。`OidcUser.getAuthorities()` だけだと足りない／ずれることがある。**
+
+### 箱の中の分担
+
+```text
+SecurityContext
+  └── Authentication
+        ├── principal = OidcUser     … クレーム（sub, name, email）
+        │     └── getAuthorities()   … 主に OIDC 由来（OIDC_USER, SCOPE_* 等）
+        │                              ※ mapper 結果がここに無い／古いことがある
+        └── getAuthorities()         … mapper 適用後の権限（ROLE_HOST が載る）
+```
+
+| 取りたいもの | どこから |
+|--------------|----------|
+| `sub` / name / email | **OidcUser**（`@AuthenticationPrincipal`） |
+| mapper 後の `ROLE_HOST` | **Authentication.getAuthorities()** |
+| `@PreAuthorize("hasRole('HOST')")` | 内部的に **Authentication** の authorities を見る |
+
+### 「OidcUser から ROLE が取れない」の意味
+
+- OidcUser に `getAuthorities()` メソッドは**ある**（インタフェース上は権限を持つ）
+- ただし lab／本番でハマったのは、**GrantedAuthoritiesMapper の結果が Authentication 側に載る**一方、principal（OidcUser）側の authorities は **SCOPE_* のまま**になりうること
+- だから `/api/me` で `user.getAuthorities()` だけ見ると **UNKNOWN**、`authentication.getAuthorities()` なら **HOST**、という差分が出た
+
+→ 「認可用の ROLE は OidcUser ではなく Authentication から」が lab の教訓。
+
+### F-01 仕上げ後のもう一つの正（openapi）
+
+openapi: **`id` / `role` はローカル `users` 由来**。
+
+| 方式 | 意味 |
+|------|------|
+| lab 骨組み | 応答の `role` 文字列も **Authentication** から作る |
+| 仕上げ | 応答の `role` は **`users.role`（DB）**。認可ゲートは引き続き Authentication / `@PreAuthorize` |
+
+DB の role と Keycloak の ROLE_HOST は、JIT で HOST 固定なら一致する想定。  
+表示用 role と認可用 authorities を混ぜない、がポイント。
+
+**近いが、イコールではない。**
+
+| 名前 | 正体 |
+|------|------|
+| **SecurityContext** | 「今このリクエストの認証情報一式」を入れる**箱**（スレッド／セッションに紐づく） |
+| **Authentication** | 箱の中身（principal・authorities・認証済みか） |
+| **principal（OidcUser）** | Authentication の「誰」の部分 |
+| **`@AuthenticationPrincipal`** | SecurityContext → Authentication → **principal だけ**を引数に取り出す注釈 |
+
+```text
+SecurityContext（広い・箱）
+  └── Authentication
+        ├── principal = OidcUser   ← @AuthenticationPrincipal が取るのはここ
+        └── authorities = ROLE_HOST など
+```
+
+SESSION から復元されるのも、ざっくりこの SecurityContext 相当。  
+「Context から取っている」感覚は正しく、正確には **Context 全体ではなく中の principal（OidcUser）**。
+
+`@PreAuthorize` / `Authentication.getAuthorities()` が見るのは主に **authorities** 側で、OidcUser（クレーム）とは役割が違う。
