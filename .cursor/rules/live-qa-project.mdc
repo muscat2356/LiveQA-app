@@ -1,42 +1,42 @@
 ---
-description: live-qa-app プロジェクト共通（スコープ・チーム・言語）。依頼語は keywords、解説は learning-explain
+description: 共通OS（優先順位・スコープ・Agent核）。詳細は keywords / explain / memo / 領域別
 alwaysApply: true
 ---
 
-# live-qa-app 共通ルール
+# live-qa-app 共通
 
 ## 言語
 
-常に日本語。コードコメントも日本語。明るくポジティブな口調。
+日本語。コメントも日本語。明るくポジティブ。
 
-## 開発フロー
+## 正の優先（上を採る）
 
-アジャイル: 学習（Day1-4）→ MVP-A（Day5-9）→ MVP-B（Day10-13）→ 仕上げ（Day14）。  
-設計の正は `docs/` と `README.md`。
+1. `docs/`（openapi / ER / constraints / websocket-sequence / scope）
+2. 本ルール群 / `README.md`
+3. **Java**: 可読性・堅牢な EJ（明示型・`final`・不変 DTO・分かる名前）≫ `var`・行数削減
+4. その他一般論
 
-## スコープ
+矛盾時は「docs 更新か実装合わせか」を明示。母体ハブ構想は MVP の正ではない。
 
-- **MVP-A（死守）**: F-01〜F-09
-- **MVP-B**: F-10〜F-13 / **ストレッチ**: F-14〜F-15
-- MVP-A 未達なら MVP-B に進まず仕上げ優先
-- ルーム: `DRAFT → OPEN ⇔ CLOSED`。Poll: `DRAFT → OPEN → CLOSED`
-- エラーJSON: `{ status, error, message }`（400は任意で `fields`）
+## スコープ（要約）
 
-## チーム
+MVP-A 死守 F-01〜F-09。ルーム `DRAFT→OPEN⇔CLOSED`。エラー `{ status, error, message }`。権限の正は API。
 
 | Member | 領域 |
 |--------|------|
-| A | Next.js（UI / SSR / STOMP受信） |
-| B | Session+Redis / OIDC / CRUD API / QueryDSL |
-| C | STOMP配信 / Compose / CI |
+| A | Next.js / STOMP 受信 |
+| B | Session+API / QueryDSL |
+| C | STOMP 配信 / Compose / CI |
 
-## 依頼・解説（分割ルールへ）
+## Agent 核（毎回これだけ）
 
-- 二文字キーワード → [live-qa-keywords.mdc](live-qa-keywords.mdc)
-- 写経の言語化（操作の意味・型の正体）→ [live-qa-learning-explain.mdc](live-qa-learning-explain.mdc)
-- 質問回答の学習メモ → [live-qa-learning-memo.mdc](live-qa-learning-memo.mdc)（`docs/qa/` へ出力／追記）
-- **実装は本人が手で行う**。Agent は差分整理・写経単位・解説を優先
+| 依頼 | 動作 |
+|------|------|
+| **実装** 等 | → [keywords](live-qa-keywords.mdc) |
+| 写経の書き方 | → [explain](live-qa-learning-explain.mdc)（Java は【EJ】） |
+| 概念説明後 | → [memo](live-qa-learning-memo.mdc) で `docs/qa/` |
+| Java / API | → [backend](live-qa-backend.mdc)（三層・DTO・ResponseEntity・テスト） |
+| フロント | → [frontend](live-qa-frontend.mdc) |
 
-## 権限
-
-フロントは UI 出し分け + 401/403。正は Spring API + Cookieセッション RBAC。参加者は匿名セッション。
+- **実装は本人が手で書く**（Agent は現状→小単位写経＋テストセット＋解説）
+- 機能 ID / `docs/` 参照があればそれをスコープにする

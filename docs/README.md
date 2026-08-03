@@ -8,6 +8,7 @@ live-qa-app（リアルタイム ライブQ&A + 投票 / sli.do風）の方向�
 - [roles.md](roles.md) — 3名の役割分担と機能 ID 対応（A=Next.js / B=Cookieセッション+Redis / C=WebSocket+Docker）
 - [schedule.md](schedule.md) — 14日アジャイル（学習フェーズ → MVP-A → MVP-B → 仕上げ）
 - [architecture.md](architecture.md) — アーキテクチャ図・技術要件のマッピング・STOMP設計・セキュリティ/整合性方針
+- [design/platform-hub-vision.md](design/platform-hub-vision.md) — **将来構想**（母体アプリ + LibraShare / live-qa。MVP 対象外）
 
 ## 設計（サービス具体化）
 

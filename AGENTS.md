@@ -103,27 +103,23 @@
 
 ## AI Agent への依頼方針（索引）
 
-詳細は `.cursor/rules/` に分割（漏れなく読むときは下表の順）。
+詳細は `.cursor/rules/` の **6本のみ**（増やさない）。効率のため役割固定:
 
-| 順 | ファイル | 内容 |
-|----|----------|------|
-| 1 | [live-qa-project.mdc](.cursor/rules/live-qa-project.mdc) | スコープ・チーム・言語 |
-| 2 | [live-qa-keywords.mdc](.cursor/rules/live-qa-keywords.mdc) | **二文字キーワード**（実装 / 解説 / 確認 / 修復） |
-| 3 | [live-qa-learning-explain.mdc](.cursor/rules/live-qa-learning-explain.mdc) | 操作の意味・型の正体・写経の最低構成 |
-| 4 | [live-qa-learning-memo.mdc](.cursor/rules/live-qa-learning-memo.mdc) | 質問回答 → `docs/qa/` 出力／追記 |
-| 5 | [live-qa-backend.mdc](.cursor/rules/live-qa-backend.mdc) / [live-qa-frontend.mdc](.cursor/rules/live-qa-frontend.mdc) | 領域別規約 |
+| 順 | ファイル | 役割 | 適用 |
+|----|----------|------|------|
+| 1 | [live-qa-project.mdc](.cursor/rules/live-qa-project.mdc) | OS: 優先順位・スコープ・どこを読むか | always |
+| 2 | [live-qa-keywords.mdc](.cursor/rules/live-qa-keywords.mdc) | ディスパッチとチェックリスト | always |
+| 3 | [live-qa-learning-explain.mdc](.cursor/rules/live-qa-learning-explain.mdc) | 写経の言語化・【EJ】テンプレ | always |
+| 4 | [live-qa-learning-memo.mdc](.cursor/rules/live-qa-learning-memo.mdc) | `docs/qa/` / PR時整理 | always |
+| 5 | [live-qa-backend.mdc](.cursor/rules/live-qa-backend.mdc) | **Java 形の正**（三層・DTO・RE・テスト） | glob |
+| 6 | [live-qa-frontend.mdc](.cursor/rules/live-qa-frontend.mdc) | フロント確定方針 | glob |
 
 ### 共通（要約）
 
-- **実装は本人が手で行う**。Agent は差分整理・写経単位・解説を優先
-- 依頼は**機能 ID（F-01 等）**か `docs/` 参照 + 必要なら二文字キーワード
-- 設計の正は `docs/` と `README.md`。矛盾時は docs 優先し差分を明示
-- **学習メモ**: 仕組み・用語・トラブル原因などの回答は `docs/qa/` へ md 新規作成または追記（秘密情報は書かない）
-
-### 二文字キーワード（4種）
-
-`実装` `解説` `確認` `修復`  
-→ 詳細・旧語エイリアスは [live-qa-keywords.mdc](.cursor/rules/live-qa-keywords.mdc)
+- 実装は本人。Agent は小単位写経＋**テストセット**＋解説
+- docs 最優先 → 可読性・EJ ≫ `var` 短縮
+- Java: Service が DTO、Controller が `ResponseEntity`、認可用 ROLE は Authentication
+- キーワード: `実装` `解説` `確認` `修復` / 複合 `PR案作成`（本文はテンプレでコピペ表示）
 
 ### Member メモ
 
