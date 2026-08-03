@@ -1,12 +1,14 @@
 package com.liveqa.config;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -48,14 +50,17 @@ public class SecurityConfig {
     private final UserService userService;
     private final ObjectMapper objectMapper;
     private final ClientRegistrationRepository clientRegistrationRepository;
+    private final String postLogoutRedirectUri;
 
     public SecurityConfig(ObjectMapper objectMapper,
                         UserService userService,
-                        ClientRegistrationRepository clientRegistrationRepository
+                        ClientRegistrationRepository clientRegistrationRepository,
+                        @Value("${app.logout.post-logout-redirect-uri}") String postLogoutRedirectUri
     ) {
         this.objectMapper = objectMapper;
         this.userService = userService;
         this.clientRegistrationRepository = clientRegistrationRepository;
+        this.postLogoutRedirectUri = postLogoutRedirectUri;
     }
 
     @Bean
@@ -152,6 +157,8 @@ public class SecurityConfig {
         String message
     ) throws IOException {
         response.setStatus(status.value());
+        // getWriter() 前に必須。未設定だと Servlet 既定（ISO-8859-1）になり日本語が化ける
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         objectMapper.writeValue(response.getWriter(), Map.of(
             "status", status.value(),
@@ -164,7 +171,7 @@ public class SecurityConfig {
         final OidcClientInitiatedLogoutSuccessHandler handler =
             new OidcClientInitiatedLogoutSuccessHandler(clientRegistrationRepository);
 
-            handler.setPostLogoutRedirectUri("{baseUrl}/");
+            handler.setPostLogoutRedirectUri(postLogoutRedirectUri);
             return handler;
     }
 
