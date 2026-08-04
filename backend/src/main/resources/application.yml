@@ -3,7 +3,10 @@
 
 server:
   port: 8080
-
+# ログアウト後のブラウザ戻り先（フロント）。Keycloak Valid post logout redirect URIs と一致させる
+app:
+  logout:
+    post-logout-redirect-uri: ${POST_LOGOUT_REDIRECT_URI:http://localhost:3000/}
 spring:
   application:
     name: live-qa-backend

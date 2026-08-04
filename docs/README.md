@@ -8,6 +8,7 @@ live-qa-app（リアルタイム ライブQ&A + 投票 / sli.do風）の方向�
 - [roles.md](roles.md) — 3名の役割分担と機能 ID 対応（A=Next.js / B=Cookieセッション+Redis / C=WebSocket+Docker）
 - [schedule.md](schedule.md) — 14日アジャイル（学習フェーズ → MVP-A → MVP-B → 仕上げ）
 - [architecture.md](architecture.md) — アーキテクチャ図・技術要件のマッピング・STOMP設計・セキュリティ/整合性方針
+- [design/platform-hub-vision.md](design/platform-hub-vision.md) — **将来構想**（母体アプリ + LibraShare / live-qa。MVP 対象外）
 
 ## 設計（サービス具体化）
 
@@ -25,6 +26,13 @@ live-qa-app（リアルタイム ライブQ&A + 投票 / sli.do風）の方向�
 - [qa/08-backend-project-migrate.md](qa/08-backend-project-migrate.md) — **backend プロジェクト移行手順**（Maven 骨組み）
 - [backend/README.md](../backend/README.md) — 起動・疎通の入口
 
+> Member B の GitHub Issue 案（B-01〜）は本番リポに置かず、ラボ  
+> [`../../live-qa-session-lab/docs/issues/member-b/`](../../live-qa-session-lab/docs/issues/member-b/) に避難。**確認** 時に参照（`.cursor/rules/live-qa-keywords.mdc`）。
+
 ## 共有会
 
 - [share/2026-08-member-b-f01-auth.md](share/2026-08-member-b-f01-auth.md) — **F-01 共有会**（網羅版・本編30〜35分）
+
+## AI レビュー（Gemini on GitHub）
+
+- [../.gemini/README.md](../.gemini/README.md) — Gemini Code Assist（`styleguide.md` / `config.yaml`）

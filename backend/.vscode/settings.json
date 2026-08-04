@@ -1,0 +1,13 @@
+{
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "java.import.maven.enabled": true,
+    "java.maven.downloadSources": true,
+    "java.jdt.ls.java.home": "/home/spiritualmasa/.sdkman/candidates/java/21.0.10-tem",
+    "java.configuration.runtimes": [
+        {
+            "name": "JavaSE-21",
+            "path": "/home/spiritualmasa/.sdkman/candidates/java/21.0.10-tem",
+            "default": true
+        }
+    ]
+}

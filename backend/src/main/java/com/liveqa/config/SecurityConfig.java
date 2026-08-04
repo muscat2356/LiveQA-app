@@ -1,11 +1,13 @@
 package com.liveqa.config;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -16,14 +18,22 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.authority.mapping.GrantedAuthoritiesMapper;
+import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
+import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
+import org.springframework.security.oauth2.client.oidc.web.logout.OidcClientInitiatedLogoutSuccessHandler;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.oauth2.core.oidc.user.OidcUserAuthority;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.liveqa.service.UserService;
 
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -36,10 +46,20 @@ import jakarta.servlet.http.HttpServletResponse;
 @EnableMethodSecurity
 public class SecurityConfig {
 
+    private final UserService userService;
     private final ObjectMapper objectMapper;
+    private final ClientRegistrationRepository clientRegistrationRepository;
+    private final String postLogoutRedirectUri;
 
-    public SecurityConfig(ObjectMapper objectMapper) {
+    public SecurityConfig(ObjectMapper objectMapper,
+                        UserService userService,
+                        ClientRegistrationRepository clientRegistrationRepository,
+                        @Value("${app.logout.post-logout-redirect-uri}") String postLogoutRedirectUri
+    ) {
         this.objectMapper = objectMapper;
+        this.userService = userService;
+        this.clientRegistrationRepository = clientRegistrationRepository;
+        this.postLogoutRedirectUri = postLogoutRedirectUri;
     }
 
     @Bean
@@ -52,12 +72,13 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                 .requestMatchers("/api/auth/guest").permitAll()
-                .requestMatchers("/api/me").authenticated()
+                .requestMatchers("/api/me","/api/auth/logout").authenticated()
                 .anyRequest().permitAll()
             )
             // Bean だけでは呼ばれない → userAuthoritiesMapper で差し込む
             .oauth2Login(oauth2 -> oauth2
                 .userInfoEndpoint(userInfo -> userInfo
+                    .oidcUserService(oidcUserService())
                     .userAuthoritiesMapper(grantedAuthoritiesMapper())
                 )
             )
@@ -68,6 +89,10 @@ public class SecurityConfig {
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint(authenticationEntryPoint())
                 .accessDeniedHandler(accessDeniedHandler())
+            )
+            .logout(logout -> logout
+                .logoutUrl("/api/auth/logout")
+                .logoutSuccessHandler(oidcLogoutSuccessHandler())
             );
 
         return http.build();
@@ -104,12 +129,12 @@ public class SecurityConfig {
 
     private AuthenticationEntryPoint authenticationEntryPoint() {
         return (request, response, authException)
-            -> writeJson(response, HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "ログインが必須です");
+            -> writeJson(response, HttpStatus.UNAUTHORIZED, "Unauthorized", "ログインが必要です");
     }
 
     private AccessDeniedHandler accessDeniedHandler() {
         return (request, response, accessDeniedException)
-            -> writeJson(response, HttpStatus.FORBIDDEN, "FORBIDDEN", "権限がありません");
+            -> writeJson(response, HttpStatus.FORBIDDEN, "Forbidden", "権限がありません");
     }
 
     private void writeJson(
@@ -119,11 +144,31 @@ public class SecurityConfig {
         String message
     ) throws IOException {
         response.setStatus(status.value());
+        // getWriter() 前に必須。未設定だと Servlet 既定（ISO-8859-1）になり日本語が化ける
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         objectMapper.writeValue(response.getWriter(), Map.of(
             "status", status.value(),
             "error", error,
             "message", message
         ));
+    }
+
+    private LogoutSuccessHandler oidcLogoutSuccessHandler() {
+        final OidcClientInitiatedLogoutSuccessHandler handler =
+            new OidcClientInitiatedLogoutSuccessHandler(clientRegistrationRepository);
+
+            handler.setPostLogoutRedirectUri(postLogoutRedirectUri);
+            return handler;
+    }
+
+    @Bean
+    public OAuth2UserService<OidcUserRequest, OidcUser> oidcUserService() {
+        OidcUserService delegate = new OidcUserService();
+        return userRequest -> {
+            OidcUser oidcUser = delegate.loadUser(userRequest);
+            userService.provisionHost(oidcUser.getSubject());
+            return oidcUser;
+        };
     }
 }

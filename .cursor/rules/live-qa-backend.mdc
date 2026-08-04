@@ -1,53 +1,64 @@
 ---
-description: live-qa-app バックエンド規約（Spring / Session / Flyway / STOMP / API）
-globs: backend/**/*.{java,yml,yaml,sql}
+description: バックエンド確定方針（三層・DTO・ResponseEntity・EJ・テスト・認証）。Java 形の正
+globs: "**/*.{java,yml,yaml,sql},backend/**/*.{java,yml,yaml,sql},**/db/migration/**"
 alwaysApply: false
 ---
 
-# バックエンド規約
+# バックエンド規約（Java 形の正）
 
-## 構成（目標）
+## レイヤ
 
 ```
-backend/src/main/java/.../
-├── config/        # Security, Session, WebSocket, CORS
-├── controller/
-├── service/
-├── repository/
-├── domain/
-└── dto/request|response/
-
-backend/src/main/resources/
-├── application.yml
-└── db/migration/  # Flyway（追加のみ）
+controller → service → repository → domain
+dto/ … request|response（record）
+db/migration/ … Flyway 追加のみ（既存 V* 不改変）
 ```
 
-## 確定方針
+| 層 | する | しない |
+|----|------|--------|
+| Controller | principal 受け取り、`@PreAuthorize`、`ResponseEntity` | 業務分岐、DTO 組み立ての本体 |
+| Service | ユースケース、DB 復元、**DTO 組み立て**（例: `toMeResponse` / `currentHost`） | `ResponseEntity` |
+| Repository | DB | DTO / HTTP |
+| Entity | 永続化 | API 直出し |
 
-- 認証: Keycloak `oauth2Login` → Spring Session(Redis)。以降は `SESSION` Cookie（JWT再検証しない）
-- CSRF有効。状態変更は `X-XSRF-TOKEN`
-- 参加者は匿名セッション。`voter_key = g:{guestId}`（HOSTは `u:{userId}`）
-- ルーム: `DRAFT → OPEN ⇔ CLOSED`。投稿・いいねは `OPEN` のみ
-- `upvote_count` は原子的インクリメント（楽観ロック `version` は使わない）
-- エラー: `{ status, error, message }`。400 / 401 / 403 / 404 / 409
-- Poll（MVP-B）: `V2__polls.sql` 想定。Q&Aと共存
+**Me 分割例:** `requireByOidcSubject`→`User` / `toMeResponse`→`MeResponse` / `currentHost`→オーケストレーション / Controller→`ResponseEntity.ok(...)`
 
-## パターン
+## HTTP・DTO
 
-- Controller → Service → Repository。Controller に業務分岐を書かない
-- 認可は `@PreAuthorize` + 所有者チェック
-- DB変更は Flyway 追加のみ（既存 V* を書き換えない）
+- Controller 戻り値は **`ResponseEntity` 統一**（200=`ok`、201=created/status、204=`noContent`）
+- DTO は **`record`**。Service が組み立て、Controller が箱に入れる
+- エラー JSON: `{ status, error, message }`（400 は任意 `fields`）
 
-## 依頼時（Member B / C）
+## 認証・認可
 
-- キーワードは `live-qa-keywords.mdc`（**実装** / **解説** / **確認** / **修復**）
-- 解説の書き方は `live-qa-learning-explain.mdc`（操作の意味・interface 等の正体）
-- **実装**時の推奨順: Flyway → Entity → Auth/Session → Event/Question API → STOMP
+- oauth2Login → Session(Redis) → `SESSION` Cookie（JWT 都度検証に戻さない）
+- CSRF + `X-XSRF-TOKEN`。参加者は匿名。`voter_key` = `g:{id}` / `u:{id}`
+- mapper は `userAuthoritiesMapper` 差し込み必須（Bean だけでは不足）
+- **認可用 ROLE** → `Authentication` / `@PreAuthorize`（`OidcUser.getAuthorities()` だけ見ない）
+- **応答の role（openapi）** → ローカル `users.role`。表示用と認可用を混ぜない
+- ルーム: `DRAFT→OPEN⇔CLOSED`。投稿・いいねは OPEN のみ。`upvote_count` は原子的更新
+
+## スタイル（可読性・EJ ≫ 短縮）
+
+- `final User x = ...`（明示型）。単純な型を `var` にしない
+- 静的ファクトリ（`hostOf` / `create`…）。enum + `EnumType.STRING`
+- Entity に安易な全フィールド equals 禁止。UNIQUE 名は Flyway と `@UniqueConstraint` 一致
+- 【EJ】形式は [explain](live-qa-learning-explain.mdc)
+
+## テスト（実装とセット）
+
+| 層 | 手段 |
+|----|------|
+| Service | JUnit + Mockito |
+| Controller | `@WebMvcTest` + security-test（本番 Security を無理に Import しない） |
+
+正常 1 + 分岐 0〜1。E2E/100% 不要。CI: `.github/workflows/ci.yml`（`mvn test`）
+
+## 推奨順
+
+Flyway → Entity → Auth（JIT・me・logout）+テスト → Event/Question API → QueryDSL → STOMP  
+Issue 案（確認時）: ラボ `../live-qa-session-lab/docs/issues/member-b/`（本番禁止）
 
 ## 参照
 
-- `docs/api/openapi-notes.md`
-- `docs/design/er-diagram.md`
-- `docs/design/constraints.md`
-- `docs/design/websocket-sequence.md`
-- `AGENTS.md`
+openapi-notes / er-diagram / constraints / websocket-sequence / ルート AGENTS.md

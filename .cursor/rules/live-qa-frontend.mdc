@@ -1,46 +1,19 @@
 ---
-description: live-qa-app フロントエンド規約（Next.js / SSR / Cookie / STOMP）
-globs: frontend/**/*.{ts,tsx}
+description: フロント確定方針（Cookie / STOMP 受信 / UI）。依頼手順は共通 keywords
+globs: "frontend/**/*.{ts,tsx},**/frontend/**/*.{ts,tsx}"
 alwaysApply: false
 ---
 
 # フロントエンド規約
 
-## 構成（目標）
-
 ```
-frontend/
-├── app/           # App Router（SSR / ルート）
-├── components/    # UI部品
-├── lib/           # APIクライアント、STOMP、Zodスキーマ
-└── ...
+frontend/app · components · lib（API / STOMP / Zod）
 ```
 
-## 確定方針
+- App Router + TS。ログインは Keycloak リダイレクト（自前フォームなし）
+- REST: Cookie `SESSION`。変更系: `X-XSRF-TOKEN`
+- STOMP: `/topic/events/{eventId}/questions`（MVP-B: `/polls`）。`votedByMe` 等は配信に載せない
+- `DRAFT`/`CLOSED` では投稿・いいね UI 無効。権限の正は API（UI 出し分け + 401/403）
+- TanStack Query / Zod / Tailwind + shadcn
 
-- Next.js App Router + TypeScript
-- 主催者ログインは Keycloak へリダイレクト（自前ログインフォームなし）
-- RESTは Cookie（`SESSION`）付き。状態変更は `X-XSRF-TOKEN`
-- 参加者はログイン不要。参加コード / URL から参加
-- STOMP購読: `/topic/events/{eventId}/questions`（MVP-B: `/polls`）
-- 配信ペイロードに `votedByMe` / `myOptionIds` は含まれない（クライアント側で保持）
-- ルームが `DRAFT` / `CLOSED` のときは投稿・いいねUIを無効化
-
-## パターン
-
-- データ取得: TanStack Query（クライアント）/ Server Component（SSR）
-- バリデーション: Zod（制約は `docs/design/constraints.md`）
-- UI: Tailwind + shadcn/ui
-- 権限制御は UI 出し分け + 401/403。正は API
-
-## 依頼時（Member A）
-
-- キーワードは `live-qa-keywords.mdc`（**実装** / **解説** / **確認** / **修復**）
-- 解説の書き方は `live-qa-learning-explain.mdc`（操作の意味・型の正体）
-
-## 参照
-
-- `docs/design/screen-transition.md`
-- `docs/api/openapi-notes.md`
-- `docs/design/constraints.md`
-- `AGENTS.md`
+依頼・写経は keywords / explain。参照: screen-transition / openapi-notes / constraints / AGENTS.md
