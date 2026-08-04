@@ -1,7 +1,6 @@
 package com.liveqa.config;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -77,23 +76,11 @@ public class SecurityConfig {
     @Bean
     public GrantedAuthoritiesMapper grantedAuthoritiesMapper() {
         return authorities -> {
-            Set<GrantedAuthority> mapped = new HashSet<>(authorities);
+            final Set<GrantedAuthority> mapped = new HashSet<>(authorities);
             for (GrantedAuthority authority : authorities) {
                 if (authority instanceof OidcUserAuthority oidc) {
+                    // Keycloak の realm role は IdToken の realm_access に載せる前提で一本化する
                     addRolesFromRealmAccess(oidc.getIdToken().getClaimAsMap("realm_access"), mapped);
-                    if (oidc.getUserInfo() != null) {
-                        addRolesFromRealmAccess(oidc.getUserInfo().getClaimAsMap("realm_access"), mapped);
-                    }
-                    Object attr = oidc.getAttributes().get("realm_access");
-                    if (attr instanceof Map<?, ?> raw) {
-                        Map<String, Object> realmAccess = new HashMap<>();
-                        raw.forEach((k, v) -> {
-                            if (k instanceof String key) {
-                                realmAccess.put(key, v);
-                            }
-                        });
-                        addRolesFromRealmAccess(realmAccess, mapped);
-                    }
                 }
             }
             return mapped;

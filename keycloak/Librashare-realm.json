@@ -1244,7 +1244,7 @@
     }, {
       "id" : "77f42e7f-25bd-4009-8350-be3a51c7c784",
       "name" : "roles",
-      "description" : "OpenID Connect scope for add user roles to the access token",
+      "description" : "OpenID Connect scope for add user roles to the access token and ID token (live-qa: ROLE_HOST)",
       "protocol" : "openid-connect",
       "attributes" : {
         "include.in.token.scope" : "false",
@@ -1284,7 +1284,9 @@
         "config" : {
           "user.attribute" : "foo",
           "introspection.token.claim" : "true",
+          "id.token.claim" : "true",
           "access.token.claim" : "true",
+          "userinfo.token.claim" : "true",
           "claim.name" : "realm_access.roles",
           "jsonType.label" : "String",
           "multivalued" : "true"

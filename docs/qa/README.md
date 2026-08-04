@@ -10,6 +10,23 @@ Agent は回答のたびにここへ **新規作成または追記**する（`.c
 | ファイル | 内容 |
 |----------|------|
 | [09-keycloak-realm-librashare.md](09-keycloak-realm-librashare.md) | **LibraShare realm への相乗り**（realm JSON・サードパーティー・最終的な Keycloak 共有イメージ / URL 2種） |
+| [10-get-api-events.md](10-get-api-events.md) | **GET /api/events**（Flyway〜一覧の写経順・EJ・データの流れ） |
+| [11-jpa.md](11-jpa.md) | **JPA 解説**（仕様と Hibernate / Entity・Repository・Flyway 分担） |
+| [12-delete-strategy.md](12-delete-strategy.md) | **削除方針**（物理 DELETE が少ない理由 / User は残す / status が論理相当） |
+| [13-unique-name-and-test-deps.md](13-unique-name-and-test-deps.md) | **UNIQUE 制約の命名** / **テスト依存**（レビュー指摘の解説） |
+| [14-f01-finish.md](14-f01-finish.md) | **F-01 仕上げ**（JIT・`/api/me` ローカル id・logout）＋ **MeController 動作確認手順** |
+| [15-jit-provisioning.md](15-jit-provisioning.md) | **JIT プロビジョニング**（何をするか / なぜ / データの流れ） |
+| [16-userservice-when-oidcsubject.md](16-userservice-when-oidcsubject.md) | **UserService の動くタイミング** / `oidcSubject` の出所 |
+| [17-host-displayname-idp.md](17-host-displayname-idp.md) | **HOST 表示名**（IdP 日本語・ローカル列は要るか） |
+| [18-delegate-loaduser.md](18-delegate-loaduser.md) | **`delegate.loadUser`**（標準 OidcUserService への委譲） |
+| [19-dto-record.md](19-dto-record.md) | **Response/Request は record か** |
+| [20-github-actions-ci.md](20-github-actions-ci.md) | **GitHub Actions CI**（backend `mvn test`） |
+| [21-response-entity.md](21-response-entity.md) | **ResponseEntity を使う／使わない** |
+| [22-var-vs-immutable.md](22-var-vs-immutable.md) | **`var` とイミュータブル（EJ）は別軸** |
+| [23-dto-mapping-layer.md](23-dto-mapping-layer.md) | **DTO 変換は Service か Controller か（三層）** |
+| [24-test-deps-jacoco.md](24-test-deps-jacoco.md) | **テスト依存・JaCoCo**（今あるもの／後から） |
+| [25-userservice-unit-test.md](25-userservice-unit-test.md) | **UserService / MeController テスト**（Mock・oidcLogin・OAuth2 exclude） |
+| [26-securityconfig-data-flow.md](26-securityconfig-data-flow.md) | **SecurityConfig 流れ／メソッド／型カタログ**（+ Bruno token・IdToken に role 無し・mapper は loadUser の外 等 Q&A） |
 
 > ラボ時代のメモ（04〜06）は Keycloak `8081` / realm `live-qa` 前提で書かれている。本番は Keycloak `8080` / realm `LibraShare`（09 参照）。
 

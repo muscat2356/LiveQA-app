@@ -29,6 +29,10 @@ realm を分けると「別の IdP にログインし直す」形になり、サ
 1. **client `live-qa-app`** … confidential。redirect URI は `http://localhost:8081/*`（backend）と `http://localhost:3000/*`（Next.js）
 2. **realm role `HOST`** … live-qa-app の主催者ロール
 3. **`admin_test@example.com` に `HOST` を付与** … 既存ユーザーの realmRoles に追記（新規ユーザーは作らない）
+4. **client scope `roles` → mapper `realm roles`** … `id.token.claim` / `userinfo.token.claim` を `true`（backend の `GrantedAuthoritiesMapper` が IdToken の `realm_access` を読むため。既定は access token のみ）
+
+> **注意:** `--import-realm` は **初回（realm 未作成時）** に効く。すでに Keycloak のボリュームに LibraShare がある場合は JSON 変更だけでは反映されない。  
+> 反映手順: Admin で同等設定を直す / または `docker compose down` 後に postgres volume を消して再 import（**データ消える**ので注意）。
 
 取り込み後の確認結果:
 

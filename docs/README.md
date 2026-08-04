@@ -24,3 +24,7 @@ live-qa-app（リアルタイム ライブQ&A + 投票 / sli.do風）の方向�
 - [qa/00-transplant-from-lab.md](qa/00-transplant-from-lab.md) — session-lab からの **移植判断**（F-01 素振りの持ち込み／除外）
 - [qa/08-backend-project-migrate.md](qa/08-backend-project-migrate.md) — **backend プロジェクト移行手順**（Maven 骨組み）
 - [backend/README.md](../backend/README.md) — 起動・疎通の入口
+
+## 共有会
+
+- [share/2026-08-member-b-f01-auth.md](share/2026-08-member-b-f01-auth.md) — **F-01 共有会**（網羅版・本編30〜35分）

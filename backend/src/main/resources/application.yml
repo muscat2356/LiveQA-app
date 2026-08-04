@@ -7,6 +7,16 @@ server:
 spring:
   application:
     name: live-qa-backend
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:live_qa}
+    username: ${POSTGRES_USER:live_qa_user}
+    password: ${POSTGRES_PASSWORD:live_qa_password}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
 
   data:
     redis:

@@ -266,9 +266,15 @@ Redis Insight で「OidcUser オブジェクト」がそのまま見えるわけ
 
 ## Q: `/api/me` の role が `UNKNOWN`
 
-### 切り分けの順番
+> **2026-08-04 更新（現行 F-01）**  
+> いまの `MeController` は `userService.currentHost` → **`users.role`（DB）** を返す。`backend/src` に `"UNKNOWN"` は無い。  
+> したがって **SecurityConfig 不備では `"UNKNOWN"` は出ない**（出るのはだいたい **403**）。  
+> `"UNKNOWN"` が見えるなら、(a) ラボ型の旧 Controller が動いている、(b) DB に `UNKNOWN` が入っている、(c) 古いビルド、を疑う。  
+> 詳細手順は [14-f01-finish.md](14-f01-finish.md) の「UNKNOWN 切り分け」。
 
-`MeController` は authorities に **`ROLE_HOST`** があるときだけ `HOST` を返す。  
+### 切り分けの順番（ラボ時代の旧実装向け）
+
+旧 `MeController` は authorities に **`ROLE_HOST`** があるときだけ `HOST` を返す。  
 疑うのは2箇所で、**トークン側 → 変換側** の順に見る。
 
 #### ① トークンに `realm_access.roles` があるか（Keycloak 側）
