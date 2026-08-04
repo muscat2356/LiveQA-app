@@ -148,17 +148,19 @@ flowchart LR
 
 ## 開発スケジュール（アジャイル・14日）
 
-短いイテレーションで2つのMVPを段階リリースする。各イテレーション末に**デモ + ふりかえり**を行い、毎朝15分の進捗共有で軌道修正する。詳細は [docs/schedule.md](docs/schedule.md)。
+短いイテレーションで2つのMVPを段階リリースする。各イテレーション末に**デモ + ふりかえり**を行い、毎朝15分の進捗共有で軌道修正する。詳細は [docs/schedule.md](docs/schedule.md)（**2026-08 実施日は [カレンダー版](docs/schedule.md#2026-08-カレンダー版) が正**）。
 
-| フェーズ | 期間 | 内容 |
-|---------|------|------|
-| 学習フェーズ | Day1-4 | 各自が主役技術をJIT学習しつつ基盤構築（Docker一括起動 / CI緑 / 認証疎通 / STOMPエコー = **基盤疎通ゲート**） |
-| MVP-A（Sprint 1） | Day5-9 | **機能 F-01〜F-09**: 認証 / ルーム(`DRAFT→OPEN⇔CLOSED`) / 匿名参加 / 質問投稿・いいね・人気順 / WebSocketライブ配信 / 質問ステータス変更 / Docker＋CI。末尾でGo/No-Goレビュー |
-| MVP-B（Sprint 2） | Day10-13 | **機能 F-10〜F-13**: ライブ投票(Poll) / 質問フィルタ / 簡易モデレーション |
-| 仕上げ | Day14 | E2E / README・スクショ / 相互デモ / バグ修正・UX |
+| フェーズ | 期間（概念） | 2026-08 | 内容 |
+|---------|--------------|---------|------|
+| 学習フェーズ | Day1-4 | **8/4〜8/6**（ゲート 8/6） | 各自が主役技術をJIT学習しつつ基盤構築（Docker一括起動 / CI緑 / 認証疎通 / STOMPエコー = **基盤疎通ゲート**） |
+| 休暇 | — | **8/8〜8/17** | 開発オフ（8/7 は休暇前スプリント） |
+| MVP-A（Sprint 1） | Day5-9 | **8/18〜8/26**／**Go/No-Go 8/27** | **機能 F-01〜F-09**: 認証 / ルーム(`DRAFT→OPEN⇔CLOSED`) / 匿名参加 / 質問投稿・いいね・人気順 / WebSocketライブ配信 / 質問ステータス変更 / Docker＋CI |
+| MVP-B（Sprint 2） | Day10-13 | **8/28〜**（Go 時） | **機能 F-10〜F-13**: ライブ投票(Poll) / 質問フィルタ / 簡易モデレーション |
+| 仕上げ | Day14 | Go/No-Go 後 | E2E / README・スクショ / 相互デモ / バグ修正・UX |
 
 - 各Sprint末に「動くインクリメント」をデモできる状態にする（Potentially Shippable Increment）
 - **MVP-Aが未達なら MVP-B には進まず、仕上げを優先**する
+- **8/27 は動かさない**。遅延はスコープで吸収（[scope.md の削る順番](docs/scope.md)）
 
 ## ドキュメント
 
@@ -166,7 +168,7 @@ flowchart LR
 - [docs/README.md](docs/README.md) — ドキュメント索引
 - [docs/scope.md](docs/scope.md) — MVP-A / MVP-B / ストレッチ（F-xx）
 - [docs/roles.md](docs/roles.md) — 役割分担・機能 ID 対応
-- [docs/schedule.md](docs/schedule.md) — 14日アジャイルスケジュール
+- [docs/schedule.md](docs/schedule.md) — 14日アジャイルスケジュール（**[2026-08 カレンダー版](docs/schedule.md#2026-08-カレンダー版)**）
 - [docs/architecture.md](docs/architecture.md) — アーキテクチャ・技術マッピング
 
 ## リポジトリ構成

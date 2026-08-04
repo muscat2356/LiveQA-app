@@ -6,7 +6,7 @@ live-qa-app（リアルタイム ライブQ&A + 投票 / sli.do風）の方向�
 
 - [scope.md](scope.md) — MVP-A（F-01〜F-09）/ MVP-B（F-10〜F-13）/ ストレッチ（F-14〜F-15）、対象外、削る順番
 - [roles.md](roles.md) — 3名の役割分担と機能 ID 対応（A=Next.js / B=Cookieセッション+Redis / C=WebSocket+Docker）
-- [schedule.md](schedule.md) — 14日アジャイル（学習フェーズ → MVP-A → MVP-B → 仕上げ）
+- [schedule.md](schedule.md) — 14日アジャイル（学習 → MVP-A → MVP-B → 仕上げ）。**実施日の正は [2026-08 カレンダー版](schedule.md#2026-08-カレンダー版)**（学習終了 8/6・休暇 8/8〜17・Go/No-Go 8/27）
 - [architecture.md](architecture.md) — アーキテクチャ図・技術要件のマッピング・STOMP設計・セキュリティ/整合性方針
 - [design/platform-hub-vision.md](design/platform-hub-vision.md) — **将来構想**（母体アプリ + LibraShare / live-qa。MVP 対象外）
 
