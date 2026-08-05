@@ -39,7 +39,7 @@ public class Event {
     @JoinColumn(name = "host_id")
     private User host;
 
-    @Column(nullable = false, length = 200)
+    @Column(nullable = false, length = 100)
     private String title;
 
     @Column(name = "join_code", nullable = false, length = 12)

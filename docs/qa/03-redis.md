@@ -132,6 +132,64 @@ docker exec -it $(docker compose -f docker/docker-compose.yml ps -q redis) redis
 
 ---
 
+## Q: `session.setAttribute` で Redis に入る理由は？（`addAttribute` ではない）
+
+### 結論
+
+`HttpSession#setAttribute` 自体は Redis API を呼ばない。  
+**Spring Session** が「このアプリの HttpSession の実体は Redis」と差し替えているため、属性変更がリクエスト終了時に Redis へ **格納**される。
+
+（Servlet に `addAttribute` は無い。guest では `setAttribute`。）
+
+### なぜ作っているか（このリポ）
+
+`@EnableRedisHttpSession` + Redis 接続があるので、メモリ上のだけのセッションではなく、プロセス再起動や複数インスタンスでも同じ箱を共有できる。
+
+### データの流れ（guest の例）
+
+```text
+POST /api/auth/guest
+  → SessionRepositoryFilter
+       SESSION Cookie があれば Redis から HttpSession を 復元
+       無ければ新規セッション（後で Cookie 発行）
+  → GuestSessionController
+       session.setAttribute("guestId", …)   // メモリ上の Session に書く
+  → 応答前〜リクエスト終了
+       SessionRepositoryFilter が変更を検知
+       → Redis の live-qa:sessions:{id} へ 格納（シリアライズ）
+       → 必要なら Set-Cookie: SESSION=…
+```
+
+| 操作語 | 誰 | 何 |
+|--------|-----|-----|
+| `setAttribute` | アプリ（Controller 等） | セッション箱に属性を載せる（API は普通の HttpSession） |
+| 格納 | Spring Session Filter | 箱の中身を Redis に書く |
+| 復元 | 同上（次リクエスト） | Cookie の鍵で Redis から読み戻す |
+
+### 型の正体
+
+| 名前 | 正体 |
+|------|------|
+| `HttpSession` | インタフェース（Servlet）。アプリが触る面 |
+| `@EnableRedisHttpSession` | アノテーション。実装を Redis 版に切り替えるスイッチ |
+| `SessionRepositoryFilter` | 具象 Filter。復元／格納の実行役 |
+| `SESSION` Cookie | 箱の**鍵**（中身の guestId そのものではない） |
+
+Security の `Authentication` も同じ仕組みで Session 属性として Redis に載る（ログイン成功時）。guest の `guestId` も同じ経路。
+
+### 【EJ】
+
+```text
+【EJ】公開面最小化 … Controller は setAttribute まで。Redis 直書きはしない
+【EJ】依存性注入／設定 … SessionConfig で永続先を決める
+```
+
+### 一文
+
+> `setAttribute` は「箱に書く」。箱の置き場が Redis なのは Spring Session の Filter がリクエストの前後で復元／格納するから。
+
+---
+
 ## Redis に管理画面はない？
 
 Redis 本体にはブラウザ管理画面は無い。**別ツール**で GUI を使う。

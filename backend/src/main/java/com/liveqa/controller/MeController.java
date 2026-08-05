@@ -30,7 +30,7 @@ public MeController(UserService userService) {
 
 /**
 * セッション情報を返すGETメソッド
-* @param user Authenticationの中のOidcUserprincipalで直接受け取る
+* @param oidcUser Authenticationの中のOidcUserprincipalで直接受け取る
 * @return 200 ユーザー情報のResponse
 */
 @GetMapping("/me")

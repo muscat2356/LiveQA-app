@@ -2,7 +2,7 @@
 # Keycloak / Redis は環境に合わせて変更。秘密は .env 等で渡す
 
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
 # ログアウト後のブラウザ戻り先（フロント）。Keycloak Valid post logout redirect URIs と一致させる
 app:
   logout:

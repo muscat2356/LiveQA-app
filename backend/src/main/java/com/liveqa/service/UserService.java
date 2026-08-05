@@ -2,12 +2,11 @@ package com.liveqa.service;
 
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.liveqa.domain.User;
 import com.liveqa.dto.MeResponse;
 import com.liveqa.repository.UserRepository;
-
-import jakarta.transaction.Transactional;
 
 /**
  * usersテーブルとIDPの橋渡しを行うサービス

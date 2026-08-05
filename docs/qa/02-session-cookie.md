@@ -203,3 +203,94 @@ Redis も基本は **メモリ上のストア**。「メモリを使わない」
 一文:
 
 > Tomcat セッションは「そのアプリのメモリが箱」。Redis セッションは「別プロセス（別サーバ可）の倉庫が箱で、アプリは鍵（Cookie）だけ持つ」。
+
+---
+
+## Q: Spring が `Set-Cookie` の命令を送るロジックは？
+
+### 結論
+
+アプリが `response.addHeader("Set-Cookie", ...)` を書いていない。  
+**Filter が応答に載せる**。このリポでは主に2系統。
+
+| Cookie | 誰が発行するか | 設定の正（自前コード） |
+|--------|----------------|------------------------|
+| `SESSION` | Spring Session（`SessionRepositoryFilter` 等） | `SessionConfig` の `CookieSerializer` |
+| `XSRF-TOKEN` | Spring Security CSRF（`CookieCsrfTokenRepository`） | `SecurityConfig` の `withHttpOnlyFalse()` |
+
+### SESSION（箱の鍵）
+
+```text
+リクエスト処理
+  → Controller 等（guest なら setAttribute / ログインなら Authentication 格納）
+  → リクエスト終了付近
+       SessionRepositoryFilter
+         ① 変更があれば Redis へ 格納
+         ② 新しい／更新が必要なら CookieSerializer で Cookie 文字列を作る
+         ③ 応答ヘッダに Set-Cookie: SESSION=... を付ける（発行）
+```
+
+自前で決めるのは **形**だけ:
+
+```19:26:backend/src/main/java/com/liveqa/config/SessionConfig.java
+    public CookieSerializer cookieSerializer() {
+        DefaultCookieSerializer serializer = new DefaultCookieSerializer();
+        serializer.setCookieName("SESSION");
+        serializer.setUseSecureCookie(false);
+        serializer.setSameSite("Lax");
+        serializer.setUseHttpOnlyCookie(true);
+        return serializer;
+    }
+```
+
+| 設定 | 意味 |
+|------|------|
+| CookieName=`SESSION` | ヘッダ名の Cookie 名 |
+| HttpOnly=true | JS から読めない |
+| SameSite=Lax | 送信条件 |
+| Secure=false | ローカル HTTP 向け |
+
+`@EnableRedisHttpSession` が「HttpSession の実体＝Redis」スイッチ。発行そのものは Filter。
+
+### XSRF-TOKEN（CSRF 合い言葉）
+
+```text
+CsrfFilter + CookieCsrfTokenRepository
+  → トークンを 発行
+  → Set-Cookie: XSRF-TOKEN=...（HttpOnly=false → JS 可読）
+```
+
+`SecurityConfig` の `CookieCsrfTokenRepository.withHttpOnlyFalse()` がここ。
+
+### Guest POST のとき
+
+```text
+POST /api/auth/guest
+  → setAttribute("guestId", ...)
+  → 応答
+       Set-Cookie: SESSION=...   ← Session 系 Filter
+       Set-Cookie: XSRF-TOKEN=... ← 未発行なら CSRF 系（既にあれば更新／維持）
+       Body: { guestId, voterKey }  ← Cookie ではない
+```
+
+Controller は Cookie を送る命令を書いていない。**属性を書いた結果、Session Filter が鍵を発行する**。
+
+### 型の正体
+
+| 名前 | 正体 |
+|------|------|
+| `Set-Cookie` | HTTP 応答ヘッダ。ブラウザへ「この Cookie を保存せよ」 |
+| `CookieSerializer` | interface。Session ID を Cookie 文字列にする契約 |
+| `DefaultCookieSerializer` | 具象。名前・HttpOnly 等を設定 |
+| `SessionRepositoryFilter` | 具象 Filter。復元／格納／Set-Cookie 発行の実行役 |
+
+### 【EJ】
+
+```text
+【EJ】公開面最小化 … Controller は setAttribute まで。Set-Cookie は FW
+【EJ】設定と実装の分離 … 発行の作法は SessionConfig、実行は Filter
+```
+
+### 一文
+
+> Spring の「Set-Cookie 命令」＝ Filter が応答ヘッダに載せる処理。自前コードは CookieSerializer / CsrfTokenRepository で作法を指定するだけ。
