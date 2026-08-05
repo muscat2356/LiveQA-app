@@ -6,14 +6,12 @@ alwaysApply: false
 
 # フロントエンド規約
 
-```
-frontend/app · components · lib（API / STOMP / Zod）
-```
+`frontend/app · components · lib`（API / STOMP / Zod）
 
 - App Router + TS。ログインは Keycloak リダイレクト（自前フォームなし）
 - REST: Cookie `SESSION`。変更系: `X-XSRF-TOKEN`
 - STOMP: `/topic/events/{eventId}/questions`（MVP-B: `/polls`）。`votedByMe` 等は配信に載せない
-- `DRAFT`/`CLOSED` では投稿・いいね UI 無効。権限の正は API（UI 出し分け + 401/403）
+- `DRAFT`/`CLOSED` では投稿・いいね UI 無効。権限の正は API（UI出し分け + 401/403）
 - TanStack Query / Zod / Tailwind + shadcn
 
 依頼・写経は keywords / explain。参照: screen-transition / openapi-notes / constraints / AGENTS.md

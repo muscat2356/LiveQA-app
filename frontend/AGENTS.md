@@ -1,12 +1,12 @@
-# フロントエンド — AI Agent 向けガイド
+# フロントエンド — AI Agent 入口
 
-このディレクトリは live-qa-app の Next.js フロントです。
+Next.js フロント。**規定の正はルートのルール6本 + `docs/`**。
 
-**AI 規定の正はリポジトリルートを参照してください。**
-
-- [../AGENTS.md](../AGENTS.md) — プロジェクト共通ガイド
-- [../.cursor/rules/live-qa-keywords.mdc](../.cursor/rules/live-qa-keywords.mdc) — 二文字キーワード（実装 / 解説 / 確認 / 修復）
-- [../.cursor/rules/live-qa-learning-explain.mdc](../.cursor/rules/live-qa-learning-explain.mdc) — 解説の言語化
-- [../.cursor/rules/live-qa-frontend.mdc](../.cursor/rules/live-qa-frontend.mdc) — フロント規約
-- [../docs/design/screen-transition.md](../docs/design/screen-transition.md) — 画面遷移
-- [../docs/api/openapi-notes.md](../docs/api/openapi-notes.md) — API / STOMP契約
+| 読む順 | 何か |
+|--------|------|
+| [../AGENTS.md](../AGENTS.md) | 索引 |
+| [../.cursor/rules/live-qa-keywords.mdc](../.cursor/rules/live-qa-keywords.mdc) | 実装 / 解説 / 確認 / 修復 / PR案作成 |
+| [../.cursor/rules/live-qa-learning-explain.mdc](../.cursor/rules/live-qa-learning-explain.mdc) | 写経・解説の言語化 |
+| [../.cursor/rules/live-qa-frontend.mdc](../.cursor/rules/live-qa-frontend.mdc) | フロント規約 |
+| [../docs/design/screen-transition.md](../docs/design/screen-transition.md) | 画面遷移 |
+| [../docs/api/openapi-notes.md](../docs/api/openapi-notes.md) | API / STOMP |

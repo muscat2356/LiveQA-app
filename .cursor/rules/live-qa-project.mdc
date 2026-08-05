@@ -5,22 +5,20 @@ alwaysApply: true
 
 # live-qa-app 共通
 
-## 言語
-
-日本語。コメントも日本語。明るくポジティブ。
+日本語・コメント日本語・明るくポジティブ。
 
 ## 正の優先（上を採る）
 
 1. `docs/`（openapi / ER / constraints / websocket-sequence / scope）
 2. 本ルール群 / `README.md`
-3. **Java**: 可読性・堅牢な EJ（明示型・`final`・不変 DTO・分かる名前）≫ `var`・行数削減
+3. **Java**: 可読性・EJ（明示型・`final`・不変DTO・分かる名前）≫ `var`・行数削減
 4. その他一般論
 
-矛盾時は「docs 更新か実装合わせか」を明示。母体ハブ構想は MVP の正ではない。
+矛盾時は「docs更新か実装合わせか」を明示。母体ハブ構想は MVP の正ではない。
 
 ## スコープ（要約）
 
-MVP-A 死守 F-01〜F-09。ルーム `DRAFT→OPEN⇔CLOSED`。エラー `{ status, error, message }`。権限の正は API。
+MVP-A 死守 F-01〜F-09（詳細 [`docs/scope.md`](../../docs/scope.md)）。ルーム `DRAFT→OPEN⇔CLOSED`。エラー `{ status, error, message }`。権限の正は API。
 
 | Member | 領域 |
 |--------|------|
@@ -28,15 +26,25 @@ MVP-A 死守 F-01〜F-09。ルーム `DRAFT→OPEN⇔CLOSED`。エラー `{ stat
 | B | Session+API / QueryDSL |
 | C | STOMP 配信 / Compose / CI |
 
-## Agent 核（毎回これだけ）
+## Agent 核
 
-| 依頼 | 動作 |
+| 依頼 | → |
+|------|---|
+| **実装** 等 | [keywords](live-qa-keywords.mdc) |
+| 写経の書き方 | [explain](live-qa-learning-explain.mdc)（Java【EJ】） |
+| 概念説明後 | [memo](live-qa-learning-memo.mdc) → `docs/qa/` |
+| Java / API | [backend](live-qa-backend.mdc) |
+| フロント | [frontend](live-qa-frontend.mdc) |
+
+- **実装は本人が手で書く**（Agent＝現状→小単位写経＋テストセット＋解説）
+- 機能 ID / `docs/` 参照があればそれをスコープに
+
+## 関心 → 規則
+
+| 関心 | 規則 |
 |------|------|
-| **実装** 等 | → [keywords](live-qa-keywords.mdc) |
-| 写経の書き方 | → [explain](live-qa-learning-explain.mdc)（Java は【EJ】） |
-| 概念説明後 | → [memo](live-qa-learning-memo.mdc) で `docs/qa/` |
-| Java / API | → [backend](live-qa-backend.mdc)（三層・DTO・ResponseEntity・テスト） |
-| フロント | → [frontend](live-qa-frontend.mdc) |
-
-- **実装は本人が手で書く**（Agent は現状→小単位写経＋テストセット＋解説）
-- 機能 ID / `docs/` 参照があればそれをスコープにする
+| 依頼語・チェック | keywords |
+| なぜ/流れ/型/EJ | explain |
+| docs/qa・PR整理 | memo |
+| 三層・DTO・RE・認証・テスト | backend |
+| Cookie・STOMP・UI | frontend |

@@ -6,8 +6,6 @@ alwaysApply: false
 
 # バックエンド規約（Java 形の正）
 
-## レイヤ
-
 ```
 controller → service → repository → domain
 dto/ … request|response（record）
@@ -16,33 +14,33 @@ db/migration/ … Flyway 追加のみ（既存 V* 不改変）
 
 | 層 | する | しない |
 |----|------|--------|
-| Controller | principal 受け取り、`@PreAuthorize`、`ResponseEntity` | 業務分岐、DTO 組み立ての本体 |
-| Service | ユースケース、DB 復元、**DTO 組み立て**（例: `toMeResponse` / `currentHost`） | `ResponseEntity` |
+| Controller | principal、`@PreAuthorize`、`ResponseEntity` | 業務分岐、DTO組み立て本体 |
+| Service | ユースケース、DB復元、**DTO組み立て** | `ResponseEntity` |
 | Repository | DB | DTO / HTTP |
-| Entity | 永続化 | API 直出し |
+| Entity | 永続化 | API直出し |
 
-**Me 分割例:** `requireByOidcSubject`→`User` / `toMeResponse`→`MeResponse` / `currentHost`→オーケストレーション / Controller→`ResponseEntity.ok(...)`
+**Me:** `requireByOidcSubject`→User／`toMeResponse`→MeResponse／`currentHost`→オーケストレーション／Controller→`ResponseEntity.ok(...)`
 
 ## HTTP・DTO
 
-- Controller 戻り値は **`ResponseEntity` 統一**（200=`ok`、201=created/status、204=`noContent`）
-- DTO は **`record`**。Service が組み立て、Controller が箱に入れる
-- エラー JSON: `{ status, error, message }`（400 は任意 `fields`）
+- 戻り値 **`ResponseEntity` 統一**（200=`ok`、201=created/status、204=`noContent`）
+- DTOは **`record`**。Service組み立て、Controllerが箱へ
+- エラー: `{ status, error, message }`（400は任意 `fields`）
 
 ## 認証・認可
 
-- oauth2Login → Session(Redis) → `SESSION` Cookie（JWT 都度検証に戻さない）
-- CSRF + `X-XSRF-TOKEN`。参加者は匿名。`voter_key` = `g:{id}` / `u:{id}`
-- mapper は `userAuthoritiesMapper` 差し込み必須（Bean だけでは不足）
+- oauth2Login → Session(Redis) → `SESSION` Cookie（JWT都度検証に戻さない）
+- CSRF + `X-XSRF-TOKEN`。参加者は匿名。`voter_key`=`g:{id}`/`u:{id}`
+- mapperは `userAuthoritiesMapper` 差し込み必須（Beanだけでは不足）
 - **認可用 ROLE** → `Authentication` / `@PreAuthorize`（`OidcUser.getAuthorities()` だけ見ない）
-- **応答の role（openapi）** → ローカル `users.role`。表示用と認可用を混ぜない
+- **応答の role** → ローカル `users.role`。表示用と認可用を混ぜない
 - ルーム: `DRAFT→OPEN⇔CLOSED`。投稿・いいねは OPEN のみ。`upvote_count` は原子的更新
 
 ## スタイル（可読性・EJ ≫ 短縮）
 
-- `final User x = ...`（明示型）。単純な型を `var` にしない
-- 静的ファクトリ（`hostOf` / `create`…）。enum + `EnumType.STRING`
-- Entity に安易な全フィールド equals 禁止。UNIQUE 名は Flyway と `@UniqueConstraint` 一致
+- `final User x = ...`（明示型）。単純型を `var` にしない
+- 静的ファクトリ（`hostOf`/`create`…）。enum + `EnumType.STRING`
+- Entityに安易な全フィールド equals 禁止。UNIQUE名は Flyway と `@UniqueConstraint` 一致
 - 【EJ】形式は [explain](live-qa-learning-explain.mdc)
 
 ## テスト（実装とセット）
@@ -52,12 +50,12 @@ db/migration/ … Flyway 追加のみ（既存 V* 不改変）
 | Service | JUnit + Mockito |
 | Controller | `@WebMvcTest` + security-test（本番 Security を無理に Import しない） |
 
-正常 1 + 分岐 0〜1。E2E/100% 不要。CI: `.github/workflows/ci.yml`（`mvn test`）
+正常1 + 分岐0〜1。E2E/100%不要。CI: `.github/workflows/ci.yml`（`mvn test`）
 
 ## 推奨順
 
 Flyway → Entity → Auth（JIT・me・logout）+テスト → Event/Question API → QueryDSL → STOMP  
-Issue 案（確認時）: ラボ `../live-qa-session-lab/docs/issues/member-b/`（本番禁止）
+Issue案（確認時）: ラボ `../live-qa-session-lab/docs/issues/member-b/`（本番禁止）
 
 ## 参照
 

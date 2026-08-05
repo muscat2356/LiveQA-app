@@ -5,39 +5,13 @@ alwaysApply: true
 
 # 依頼キーワード
 
-語が**単独／文頭**なら実行。曖昧なら **確認**（先に docs とコード）。
+語が**単独／文頭**なら実行。曖昧なら **確認**（先に docs とコード）。  
+正: [explain](live-qa-learning-explain.mdc) / [memo](live-qa-learning-memo.mdc) / [backend](live-qa-backend.mdc)
 
-| 語 | 旧語 | 手順 |
-|----|------|------|
-| **実装** | 次手 | 現状→次タスク→**本番写経**→**テスト写経（セット）**→解説 |
-| **解説** | 流れ/理由/依存 | 説明優先（生成は最小）。流れ・型・【EJ】 |
-| **確認** | 現状/設計/差分/疎通 | 到達点・docs 照合。**大規模編集しない** |
-| **修復** | — | エラー→仮説→**最小**写経 |
-| **PR案作成** | — | 確認要約→メモ整理→**テンプレ準拠のタイトル／本文をコピペ用表示**（commit/push/gh は明示時のみ） |
-
-書き方の正: [explain](live-qa-learning-explain.mdc) / メモ: [memo](live-qa-learning-memo.mdc) / Java 形: [backend](live-qa-backend.mdc)
-
-## 実装チェック
-
-- [ ] 単位が小さい（本番＋テスト）
-- [ ] テストなしで閉じない
-- [ ] Java: 明示型・`final`・DTO は Service 組み立て・Controller は `ResponseEntity`
-- [ ] 【EJ】あり / 「できたら次」で区切る
-
-## 解説チェック
-
-- [ ] なぜ・流れ・型の正体 / Java なら【EJ】 / 必要なら `docs/qa/`
-
-## 確認チェック
-
-- [ ] 済み・暫定・未 / openapi・ER 差分 / Cookie・CSRF・401 等（該当時）
-- [ ] Issue 案はラボのみ: `../live-qa-session-lab/docs/issues/member-b/`（本番に置かない）
-
-## 修復チェック
-
-- [ ] 仮説→最小差分 / 無関係リファクタなし
-
-## PR案作成チェック
-
-- [ ] `.github/pull_request_template.md` 形式でコピペ可能
-- [ ] メモ整理（memo の PR時手順）/ テスト有無が分かる / 秘密なし
+| 語 | 旧語 | 手順 | チェック |
+|----|------|------|----------|
+| **実装** | 次手 | 現状→次タスク→**本番写経**→**テスト写経（セット）**→解説 | 単位小（本番＋テスト）／テストなしで閉じない／Java: 明示型・`final`・DTOはService・Controllerは`ResponseEntity`／【EJ】／「できたら次」で区切る |
+| **解説** | 流れ/理由/依存 | 説明優先（生成最小）。流れ・型・【EJ】 | なぜ・流れ・型の正体／Javaなら【EJ】／必要なら `docs/qa/` |
+| **確認** | 現状/設計/差分/疎通 | 到達点・docs照合。**大規模編集しない** | 済み・暫定・未／openapi・ER差分／Cookie・CSRF・401等／Issue案はラボのみ `../live-qa-session-lab/docs/issues/member-b/`（本番禁止） |
+| **修復** | — | エラー→仮説→**最小**写経 | 仮説→最小差分／無関係リファクタなし |
+| **PR案作成** | — | 確認要約→メモ整理→**テンプレ準拠タイトル／本文をコピペ表示**（commit/push/ghは明示時のみ） | `.github/pull_request_template.md`／memoのPR手順／テスト有無が分かる／秘密なし |
