@@ -428,3 +428,193 @@ SESSION から復元されるのも、ざっくりこの SecurityContext 相当�
 「Context から取っている」感覚は正しく、正確には **Context 全体ではなく中の principal（OidcUser）**。
 
 `@PreAuthorize` / `Authentication.getAuthorities()` が見るのは主に **authorities** 側で、OidcUser（クレーム）とは役割が違う。
+
+---
+
+## Q: セッション復元のあと、認可（Role の検証）はどうなる？
+
+### 結論
+
+**Keycloak や JWT からロールを取り直さない。**  
+復元済み `Authentication.getAuthorities()` に入っている `ROLE_HOST` を、門番が毎回 **照合（検証）** するだけ。
+
+```text
+【ログイン時・1回】変換・格納
+  realm_access "HOST" → mapper → ROLE_HOST → Authentication → Redis
+
+【以降のリクエスト】復元・検証
+  Redis → Authentication（ROLE_HOST 付き）
+    → authorizeHttpRequests（URL）
+    → @PreAuthorize（メソッド）
+    → 足りなければ AccessDeniedHandler → 403
+```
+
+### なぜこの形か
+
+権限の正は API（`Authentication`）。毎回 IdP に聞きに行くと遅延・結合が増える。  
+F-01 は「ログイン時に箱へ入れ、以降は箱を見て通す／落とす」。
+
+### 現行コードでの二段ゲート（`/api/me`）
+
+| 段 | どこ | 式／ルール | 見ているもの |
+|----|------|------------|--------------|
+| ① URL | `SecurityConfig.authorizeHttpRequests` | `/api/me` → **`authenticated()`** | 「ログイン済みか」（ROLE までは見ない） |
+| ② メソッド | `MeController.@PreAuthorize` | **`hasRole('HOST')`** | authorities に **`ROLE_HOST`** があるか |
+
+```72:76:backend/src/main/java/com/liveqa/config/SecurityConfig.java
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
+                .requestMatchers("/api/auth/guest").permitAll()
+                .requestMatchers("/api/me","/api/auth/logout").authenticated()
+                .anyRequest().permitAll()
+            )
+```
+
+```36:41:backend/src/main/java/com/liveqa/controller/MeController.java
+@GetMapping("/me")
+@PreAuthorize("hasRole('HOST')")
+public ResponseEntity<MeResponse> me(
+    @AuthenticationPrincipal OidcUser oidcUser
+) {
+```
+
+`hasRole("HOST")` は内部で接頭辞 `ROLE_` を付けて **`ROLE_HOST`** と照合する（自分で `"ROLE_HOST"` と書かなくてよい）。  
+メソッド認可を効かせるスイッチが `@EnableMethodSecurity`（`SecurityConfig` クラス上）。
+
+### データの流れ（Role 検証だけ抜き出し）
+
+```text
+SESSION 付き GET /api/me
+  → Session / SecurityContext 復元（前問）
+  → AuthorizationFilter
+       検証: authenticated?  （匿名なら EntryPoint → 401）
+  → DispatcherServlet → Method Security インターセプタ
+       検証: hasRole('HOST')?
+            authorities に ROLE_HOST あり → Controller へ
+            なし → AccessDeniedHandler → 403 JSON
+  → MeController / UserService
+       ※ ここは「認可済み」前提。応答の role 文字列は DB users.role
+```
+
+| 失敗 | HTTP | 担当 |
+|------|------|------|
+| Cookie 無し・未ログイン | 401 | `AuthenticationEntryPoint` |
+| ログイン済みだが `ROLE_HOST` 無し | 403 | `AccessDeniedHandler`（`@PreAuthorize` 失敗もここに寄る） |
+
+### 認可用 Role と応答 JSON の `role` は別物
+
+| 用途 | どこ | 例 |
+|------|------|-----|
+| **認可ゲート** | `Authentication.authorities`（Session 由来） | `ROLE_HOST` |
+| **応答の表示** | DB `users.role` → `MeResponse.role` | `"HOST"` |
+
+`UserService.currentHost` は DB 行の復元＋DTO 組み立て。**`hasRole` の代わりではない。**  
+JIT で HOST 固定なら通常は一致するが、混ぜて考えない。
+
+### 型の正体
+
+| 名前 | 正体 |
+|------|------|
+| `GrantedAuthority` | インタフェース。「権限1個」の契約 |
+| `SimpleGrantedAuthority` | 具象。`"ROLE_HOST"` 文字列を持つ |
+| `hasRole` / `@PreAuthorize` | 式／アノテーション。SecurityContext の authorities を **検証** |
+| `authorizeHttpRequests` | DSL。Filter 層の URL 認可ルール |
+
+### 【EJ】
+
+```text
+【EJ】公開面最小化 … 権限判定は Security／アノテーション。Controller 内で if (role) しない
+【EJ】enum 的発想 … 認可用は ROLE_* 文字列。応答 DTO の role と名前空間を分ける
+【EJ】あえて外す … URL 側は authenticated のみ。HOST は @PreAuthorize に寄せている
+```
+
+### 一文
+
+> Role 検証は「セッションから戻した `ROLE_HOST` を `hasRole` で照合」。  
+> `/api/me` は URL でログイン必須、メソッドで HOST 必須。DB の `role` は応答用。
+
+---
+
+## Q: 認可が自動で「探しに行って」くれるのはなぜ？`@PreAuthorize` の効果？
+
+### 結論
+
+**`@PreAuthorize` は Redis／Keycloak／DB を探しに行かない。**  
+メソッド実行直前に、すでに手元にある `SecurityContext` の authorities へ式を当てて **検証（照合）** するだけ。
+
+「自動」に感じるのは、次の **役割分担がつながっている** から。
+
+| 担当 | 何をするか | `@PreAuthorize` か？ |
+|------|------------|----------------------|
+| Session／SecurityContext 復元 | Cookie → Redis → `Authentication` を机に載せる | ✗（別 Filter） |
+| `authorizeHttpRequests` | URL 単位の門番（例: `authenticated()`） | ✗（Filter） |
+| **`@PreAuthorize`** | メソッド単位の門番（例: `hasRole('HOST')`） | ○ |
+| Controller 本体 | 業務（me の組み立て） | ✗ |
+
+### `@PreAuthorize` の効果（正確に）
+
+```java
+@PreAuthorize("hasRole('HOST')")
+public ResponseEntity<MeResponse> me(...) { ... }
+```
+
+| 効果 | 内容 |
+|------|------|
+| する | メソッド呼び出し**前**に式を評価。失敗ならメソッドに入らず 403 |
+| する | `hasRole('HOST')` → authorities に `ROLE_HOST` があるか **照合** |
+| しない | Session／Redis の復元 |
+| しない | Keycloak や JWT からのロール再取得 |
+| しない | DB `users.role` の参照 |
+
+スイッチ: `SecurityConfig` の **`@EnableMethodSecurity`**。これが無いとアノテーションは飾り（効かない）。
+
+仕組みの正体は **メソッドセキュリティ（AOP インターセプタ）**:
+
+```text
+呼び出し側 → インターセプタ
+  → SecurityContextHolder から Authentication を取る
+  → 式 hasRole('HOST') を 検証
+  → OK なら me() 本体へ／NG なら AccessDenied
+```
+
+Controller の中で `if (!hasRole) throw` を書かなくてよい、というのが「公開面最小化」の効きどころ。
+
+### なぜ「探しに行ってくれる」ように見えるか
+
+脳内のイメージが「role を取りに行く」になりがちだが、実際は:
+
+```text
+① 手前の Filter が机に Authentication を置いておく（復元）
+② @PreAuthorize が机の上を見る（照合）
+```
+
+①が無いと机は空 → 未認証扱い。  
+②が無いと（URL が `authenticated()` だけのとき）HOST 以外でもメソッドまで届きうる。
+
+現行 `/api/me`:
+
+```text
+① authenticated() … 「誰か分かっているか」
+② @PreAuthorize(hasRole HOST) … 「HOST か」← ここが Role 検討の本丸
+```
+
+### 型の正体
+
+| 名前 | 正体 |
+|------|------|
+| `@PreAuthorize` | アノテーション（メタデータ）。「実行前にこの式で認可せよ」 |
+| `@EnableMethodSecurity` | アノテーション。メソッド認可の仕組みを **有効化** |
+| `hasRole('HOST')` | SpEL 風の認可式。接頭辞 `ROLE_` 付きで照合 |
+| `SecurityContextHolder` | 静的ファサード。今スレッドの `SecurityContext` を取る入口 |
+
+### 【EJ】
+
+```text
+【EJ】公開面最小化 … 認可はアノテーション／Filter。業務メソッドに混ぜない
+【EJ】あえて外す … @PreAuthorize に「取得」はさせない。取得はログイン時 mapper＋Session 復元
+```
+
+### 一文
+
+> 自動に見えるのは「復元が先・照合が後」だから。  
+> `@PreAuthorize` の効果はメソッド前の **照合** であり、ロールの **探索・取得** ではない。

@@ -54,3 +54,91 @@ Agent は回答のたびにここへ **新規作成または追記**する（`.c
 4. [06-me-controller.md](06-me-controller.md) — role は `Authentication` から読む  
 
 ラボ専用 API（`POST /api/lab/ping`）や Compose / realm JSON の丸コピーは移植対象外（00 参照）。
+
+---
+
+## 質問に出てきた用語一覧（グロッサリ）
+
+`docs/qa` の **Q / 質問** 見出しから拾った単語。詳細はリンク先。五十音・英字はざっくりカテゴリ分け。
+
+### 認証・OIDC / Keycloak
+
+| 用語 | 一言 | 主な出典 |
+|------|------|----------|
+| IdP | 認証を担う側（Keycloak） | [05](05-security-config.md) [09](09-keycloak-realm-librashare.md) |
+| OIDC / oauth2Login | ブラウザログインでトークンを取る流れを有効化する設定 | [05](05-security-config.md) |
+| Authorization Code | 認可コード。トークンそのものではない短い許可証 | [05](05-security-config.md) |
+| トークン交換 | コードを IdP に渡し ID/Access トークンを得る | [05](05-security-config.md) |
+| ID Token / Access Token | ログイン材料（ID）／API用（Access）。F-01 以降の媒体は Session | [26](26-securityconfig-data-flow.md) |
+| realm / realm JSON | Keycloak のテナント境界／その設定のエクスポート | [09](09-keycloak-realm-librashare.md) |
+| サードパーティー（client） | 既存 realm に載せる別アプリ（`live-qa-app`） | [09](09-keycloak-realm-librashare.md) |
+| `realm_access` / realm role | トークン内の realm ロール袋。`HOST` など | [26](26-securityconfig-data-flow.md) |
+| `sub` / oidcSubject | IdP が付与するユーザー一意 ID | [16](16-userservice-when-oidcsubject.md) |
+| JIT | 初回ログイン時にローカル `users` へ行を作る | [15](15-jit-provisioning.md) |
+| `provisionHost` | JIT の実装メソッド | [16](16-userservice-when-oidcsubject.md) [26](26-securityconfig-data-flow.md) |
+| RP-initiated logout / `{baseUrl}` | アプリ起点のログアウト。`{baseUrl}` は backend オリジン | [14](14-f01-finish.md) |
+| Bruno / token endpoint | 手動でトークンを取る確認用（Bearer だけでは `/api/me` 不可） | [26](26-securityconfig-data-flow.md) |
+
+### セッション・Cookie・Redis
+
+| 用語 | 一言 | 主な出典 |
+|------|------|----------|
+| SESSION Cookie | セッション箱の**鍵**（中身ではない） | [02](02-session-cookie.md) [05](05-security-config.md) |
+| Redis / namespace | セッション箱の置き場。キー接頭辞 | [03](03-redis.md) [05](05-security-config.md) |
+| SecurityContext | リクエスト中の認証状態の箱 | [05](05-security-config.md) [06](06-me-controller.md) |
+| HttpSession | サーバ側セッション。永続先が Redis | [05](05-security-config.md) |
+| `SessionRepositoryFilter` | SESSION→Redis で HttpSession を復元／格納する Filter | [05](05-security-config.md) |
+| `SecurityContextHolderFilter` / `HttpSessionSecurityContextRepository` | Session 属性 ↔ SecurityContext の読み戻し（毎リクエスト） | [05](05-security-config.md) |
+| `securityFilterChain` メソッド | **起動時**に Filter 列を組み立てる `@Bean`。復元本体ではない | [05](05-security-config.md) |
+| guest / `voter_key` | 匿名参加者。`g:{id}` 形式 | [07](07-guest-session.md) |
+
+### CSRF・認可
+
+| 用語 | 一言 | 主な出典 |
+|------|------|----------|
+| CSRF / `XSRF-TOKEN` | 状態変更のなりすまし防止。合い言葉 Cookie＋ヘッダ | [05](05-security-config.md) |
+| `csrfRepo` / `csrfHandler` | CSRF 用のリポジトリとリクエスト処理（自前 `new`） | [05](05-security-config.md) |
+| `GrantedAuthoritiesMapper` / mapper | IdP ロールを `ROLE_*` に変換するフック | [05](05-security-config.md) [26](26-securityconfig-data-flow.md) |
+| `userAuthoritiesMapper` | mapper を oauth2Login に**接続**する DSL | [05](05-security-config.md) |
+| `ROLE_HOST` / `hasRole` / `@PreAuthorize` | 認可用の権限文字列／式 | [06](06-me-controller.md) |
+| Authentication / principal / OidcUser | 認証全体／主体／OIDC クレーム保持 | [06](06-me-controller.md) |
+| `UNKNOWN`（role） | 旧実装で authorities に HOST が無いときの応答。現行は DB `role` | [06](06-me-controller.md) [14](14-f01-finish.md) |
+| EntryPoint / AccessDenied | 未認証 401／権限不足 403 を Filter 層で書く | [14](14-f01-finish.md) [26](26-securityconfig-data-flow.md) |
+
+### ログイン処理の部品
+
+| 用語 | 一言 | 主な出典 |
+|------|------|----------|
+| `OidcUserRequest` / `userRequest` | トークン交換後の材料。Spring が渡す | [18](18-delegate-loaduser.md) |
+| `delegate.loadUser` | 標準 `OidcUserService` への委譲 | [18](18-delegate-loaduser.md) |
+| `oidcUserService`（カスタム） | 標準の前後に JIT を足すラッパ | [16](16-userservice-when-oidcsubject.md) |
+| `loadUser` と mapper の順序 | loadUser（＋JIT）の**後**に Provider が mapper | [26](26-securityconfig-data-flow.md) |
+
+### JPA・DTO・レイヤ
+
+| 用語 | 一言 | 主な出典 |
+|------|------|----------|
+| JPA / Entity / Hibernate | オブジェクト↔行の仕様／実装 | [11](11-jpa.md) |
+| `hostOf` / 静的ファクトリ / Builder | HOST 行生成の入り口。Builder ではない | [11](11-jpa.md) |
+| カプセル化（protected コンストラクタ） | 勝手な `new` を防ぎ生成経路を固定 | [11](11-jpa.md) |
+| record / DTO | 不変の応答形。Service で組み立て | [19](19-dto-record.md) [23](23-dto-mapping-layer.md) |
+| `ResponseEntity` | Controller が HTTP 箱に載せる | [21](21-response-entity.md) |
+| `var` / イミュータブル（EJ） | 型推論と不変性は別軸。明示型優先 | [22](22-var-vs-immutable.md) |
+| UNIQUE 制約名 | Flyway と `@UniqueConstraint` を揃える | [13](13-unique-name-and-test-deps.md) |
+
+### テスト・CI・環境
+
+| 用語 | 一言 | 主な出典 |
+|------|------|----------|
+| `@WebMvcTest` / Mockito / `oidcLogin` | Controller／Service の単体テスト手段 | [25](25-userservice-unit-test.md) |
+| `src/test` | 自動生成されない。自分で置く | [24](24-test-deps-jacoco.md) |
+| JaCoCo | カバレッジ計測（後からでも可） | [24](24-test-deps-jacoco.md) |
+| GitHub Actions / `ci.yml` | PR 等で `mvn test` などを回す | [20](20-github-actions-ci.md) |
+| issuer / ポート衝突 | Keycloak 未起動や 8080 競合の切り分け | [04](04-environment.md) |
+
+### 表示名・その他
+
+| 用語 | 一言 | 主な出典 |
+|------|------|----------|
+| displayName | 応答の表示名。クレーム由来で DB 列ではない（現行） | [16](16-userservice-when-oidcsubject.md) [17](17-host-displayname-idp.md) |
+| UTF-8 / `getWriter()` | Filter 直書き JSON は encoding を先に | [14](14-f01-finish.md) |

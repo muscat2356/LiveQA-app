@@ -682,3 +682,238 @@ SecurityContext に丸ごと `Set` だけがフィールドとして置かれる
 ### 残タスク
 
 本体は導入済みなので、あと1つ：`.oauth2Login(Customizer.withDefaults())` を `userAuthoritiesMapper(grantedAuthoritiesMapper())` を差す形へ。**実装は本人が手で行う。**
+
+---
+
+## Q: 今後の検証は `securityFilterChain` がセッションから自動復元する？該当メソッドは？
+
+### 結論（短く）
+
+**はい、以降の API はセッションから認証を自動復元する。Keycloak／JWT を毎回やり直さない。**
+
+ただし「`securityFilterChain` **メソッド**が毎リクエスト Redis を読む」ではない。
+
+| 名前 | いつ動く | 役割 |
+|------|----------|------|
+| `SecurityConfig.securityFilterChain(HttpSecurity)` | **起動時1回**（`@Bean` 組み立て） | 門番ルール・oauth2Login・CSRF・logout を **Filter 列に組み立てる** |
+| 組み立て後の **Filter 列** | **毎リクエスト** | Cookie → Session → SecurityContext の復元・認可 |
+
+復元の本体は、このリポに自前メソッドを書いたものではなく、**フレームワークの Filter／Repository**。
+
+### なぜ作るか（この設計）
+
+ログイン時だけ OIDC 交換・JIT・mapper を通し、以降は Cookie の鍵で箱を開く。  
+API ごとに JWT 検証する Resource Server にしない（F-01 の正）。
+
+### データの流れ（ログイン後の `GET /api/me`）
+
+```text
+ブラウザ  Cookie: SESSION
+  │
+  ├─① SessionRepositoryFilter（Spring Session）
+  │     復元: SESSION → Redis `live-qa:sessions:{id}` → HttpSession
+  │
+  ├─② SecurityContextHolderFilter
+  │     + HttpSessionSecurityContextRepository（既定）
+  │     読み戻し: HttpSession 属性 SPRING_SECURITY_CONTEXT
+  │              → SecurityContextHolder（今リクエスト用）
+  │
+  ├─③ CsrfFilter … GET は実質スキップ寄り
+  ├─④ AuthorizationFilter … `.authenticated()` / 後段 `@PreAuthorize`
+  │
+  └─⑤ MeController.me / UserService
+        受け取り: すでに復元済みの OidcUser（principal）
+        復元（別義）: DB `users` を `sub` で読む（ログインのやり直しではない）
+```
+
+| 操作語 | 何が起きるか |
+|--------|----------------|
+| 復元（Session） | Cookie の ID で Redis の箱を開く |
+| 読み戻し | 箱の `Authentication` を `SecurityContext` に載せる |
+| 検証（認可） | その `Authentication` で URL／`hasRole` を見る |
+| 復元（DB） | `/api/me` が数値 `id` 等を `users` から取る（OIDC 再実行ではない） |
+
+### 「該当メソッド」の切り分け
+
+#### 1. 自前で書く（起動時・設定）
+
+```66:99:backend/src/main/java/com/liveqa/config/SecurityConfig.java
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        // ...
+        http
+            .authorizeHttpRequests(...)
+            .oauth2Login(...)
+            .csrf(...)
+            .exceptionHandling(...)
+            .logout(...);
+        return http.build();
+    }
+```
+
+- **役割**: ルールの配線。`http.build()` が `SecurityFilterChain` を返す。
+- **やらないこと**: Redis GET、Session 復元、JWT 再検証。
+- **セッション復元が効く理由**: `.sessionManagement(STATELESS)` 等で切っていない → 既定で **HttpSession ベースの SecurityContext 永続**が有効。
+
+```15:27:backend/src/main/java/com/liveqa/config/SessionConfig.java
+@EnableRedisHttpSession(redisNamespace = "live-qa")
+public class SessionConfig {
+    @Bean
+    public CookieSerializer cookieSerializer() { ... }
+}
+```
+
+- **`@EnableRedisHttpSession`**: `SessionRepositoryFilter` を登録し、HttpSession の置き場を Redis にするスイッチ。
+- **`cookieSerializer()`**: 鍵 Cookie の名前・SameSite 等（復元の「鍵の形」）。
+
+#### 2. フレームワーク（毎リクエスト・自前コードなし）
+
+| コンポーネント | 型の正体 | 役割 |
+|----------------|----------|------|
+| `SessionRepositoryFilter` | Filter（具象） | SESSION → Redis → `HttpSession` の **復元／応答時格納** |
+| `SecurityContextHolderFilter` | Filter（具象・Boot 3 / Security 6） | リクエスト開始時に Context を載せ、終了時に片付ける |
+| `HttpSessionSecurityContextRepository` | Repository（具象・既定） | Session 属性 ↔ `SecurityContext` の **読み戻し／格納** |
+| `AuthorizationFilter` | Filter | `authorizeHttpRequests` のルールで **検証** |
+| Method Security | AOP | `@PreAuthorize` で **検証** |
+
+旧名メモ: Security 5 系の `SecurityContextPersistenceFilter` が、6 では HolderFilter + Repository に分かれたイメージ。やっていることは同じ「Session と SecurityContext の橋渡し」。
+
+#### 3. ログイン時だけ動く（以降の復元ではない）
+
+| メソッド／Bean | いつ | 操作語 |
+|----------------|------|--------|
+| `oidcUserService()` → `delegate.loadUser` | コールバック時 | 交換・検証・組み立て |
+| `userService.provisionHost` | 同上 | JIT（DB 格納） |
+| `grantedAuthoritiesMapper()` | 同上（Provider 側） | `realm_access` → `ROLE_*` 変換 |
+
+これらは **箱に入れる工程**。以降の `/api/me` では再実行されない。
+
+#### 4. 以降の API 側（復元結果を使う）
+
+| メソッド | 役割 |
+|----------|------|
+| `MeController.me` | 復元済み `@AuthenticationPrincipal OidcUser` を受け取り、Service へ |
+| `UserService` の me／currentHost 系 | `sub` で DB 行を **復元**し `MeResponse` へ **変換** |
+
+### よくある誤解
+
+| 誤解 | 正 |
+|------|-----|
+| `securityFilterChain` メソッドが毎リクエスト走る | ✗ 起動時に Filter 列を **作る**だけ |
+| SecurityConfig のどこかに「Redis から読め」と書いた | ✗ SessionConfig + 既定 Repository がやる |
+| 毎回 Keycloak／Access Token 検証 | ✗ F-01 は Session 復元 |
+| `@AuthenticationPrincipal` が Redis を読む | ✗ すでに SecurityContext にある principal を引数注入 |
+
+### 【EJ】
+
+```text
+【EJ】公開面最小化 … 復元ロジックはフレームワークに任せ、自前は設定と業務（me/JIT）だけ
+【EJ】依存性注入 … SessionConfig / SecurityConfig を @Configuration + @Bean で配線
+【EJ】あえて外す … STATELESS にしない（Cookie セッションが正のため）
+```
+
+### 一文
+
+> 以降の検証は「セッションから自動復元した Authentication」を門番が見る。  
+> `securityFilterChain` は起動時にその門番列を組み立てる。実復元は `SessionRepositoryFilter` ＋ `SecurityContextHolderFilter`／`HttpSessionSecurityContextRepository`。
+
+---
+
+## Q: Role を「探しに行く」設定は config でできる？
+
+### 結論（二種類を分ける）
+
+「探しに行く」が指すものが二つある。**どちらも config で触れるが、意味が違う。**
+
+| 種類 | いつ | config で何を決めるか | 現行 |
+|------|------|------------------------|------|
+| **A. ロールの取り込み元** | ログイン時 | IdToken のどこから `ROLE_*` を作るか | `grantedAuthoritiesMapper` ＋ `userAuthoritiesMapper` |
+| **B. ロールの照合ルール** | 毎リクエスト | どの URL／メソッドがどの role を要るか | `authorizeHttpRequests` / `@PreAuthorize` |
+
+**B は Redis や Keycloak に「探しに行かない」。** 復元済み `Authentication.authorities` を照合するだけ。  
+「どこから取るか」を変えるのは主に **A（ログイン時の mapper）**。
+
+### A. 取り込み元（config で「どこを読むか」）
+
+いまの `SecurityConfig` がまさにそれ。
+
+```java
+.oauth2Login(oauth2 -> oauth2
+    .userInfoEndpoint(userInfo -> userInfo
+        .oidcUserService(oidcUserService())
+        .userAuthoritiesMapper(grantedAuthoritiesMapper())  // 接続
+    )
+)
+```
+
+mapper 本体で「探し先」を決めている:
+
+```text
+OidcUserAuthority
+  → IdToken.getClaimAsMap("realm_access")
+  → roles リスト
+  → "ROLE_" + name
+```
+
+変えられる例（いずれもログイン時・箱に入れる段階）:
+
+| 変え方 | 効果 |
+|--------|------|
+| mapper で `resource_access.{clientId}.roles` を読む | client role を取る |
+| UserInfo のクレームを読む | IdToken 以外を元にする |
+| DB の `users.role` を読んで `ROLE_*` を足す | ローカル権限を authorities に載せる（設計判断） |
+| mapper を差さない | `ROLE_HOST` が付かない → `@PreAuthorize` が 403 |
+
+**Bean だけ置いても不足。** `userAuthoritiesMapper(...)` で oauth2Login に接続する必要がある（既存メモどおり）。
+
+### B. 照合ルール（config で「何を要求するか」）
+
+`hasRole` が見る場所は固定: **`SecurityContext` → `Authentication` → `authorities`**。  
+「DB を見ろ」「Keycloak を見ろ」というスイッチは標準の `authorizeHttpRequests` には無い。
+
+できるのは「どのエンドポイントがどの権限を要るか」:
+
+```java
+// URL 層で HOST 必須にする例（現行は authenticated のみ）
+.requestMatchers("/api/me").hasRole("HOST")
+
+// またはメソッド層（現行）
+@PreAuthorize("hasRole('HOST')")
+```
+
+| DSL / 設定 | 型の正体 | 役割 |
+|------------|----------|------|
+| `authorizeHttpRequests` | `HttpSecurity` の DSL | URL 単位の **検証**ルール |
+| `hasRole` / `hasAuthority` | 認可式 | authorities との **照合** |
+| `@PreAuthorize` | アノテーション | メソッド単位の **検証**（要 `@EnableMethodSecurity`） |
+| `GrantedAuthorityDefaults`（任意 Bean） | 設定クラス | `ROLE_` 接頭辞の変更 |
+| `RoleHierarchy`（任意 Bean） | 設定クラス | `ADMIN > HOST` のような包含 |
+
+### よくある誤解
+
+| 誤解 | 正 |
+|------|-----|
+| config に「毎リクエスト Keycloak の role を取れ」と書ける | 標準の oauth2Login＋Session ではやらない |
+| `hasRole` の設定で Redis を直接読む | ✗ Session 復元後の authorities を見る |
+| mapper を変えれば `/api/me` のたびに再変換 | ✗ mapper はログイン組み立て時。以降は箱の中身 |
+
+毎リクエスト DB／IdP から role を取り直したい場合は、別設計（カスタム `AuthorizationManager` や Filter）になり、F-01 の「Session に載せて照合」からは外れる。
+
+### データの流れ（設定の効くタイミング）
+
+```text
+【起動】securityFilterChain / mapper Bean を組み立て
+【ログイン】mapper がクレームを 変換 → ROLE_* を Authentication に 格納 → Redis
+【以降】復元 → authorizeHttpRequests / @PreAuthorize が 検証（照合）
+```
+
+### 【EJ】
+
+```text
+【EJ】公開面最小化 … 「どこからロールを作るか」は mapper に閉じる
+【EJ】あえて外す … 毎リクエスト IdP／DB 再取得はしない（Session 照合が正）
+```
+
+### 一文
+
+> config でできるのは (1) ログイン時にロールをどこから `ROLE_*` にするか（mapper）と (2) どの API がどの role を要るか（`hasRole`／`@PreAuthorize`）。  
+> 毎リクエストの「探し先」は常に復元済み authorities。
