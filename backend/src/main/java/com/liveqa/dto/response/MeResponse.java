@@ -1,4 +1,4 @@
-package com.liveqa.dto;
+package com.liveqa.dto.response;
 
 /**
  * GET /api/me 応答。openapi-notes の認証節に合わせる。

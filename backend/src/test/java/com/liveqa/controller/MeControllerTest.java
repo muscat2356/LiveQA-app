@@ -18,7 +18,7 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.liveqa.dto.MeResponse;
+import com.liveqa.dto.response.MeResponse;
 import com.liveqa.service.UserService;
 
 /**

@@ -5,7 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.liveqa.domain.User;
-import com.liveqa.dto.MeResponse;
+import com.liveqa.dto.response.MeResponse;
 import com.liveqa.repository.UserRepository;
 
 /**
