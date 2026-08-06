@@ -14,49 +14,72 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.liveqa.dto.response.ErrorResponse;
 
+/**
+ * 例外処理のクラス（401,403はConfigにて処理）
+ * GlobalExceptionHandler
+ * 
+ * @author mizumura
+ */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> validationHandler(MethodArgumentNotValidException ex) {
+        /**
+         * バリデーションエラーの処理
+         * 
+         * @param ex バリデーション時の例外
+         * @return エラーレスポンス
+         */
+        @ExceptionHandler(MethodArgumentNotValidException.class)
+        public ResponseEntity<ErrorResponse> validationHandler(MethodArgumentNotValidException ex) {
 
-        final Map<String, String> fields = ex.getBindingResult().getFieldErrors()
-                .stream()
-                .collect(Collectors.toMap(
-                        FieldError::getField,
-                        fieldError -> Objects.requireNonNullElse(
-                                fieldError.getDefaultMessage(),
-                                ""),
-                        (first, second) -> first,
-                        LinkedHashMap::new
-                    ));
+                final Map<String, String> fields = ex.getBindingResult().getFieldErrors()
+                                .stream()
+                                .collect(Collectors.toMap(
+                                                FieldError::getField,
+                                                fieldError -> Objects.requireNonNullElse(
+                                                                fieldError.getDefaultMessage(),
+                                                                ""),
+                                                (first, second) -> first,
+                                                LinkedHashMap::new));
 
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ErrorResponse.withField(
-                        400,
-                        "Bad Request",
-                        "入力内容に誤りがあります",
-                        fields));
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                                .body(ErrorResponse.withField(
+                                                400,
+                                                "Bad Request",
+                                                "入力内容に誤りがあります",
+                                                fields));
 
-    }
+        }
 
-    @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<ErrorResponse> businessHandler(BusinessException ex) {
+        /**
+         * 業務処理例外の処理
+         * 
+         * @param ex 業務処理例外
+         * @return エラーレスポンス
+         */
+        @ExceptionHandler(BusinessException.class)
+        public ResponseEntity<ErrorResponse> businessHandler(BusinessException ex) {
 
-        return ResponseEntity.status(ex.getStatus())
-                .body(ErrorResponse.of(
-                        ex.getStatus().value(),
-                        ex.getError(),
-                        ex.getMessage()));
-    }
+                return ResponseEntity.status(ex.getStatus())
+                                .body(ErrorResponse.of(
+                                                ex.getStatus().value(),
+                                                ex.getError(),
+                                                ex.getMessage()));
+        }
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> ExceptionHandler(Exception ex) {
+        /**
+         * 意図しない例外の処理
+         * 
+         * @param ex 意図しない例外
+         * @return エラーレスポンス
+         */
+        @ExceptionHandler(Exception.class)
+        public ResponseEntity<ErrorResponse> ExceptionHandler(Exception ex) {
 
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ErrorResponse.of(
-                        500,
-                        "INTERNAL_SERVER_ERROR",
-                        "サーバーエラーが発生しました。"));
-    }
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                .body(ErrorResponse.of(
+                                                500,
+                                                "INTERNAL_SERVER_ERROR",
+                                                "サーバーエラーが発生しました。"));
+        }
 }
