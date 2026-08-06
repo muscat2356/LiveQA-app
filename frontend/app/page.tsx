@@ -10,7 +10,7 @@ import Link from "next/link";
 
 export default function Home() {
 
-  const LOGIN_URL = process.env.KEYCLOAK_LOGIN_URL ?? "http:localhost:8081/oauth2/authorization/keycloak"
+  const LOGIN_URL = process.env.NEXT_PUBLIC_KEYCLOAK_LOGIN_URL ?? "http:localhost:8081/oauth2/authorization/keycloak"
 
   return (
     <div>
