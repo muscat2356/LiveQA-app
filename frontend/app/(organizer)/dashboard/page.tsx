@@ -10,7 +10,7 @@ export default async function DashBoard(){
     
     const cookieStore = await cookies();
 
-    const res =await fetch (`${process.env.API_BASE_URL}/api/events`, {
+    const res = await fetch (`${process.env.API_BASE_URL}/api/events`, {
         headers: { Cookie : cookieStore.toString() },
         cache: "no-store",
     });

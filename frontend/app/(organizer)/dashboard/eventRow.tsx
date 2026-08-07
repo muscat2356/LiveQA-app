@@ -24,6 +24,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import { readCookie } from "@/components/cookie";
 
 export default function EventRow({ event }: {event: EventListResponse }) {
     const router = useRouter();

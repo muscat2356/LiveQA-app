@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { EventCreateRequest, SubmitState } from "@/types/event/event";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { readCookie } from "@/components/cookie";
 
 export default function EventForm(){
     const [title, setTitle] = useState("");
