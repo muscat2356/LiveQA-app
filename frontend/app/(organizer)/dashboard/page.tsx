@@ -4,6 +4,7 @@ import { EventListResponse } from "@/types/event/event";
 import Link from "next/link";
 import EventRow from "./eventRow";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
 export default async function DashBoard(){
     
@@ -13,6 +14,10 @@ export default async function DashBoard(){
         headers: { Cookie : cookieStore.toString() },
         cache: "no-store",
     });
+
+    if (res.status === 401 || res.status === 403) {
+        redirect("/login");
+    }
 
     if(!res.ok){
         throw new Error(`API error: ${res.status}`);

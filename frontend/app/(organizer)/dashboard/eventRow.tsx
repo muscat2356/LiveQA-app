@@ -39,9 +39,14 @@ export default function EventRow({ event }: {event: EventListResponse }) {
         setPending(true)
         setErrorMessage(null);
         try{
+            const xsrfToken = readCookie("XSRF-TOKEN");
             const res = await fetch(`/api/events/${event.id}/status`, {
                 method: "PATCH",
-                headers:  { "Content-Type": "application/json" },
+                headers:  { 
+                    "Content-Type": "application/json",
+                    ...(xsrfToken ? { "X-XSRF-TOKEN":decodeURIComponent(xsrfToken)} : {}),
+                },
+                credentials:"include",
                 body: JSON.stringify({ status: nextStatus}),
             });
 
