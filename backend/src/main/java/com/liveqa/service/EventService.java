@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.liveqa.domain.Event;
 import com.liveqa.domain.JoinCode;
@@ -34,6 +35,7 @@ public class EventService {
                 .toList();
     }
 
+    @Transactional
     public EventCreateResponse save(OidcUser oidc, String title) {
         User user = requiredUser(oidc);
         JoinCode code = generateJoinCode();
@@ -48,7 +50,7 @@ public class EventService {
     public JoinCode generateJoinCode() {
         JoinCode code =  JoinCode.generate();
         
-        for(int i = 0; i >= 3; i++) {
+        for(int i = 0; i < 3; i++) {
             if(eventRepository.existsByJoinCode(code.code())) {
                 code = JoinCode.generate();
             } else {
