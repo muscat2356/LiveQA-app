@@ -27,9 +27,14 @@ export default function EventForm(){
         };
 
         try{
+            const xsrfToken = readCookie("XSRF-TOKEN");
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/events`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { 
+                    "Content-Type": "application/json",
+                    ...(xsrfToken ? { "X-XSRF-TOKEN": xsrfToken } : {}),
+                 },
+                 credentials:"include",
                 body: JSON.stringify(payload)
             });
 

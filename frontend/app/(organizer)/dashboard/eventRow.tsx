@@ -40,7 +40,7 @@ export default function EventRow({ event }: {event: EventListResponse }) {
         setErrorMessage(null);
         try{
             const xsrfToken = readCookie("XSRF-TOKEN");
-            const res = await fetch(`/api/events/${event.id}/status`, {
+            const res = await fetch(`${process.env.API_BASE_URL}/api/events/${event.id}/status`, {
                 method: "PATCH",
                 headers:  { 
                     "Content-Type": "application/json",
