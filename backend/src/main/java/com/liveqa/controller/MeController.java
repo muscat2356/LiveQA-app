@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.liveqa.dto.MeResponse;
+import com.liveqa.dto.response.MeResponse;
 import com.liveqa.service.UserService;
 
 /**

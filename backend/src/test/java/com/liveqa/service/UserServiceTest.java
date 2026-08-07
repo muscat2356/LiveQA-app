@@ -19,7 +19,7 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.liveqa.domain.User;
-import com.liveqa.dto.MeResponse;
+import com.liveqa.dto.response.MeResponse;
 import com.liveqa.repository.UserRepository;
 
 @ExtendWith(MockitoExtension.class)
