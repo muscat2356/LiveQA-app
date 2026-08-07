@@ -27,6 +27,11 @@ Agent は回答のたびにここへ **新規作成または追記**する（`.c
 | [24-test-deps-jacoco.md](24-test-deps-jacoco.md) | **テスト依存・JaCoCo**（今あるもの／後から） |
 | [25-userservice-unit-test.md](25-userservice-unit-test.md) | **UserService / MeController テスト**（Mock・oidcLogin・OAuth2 exclude） |
 | [26-securityconfig-data-flow.md](26-securityconfig-data-flow.md) | **SecurityConfig 流れ／メソッド／型カタログ**（+ Bruno token・IdToken に role 無し・mapper は loadUser の外 等 Q&A） |
+| [29-vscode-settings-personal-path.md](29-vscode-settings-personal-path.md) | **`.vscode/settings.json` 個人パス指摘**（残す／User へ移す） |
+| [30-event-create-design-choices.md](30-event-create-design-choices.md) | **Event 作成の設計判断**（StringBuilder / @Valid / 404） |
+| [31-login-success-redirect.md](31-login-success-redirect.md) | **ログイン後リダイレクト**（Member A 連携・dashboard） |
+| [32-cookie-cross-origin-next.md](32-cookie-cross-origin-next.md) | **Cookie 跨ぎと Next BFF**（CORS との違い・転送） |
+| [33-bruno-session-get.md](33-bruno-session-get.md) | **Bruno + SESSION で GET 確認**（`/api/me`） |
 
 > ラボ時代のメモ（04〜06）は Keycloak `8081` / realm `live-qa` 前提で書かれている。本番は Keycloak `8080` / realm `LibraShare`（09 参照）。
 
