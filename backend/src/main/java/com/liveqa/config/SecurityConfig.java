@@ -33,6 +33,8 @@ import org.springframework.security.web.authentication.SimpleUrlAuthenticationSu
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import org.springframework.security.web.csrf.InvalidCsrfTokenException;
+import org.springframework.security.web.csrf.MissingCsrfTokenException;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.liveqa.service.UserService;
@@ -77,7 +79,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                 .requestMatchers("/api/auth/guest").permitAll()
-                .requestMatchers("/api/me","/api/auth/logout").authenticated()
+                .requestMatchers("/api/me", "/api/auth/logout", "/api/events", "/api/events/**").authenticated()
                 .anyRequest().permitAll()
             )
             // Bean だけでは呼ばれない → userAuthoritiesMapper で差し込む
@@ -139,8 +141,18 @@ public class SecurityConfig {
     }
 
     private AccessDeniedHandler accessDeniedHandler() {
-        return (request, response, accessDeniedException)
-            -> writeJson(response, HttpStatus.FORBIDDEN, "Forbidden", "権限がありません");
+        return (request, response, accessDeniedException) -> {
+            // CSRF 失敗も AccessDeniedException 配下のため、欠落／不一致を分けて返す
+            if (accessDeniedException instanceof MissingCsrfTokenException) {
+                writeJson(response, HttpStatus.FORBIDDEN, "Forbidden", "CSRFトークンがありません");
+                return;
+            }
+            if (accessDeniedException instanceof InvalidCsrfTokenException) {
+                writeJson(response, HttpStatus.FORBIDDEN, "Forbidden", "CSRFトークンが一致しません");
+                return;
+            }
+            writeJson(response, HttpStatus.FORBIDDEN, "Forbidden", "権限がありません");
+        };
     }
 
     private void writeJson(

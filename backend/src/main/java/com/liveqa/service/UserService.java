@@ -1,11 +1,13 @@
 package com.liveqa.service;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.liveqa.domain.User;
 import com.liveqa.dto.response.MeResponse;
+import com.liveqa.exception.BusinessException;
 import com.liveqa.repository.UserRepository;
 
 /**
@@ -43,8 +45,8 @@ public class UserService {
     @Transactional
     public User requireByOidcSubject(String oidcSubject) {
         return repository.findByOidcSubject(oidcSubject)
-                .orElseThrow(() -> new IllegalStateException(
-                    "usersテーブルにoidc_subjectがありません（JIT未実行） ：" + oidcSubject
+                .orElseThrow(() -> new BusinessException(
+                    HttpStatus.NOT_FOUND, "Not Found", "ユーザーが見つかりません。"
                 ));
     }
 

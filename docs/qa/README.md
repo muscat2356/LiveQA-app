@@ -37,6 +37,10 @@ Agent は回答のたびにここへ **新規作成または追記**する（`.c
 | [35-csrf-header-how-to-define.md](35-csrf-header-how-to-define.md) | **CSRF ヘッダ検証**（メソッド定義は不要・Filter／テスト） |
 | [36-question-count-jpa.md](36-question-count-jpa.md) | **questionCount**（COUNT vs スナップショット列・CASCADE） |
 | [37-list-without-question-count.md](37-list-without-question-count.md) | **一覧に questionCount は必要か**（UI vs openapi） |
+| [41-docker-backend-no-service-bean.md](41-docker-backend-no-service-bean.md) | **Docker backend 起動失敗**（`@Service` 無しで DI 失敗） |
+| [42-post-confirm-headers.md](42-post-confirm-headers.md) | **POST 確認時ヘッダー**（SESSION / XSRF / Content-Type） |
+| [43-post-403-server-side.md](43-post-403-server-side.md) | **POST 403 サーバー側切り分け**（CSRF message 分離） |
+| [44-post-events-500-joincode-regex.md](44-post-events-500-joincode-regex.md) | **POST /api/events 500**（JoinCode 正規表現 typo） |
 
 > ラボ時代のメモ（04〜06）は Keycloak `8081` / realm `live-qa` 前提で書かれている。本番は Keycloak `8080` / realm `LibraShare`（09 参照）。
 
