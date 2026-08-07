@@ -7,6 +7,9 @@ import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -65,6 +68,41 @@ public class GlobalExceptionHandler {
                                                 ex.getStatus().value(),
                                                 ex.getError(),
                                                 ex.getMessage()));
+        }
+
+        /**
+         * 認証失敗の処理
+         * 
+         * @param ex 認証例外
+         * @return エラーレスポンス
+         */
+        @ExceptionHandler(AuthenticationException.class)
+        public ResponseEntity<ErrorResponse> authenticationHandler(AuthenticationException ex) {
+
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                                .body(ErrorResponse.of(
+                                                401,
+                                                "Unauthorized",
+                                                "ログインが必要です"));
+        }
+
+        /**
+         * 認可失敗の処理
+         * 
+         * @param ex 認可例外
+         * @return エラーレスポンス
+         */
+        @ExceptionHandler({
+                AccessDeniedException.class,
+                AuthorizationDeniedException.class
+        })
+        public ResponseEntity<ErrorResponse> accessDeniedHandler(RuntimeException ex) {
+
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                                .body(ErrorResponse.of(
+                                                403,
+                                                "Forbidden",
+                                                "権限がありません"));
         }
 
         /**

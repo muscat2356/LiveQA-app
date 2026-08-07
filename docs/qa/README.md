@@ -27,6 +27,7 @@ Agent は回答のたびにここへ **新規作成または追記**する（`.c
 | [24-test-deps-jacoco.md](24-test-deps-jacoco.md) | **テスト依存・JaCoCo**（今あるもの／後から） |
 | [25-userservice-unit-test.md](25-userservice-unit-test.md) | **UserService / MeController テスト**（Mock・oidcLogin・OAuth2 exclude） |
 | [26-securityconfig-data-flow.md](26-securityconfig-data-flow.md) | **SecurityConfig 流れ／メソッド／型カタログ**（+ Bruno token・IdToken に role 無し・mapper は loadUser の外 等 Q&A） |
+| [34-preauthorize-500-via-advice.md](34-preauthorize-500-via-advice.md) | **@PreAuthorize×Advice 500**／Handler 分割 vs if |
 
 > ラボ時代のメモ（04〜06）は Keycloak `8081` / realm `live-qa` 前提で書かれている。本番は Keycloak `8080` / realm `LibraShare`（09 参照）。
 
