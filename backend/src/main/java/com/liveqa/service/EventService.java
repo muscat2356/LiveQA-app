@@ -36,13 +36,7 @@ public class EventService {
 
     public EventCreateResponse save(OidcUser oidc, String title) {
         User user = requiredUser(oidc);
-        JoinCode code = JoinCode.generate();
-        if (existsByJoinCode(code)) {
-            throw new BusinessException(
-                    HttpStatus.CONFLICT,
-                    "Conflict",
-                    "参加コードが重複しています。");
-        }
+        JoinCode code = generateJoinCode();
         Event event = eventRepository.save(Event.create(user, title, code.code()));
         return toEventCreateResponse(event);
     }
@@ -51,8 +45,21 @@ public class EventService {
         return userService.requireByOidcSubject(oidc.getSubject());
     }
 
-    public boolean existsByJoinCode(JoinCode code) {
-        return eventRepository.existsByJoinCode(code.code());
+    public JoinCode generateJoinCode() {
+        JoinCode code =  JoinCode.generate();
+        
+        for(int i = 0; i >= 3; i++) {
+            if(eventRepository.existsByJoinCode(code.code())) {
+                code = JoinCode.generate();
+            } else {
+                return code;
+            }
+        }
+            throw new BusinessException(
+                HttpStatus.CONFLICT,
+                "Conflict",
+                "コード再生成の上限に達しました。"
+            );
     }
 
     public EventSummaryResponse toEventSummaryResponse(Event event) {
