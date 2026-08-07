@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -35,6 +36,9 @@ import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.csrf.InvalidCsrfTokenException;
 import org.springframework.security.web.csrf.MissingCsrfTokenException;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.liveqa.service.UserService;
@@ -55,18 +59,21 @@ public class SecurityConfig {
     private final ClientRegistrationRepository clientRegistrationRepository;
     private final String loginSuccessRedirectUri;
     private final String postLogoutRedirectUri;
+    private final List<String> corsAllowedOrigins;
 
     public SecurityConfig(ObjectMapper objectMapper,
                         UserService userService,
                         ClientRegistrationRepository clientRegistrationRepository,
                         @Value("${app.login.success-redirect-uri}") String loginSuccessRedirectUri,
-                        @Value("${app.logout.post-logout-redirect-uri}") String postLogoutRedirectUri
+                        @Value("${app.logout.post-logout-redirect-uri}") String postLogoutRedirectUri,
+                        @Value("${app.cors.allowed-origins}") List<String> corsAllowedOrigins
     ) {
         this.objectMapper = objectMapper;
         this.userService = userService;
         this.clientRegistrationRepository = clientRegistrationRepository;
         this.loginSuccessRedirectUri = loginSuccessRedirectUri;
         this.postLogoutRedirectUri = postLogoutRedirectUri;
+        this.corsAllowedOrigins = corsAllowedOrigins;
     }
 
     @Bean
@@ -76,6 +83,7 @@ public class SecurityConfig {
         csrfHandler.setCsrfRequestAttributeName(null);
 
         http
+            .cors(Customizer.withDefaults())
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                 .requestMatchers("/api/auth/guest").permitAll()
@@ -104,6 +112,23 @@ public class SecurityConfig {
             );
 
         return http.build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(corsAllowedOrigins);
+        config.setAllowedMethods(List.of(
+            "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
+        ));
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+
+        source.registerCorsConfiguration("/**", config);
+
+        return source;
     }
 
     @Bean
