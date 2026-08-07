@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
+import org.springframework.stereotype.Service;
 
 import com.liveqa.domain.Event;
 import com.liveqa.domain.JoinCode;
@@ -13,6 +14,7 @@ import com.liveqa.dto.response.EventSummaryResponse;
 import com.liveqa.exception.BusinessException;
 import com.liveqa.repository.EventRepository;
 
+@Service
 public class EventService {
 
     private final EventRepository eventRepository;
