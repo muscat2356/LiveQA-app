@@ -27,6 +27,7 @@ erDiagram
         varchar title
         varchar join_code UK
         varchar status
+        int question_count
         timestamptz created_at
         timestamptz updated_at
     }
@@ -95,11 +96,13 @@ erDiagram
 | title | varchar(200) | NOT NULL | イベント名 |
 | join_code | varchar(12) | UNIQUE, NOT NULL | 参加コード（推測困難なランダム文字列） |
 | status | varchar(20) | NOT NULL DEFAULT 'DRAFT' | `DRAFT`（開始前・受付前） / `OPEN`（受付中） / `CLOSED`（締切） |
+| question_count | int | NOT NULL DEFAULT 0 | 質問数の非正規化スナップショット（API 詳細の `questionCount`） |
 | created_at | timestamptz | NOT NULL DEFAULT now() | 作成日時 |
 | updated_at | timestamptz | NOT NULL DEFAULT now() | 更新日時 |
 
 - 作成直後は `DRAFT`（部屋はあるが質問受付前）。主催者が開始で `OPEN`、締切で `CLOSED`
 - `updated_at` は `status`（`DRAFT`→`OPEN`⇔`CLOSED`）やタイトル編集で変化するため保持する
+- `question_count` は `questions` 件数のキャッシュ。質問 POST 時に原子的 +1（`upvote_count` と同発想）。物理 DELETE する API が無い MVP では減算は原則不要。イベント行 DELETE 時は CASCADE で質問も消えるが、件数はイベント行と一緒に消える
 
 ### questions（質問）
 
@@ -176,6 +179,7 @@ erDiagram
 
 - **いいねの二重投票防止**: `votes` の UNIQUE `(question_id, voter_key)` で担保。INSERT時に制約違反なら409を返す
 - **upvote_count の整合**: いいね追加/取消時に `questions.upvote_count` を原子的インクリメント（`UPDATE ... SET upvote_count = upvote_count + 1`）で更新。read-modify-writeにしないため楽観ロック（`version`）は不要
+- **question_count の整合**: 質問投稿時に `events.question_count` を原子的 +1。一覧 API には載せない（詳細のみ）。MVP では質問の物理 DELETE API が無いため減算は原則不要
 - **ポールの1票判定**: `SINGLE`（単一選択）は「1ポール1票」をアプリ層で担保（同一 `poll_id` に既存回答があれば置換 or 409）。`MULTI`（複数選択）は `UNIQUE(poll_option_id, voter_key)` で同一選択肢の重複のみ防止
 - **得票分布**: `poll_responses` を `poll_option_id` で `GROUP BY COUNT`。件数が多くなれば `poll_options.response_count` の非正規化を追加（`upvote_count` と同じ発想）
 - **ステータス遷移**: 質問は `OPEN → ANSWERED → ARCHIVED`（`OPEN → ARCHIVED` も可）。ルームは `DRAFT → OPEN ⇔ CLOSED`（`DRAFT` へは戻さない）。ポールは `DRAFT → OPEN → CLOSED`
@@ -199,13 +203,14 @@ CREATE TABLE users (
 );
 
 CREATE TABLE events (
-    id         BIGSERIAL PRIMARY KEY,
-    host_id    BIGINT       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    title      VARCHAR(200) NOT NULL,
-    join_code  VARCHAR(12)  NOT NULL,
-    status     VARCHAR(20)  NOT NULL DEFAULT 'DRAFT',
-    created_at TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    updated_at TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    id             BIGSERIAL PRIMARY KEY,
+    host_id        BIGINT       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title          VARCHAR(200) NOT NULL,
+    join_code      VARCHAR(12)  NOT NULL,
+    status         VARCHAR(20)  NOT NULL DEFAULT 'DRAFT',
+    question_count INT          NOT NULL DEFAULT 0,
+    created_at     TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    updated_at     TIMESTAMPTZ  NOT NULL DEFAULT now(),
     CONSTRAINT uq_events_join_code UNIQUE (join_code)
 );
 CREATE INDEX idx_events_host_id ON events(host_id);

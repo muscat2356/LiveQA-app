@@ -149,11 +149,12 @@
     "title": "第3回LT大会 Q&A",
     "joinCode": "x7K2mQ9a",
     "status": "OPEN",
-    "questionCount": 12,
     "createdAt": "2026-07-24T05:00:00Z"
   }
 ]
 ```
+
+- 一覧には `questionCount` を含めない（画面でも不要）。件数は詳細のみ
 
 ### GET /api/events/{id} （HOST, 所有者のみ）
 
@@ -174,6 +175,7 @@
 }
 ```
 
+- `questionCount` は `events.question_count`（非正規化スナップショット）。質問投稿時に原子的 +1。一覧には出さない
 - Response 403:
 
 ```json

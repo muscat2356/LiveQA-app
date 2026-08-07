@@ -96,6 +96,7 @@ stateDiagram-v2
 ```sql
 ALTER TABLE users        ADD CONSTRAINT ck_users_role   CHECK (role IN ('HOST','PARTICIPANT'));
 ALTER TABLE events       ADD CONSTRAINT ck_events_status CHECK (status IN ('DRAFT','OPEN','CLOSED'));
+ALTER TABLE events       ADD CONSTRAINT ck_events_question_count CHECK (question_count >= 0);
 ALTER TABLE questions    ADD CONSTRAINT ck_questions_status CHECK (status IN ('OPEN','ANSWERED','ARCHIVED'));
 ALTER TABLE questions    ADD CONSTRAINT ck_questions_upvote CHECK (upvote_count >= 0);
 ALTER TABLE polls        ADD CONSTRAINT ck_polls_type   CHECK (type IN ('SINGLE','MULTI'));

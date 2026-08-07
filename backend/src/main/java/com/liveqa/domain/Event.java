@@ -49,6 +49,9 @@ public class Event {
     @Column(nullable = false, length = 20)
     private EventStatus status = EventStatus.DRAFT;
 
+    @Column(name = "question_count", nullable = false)
+    private int questionCount = 0;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt = Instant.now();
 
@@ -75,6 +78,7 @@ public class Event {
         e.title = title;
         e.joinCode = joinCode;
         e.status = EventStatus.DRAFT;
+        e.questionCount = 0;
         e.createdAt = Instant.now();
         e.updatedAt = Instant.now();
 
@@ -99,6 +103,10 @@ public class Event {
 
     public EventStatus getStatus() {
         return status;
+    }
+
+    public int getQuestionCount() {
+        return questionCount;
     }
 
     public Instant getCreatedAt() {

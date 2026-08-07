@@ -32,6 +32,7 @@ POST /api/events + SESSION + X-XSRF-TOKEN + { "title": "..." }
 
 ## 後続（この単位の外）
 
-- GET 一覧（`questionCount`）
-- GET 詳細・PATCH status・GET /api/join/{code}
+- GET 一覧（`questionCount` は載せない）
+- GET 詳細（`questionCount`＝`events.question_count`）・PATCH status・GET /api/join/{code}
+- 質問 POST 時に `events.question_count` 原子的 +1
 - `@Valid` + `spring-boot-starter-validation` + B-19（400 `fields`）
