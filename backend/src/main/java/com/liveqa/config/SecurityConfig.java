@@ -28,6 +28,8 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUserAuthority;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
@@ -49,16 +51,19 @@ public class SecurityConfig {
     private final UserService userService;
     private final ObjectMapper objectMapper;
     private final ClientRegistrationRepository clientRegistrationRepository;
+    private final String loginSuccessRedirectUri;
     private final String postLogoutRedirectUri;
 
     public SecurityConfig(ObjectMapper objectMapper,
                         UserService userService,
                         ClientRegistrationRepository clientRegistrationRepository,
+                        @Value("${app.login.success-redirect-uri}") String loginSuccessRedirectUri,
                         @Value("${app.logout.post-logout-redirect-uri}") String postLogoutRedirectUri
     ) {
         this.objectMapper = objectMapper;
         this.userService = userService;
         this.clientRegistrationRepository = clientRegistrationRepository;
+        this.loginSuccessRedirectUri = loginSuccessRedirectUri;
         this.postLogoutRedirectUri = postLogoutRedirectUri;
     }
 
@@ -81,6 +86,7 @@ public class SecurityConfig {
                     .oidcUserService(oidcUserService())
                     .userAuthoritiesMapper(grantedAuthoritiesMapper())
                 )
+                .successHandler(loginSuccessHandler())
             )
             .csrf(csrf -> csrf
                 .csrfTokenRepository(csrfRepo)
@@ -152,6 +158,14 @@ public class SecurityConfig {
             "error", error,
             "message", message
         ));
+    }
+
+    private AuthenticationSuccessHandler loginSuccessHandler() {
+        final SimpleUrlAuthenticationSuccessHandler handler =
+            new SimpleUrlAuthenticationSuccessHandler(loginSuccessRedirectUri);
+        handler.setDefaultTargetUrl(loginSuccessRedirectUri);
+        handler.setAlwaysUseDefaultTargetUrl(true);
+        return handler;
     }
 
     private LogoutSuccessHandler oidcLogoutSuccessHandler() {

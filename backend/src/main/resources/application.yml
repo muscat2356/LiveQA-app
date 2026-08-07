@@ -5,6 +5,8 @@ server:
   port: ${SERVER_PORT:8080}
 # ログアウト後のブラウザ戻り先（フロント）。Keycloak Valid post logout redirect URIs と一致させる
 app:
+  login:
+    success-redirect-uri: ${LOGIN_SUCCESS_REDIRECT_URI:http://localhost:3000/dashboard}
   logout:
     post-logout-redirect-uri: ${POST_LOGOUT_REDIRECT_URI:http://localhost:3000/}
 spring:
