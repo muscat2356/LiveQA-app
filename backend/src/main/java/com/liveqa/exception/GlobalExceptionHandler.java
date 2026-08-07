@@ -12,6 +12,9 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.liveqa.dto.response.ErrorResponse;
 
 /**
@@ -22,6 +25,8 @@ import com.liveqa.dto.response.ErrorResponse;
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+        private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
         /**
          * バリデーションエラーの処理
@@ -75,7 +80,7 @@ public class GlobalExceptionHandler {
          */
         @ExceptionHandler(Exception.class)
         public ResponseEntity<ErrorResponse> ExceptionHandler(Exception ex) {
-
+                log.error("未処理例外", ex);
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                                 .body(ErrorResponse.of(
                                                 500,

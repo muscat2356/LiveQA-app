@@ -12,7 +12,7 @@ public record JoinCode(String code) {
     private static final Random RANDOM = new SecureRandom();
 
     public JoinCode {
-        if (code.length() != CODE_LENGTH || !code.matches("~[a-zA-Z0-9]+$")) {
+        if (code.length() != CODE_LENGTH || !code.matches("^[A-Za-z0-9]+$")) {
             throw new IllegalArgumentException("不正な値です。");
         }
     }
