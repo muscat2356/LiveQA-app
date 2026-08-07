@@ -46,7 +46,7 @@ GET /api/events + SESSION
   → HOST を検証（未ログイン 401 / 非 HOST 403）
   → OidcUser.sub → users.id（JIT）
   → events WHERE host_id = ? ORDER BY created_at DESC
-  → questionCount を付与して EventSummaryResponse[] を JSON
+  → EventSummaryResponse[] を JSON（一覧に questionCount は含めない。件数は詳細のみ）
 ```
 
 ### Security 差分（既存）

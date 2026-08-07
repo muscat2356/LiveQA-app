@@ -32,6 +32,10 @@ Agent は回答のたびにここへ **新規作成または追記**する（`.c
 | [31-login-success-redirect.md](31-login-success-redirect.md) | **ログイン後リダイレクト**（Member A 連携・dashboard） |
 | [32-cookie-cross-origin-next.md](32-cookie-cross-origin-next.md) | **Cookie 跨ぎと Next BFF**（CORS との違い・転送） |
 | [33-bruno-session-get.md](33-bruno-session-get.md) | **Bruno + SESSION で GET 確認**（`/api/me`） |
+| [34-preauthorize-500-via-advice.md](34-preauthorize-500-via-advice.md) | **@PreAuthorize×Advice 500**／Handler 分割 vs if |
+| [35-csrf-header-how-to-define.md](35-csrf-header-how-to-define.md) | **CSRF ヘッダ検証**（メソッド定義は不要・Filter／テスト） |
+| [36-question-count-jpa.md](36-question-count-jpa.md) | **questionCount**（COUNT vs スナップショット列・CASCADE） |
+| [37-list-without-question-count.md](37-list-without-question-count.md) | **一覧に questionCount は必要か**（UI vs openapi） |
 
 > ラボ時代のメモ（04〜06）は Keycloak `8081` / realm `live-qa` 前提で書かれている。本番は Keycloak `8080` / realm `LibraShare`（09 参照）。
 
