@@ -1,4 +1,3 @@
-// app/dashboard/error.tsx
 "use client";
 
 export default function Error({ reset }: { error: Error; reset: () => void }) {

@@ -15,7 +15,7 @@ export default async function DashBoard(){
         cache: "no-store",
     });
 
-    if (res.status === 401 || res.status === 403) {
+    if (res.status === 401) {
         redirect("/login");
     }
 

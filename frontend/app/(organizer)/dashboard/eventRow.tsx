@@ -44,7 +44,7 @@ export default function EventRow({ event }: {event: EventListResponse }) {
                 method: "PATCH",
                 headers:  { 
                     "Content-Type": "application/json",
-                    ...(xsrfToken ? { "X-XSRF-TOKEN":decodeURIComponent(xsrfToken)} : {}),
+                    ...(xsrfToken ? { "X-XSRF-TOKEN": xsrfToken } : {}),
                 },
                 credentials:"include",
                 body: JSON.stringify({ status: nextStatus}),
