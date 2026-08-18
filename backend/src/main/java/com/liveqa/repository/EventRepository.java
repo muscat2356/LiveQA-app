@@ -15,4 +15,6 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     List<Event> findByHost_IdOrderByCreatedAtDesc(Long hostId);
 
     Optional<Event> findByJoinCode(String joinCode);
+
+    Optional<Event> findByIdAndHost_Id(Long id, Long hostId);
 }

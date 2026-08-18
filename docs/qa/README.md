@@ -44,6 +44,7 @@ Agent は回答のたびにここへ **新規作成または追記**する（`.c
 | [45-f02-event-tests.md](45-f02-event-tests.md) | **F-02 Event テスト解説**（Service / WebMvcTest） |
 | [46-jpa-managed-save-optional.md](46-jpa-managed-save-optional.md) | **JPA 管理下で save 省略可の理由** |
 | [47-f03-status-review.md](47-f03-status-review.md) | **F-03 status 変更レビュー**（遷移・docs照合・残課題） |
+| [48-owned-event-sql-404.md](48-owned-event-sql-404.md) | **所有者 SQL+404**（openapi/constraints 反映済み） |
 
 > ラボ時代のメモ（04〜06）は Keycloak `8081` / realm `live-qa` 前提で書かれている。本番は Keycloak `8080` / realm `LibraShare`（09 参照）。
 

@@ -58,7 +58,7 @@ User.hostOf("sub-1") + id=1 を Reflection で付与
 
 | テスト | 検証 |
 |--------|------|
-| `findById_*`（Service） | 所有者詳細／404／他人 403 |
+| `findById_*`（Service） | 所有者詳細／無し・他人とも 404（`findByIdAndHost_Id`） |
 | `findByJoinCode_*`（Service） | 紹介 DTO／無し 404／形式不正 **400** |
 | `EventControllerTest#findById_*` | HOST 200 + `questionCount`／非 HOST 403 |
 | `JoinControllerTest` | 公開 200（`addFilters = false`） |

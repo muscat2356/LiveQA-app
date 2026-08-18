@@ -125,7 +125,7 @@ public class EventServiceTest {
         final Event event = Event.create(user, "第一回", "Ab12Cd34");
         ReflectionTestUtils.setField(event, "id", 10L);
         ReflectionTestUtils.setField(event, "questionCount", 12);
-        when(eventRepository.findById(10L)).thenReturn(Optional.of(event));
+        when(eventRepository.findByIdAndHost_Id(10L, 1L)).thenReturn(Optional.of(event));
 
         final EventDetailResponse response = eventService.findById(10L, oidc);
 
@@ -142,7 +142,7 @@ public class EventServiceTest {
         final OidcUser oidc = mock(OidcUser.class);
         when(oidc.getSubject()).thenReturn("sub-1");
         when(userService.requireByOidcSubject("sub-1")).thenReturn(user);
-        when(eventRepository.findById(99L)).thenReturn(Optional.empty());
+        when(eventRepository.findByIdAndHost_Id(99L, 1L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> eventService.findById(99L, oidc))
                 .isInstanceOf(BusinessException.class)
@@ -154,25 +154,21 @@ public class EventServiceTest {
     }
 
     @Test
-    void findById_他人のイベントなら403() {
+    void findById_他人のイベントなら404() {
         final User me = User.hostOf("sub-1");
         ReflectionTestUtils.setField(me, "id", 1L);
-        final User other = User.hostOf("sub-2");
-        ReflectionTestUtils.setField(other, "id", 2L);
 
         final OidcUser oidc = mock(OidcUser.class);
         when(oidc.getSubject()).thenReturn("sub-1");
         when(userService.requireByOidcSubject("sub-1")).thenReturn(me);
-
-        final Event event = Event.create(other, "他人", "Zz99Yy88");
-        ReflectionTestUtils.setField(event, "id", 10L);
-        when(eventRepository.findById(10L)).thenReturn(Optional.of(event));
+        // id+host_id で絞るため、他人所有は 0 件
+        when(eventRepository.findByIdAndHost_Id(10L, 1L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> eventService.findById(10L, oidc))
                 .isInstanceOf(BusinessException.class)
                 .satisfies(ex -> {
                     final BusinessException be = (BusinessException) ex;
-                    assertThat(be.getStatus()).isEqualTo(HttpStatus.FORBIDDEN);
+                    assertThat(be.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
                 });
     }
 
@@ -225,7 +221,7 @@ public class EventServiceTest {
 
         final Event event = Event.create(user, "第一回", "Ab12Cd34");
         ReflectionTestUtils.setField(event, "id", 10L);
-        when(eventRepository.findById(10L)).thenReturn(Optional.of(event));
+        when(eventRepository.findByIdAndHost_Id(10L, 1L)).thenReturn(Optional.of(event));
         when(eventRepository.save(any(Event.class))).thenAnswer(inv -> inv.getArgument(0));
 
         final EventStatusResponse response =
@@ -248,7 +244,7 @@ public class EventServiceTest {
         final Event event = Event.create(user, "第一回", "Ab12Cd34");
         ReflectionTestUtils.setField(event, "id", 10L);
         event.changeStatus(EventStatus.OPEN);
-        when(eventRepository.findById(10L)).thenReturn(Optional.of(event));
+        when(eventRepository.findByIdAndHost_Id(10L, 1L)).thenReturn(Optional.of(event));
         when(eventRepository.save(any(Event.class))).thenAnswer(inv -> inv.getArgument(0));
 
         final EventStatusResponse response =
@@ -269,7 +265,7 @@ public class EventServiceTest {
         ReflectionTestUtils.setField(event, "id", 10L);
         event.changeStatus(EventStatus.OPEN);
         event.changeStatus(EventStatus.CLOSED);
-        when(eventRepository.findById(10L)).thenReturn(Optional.of(event));
+        when(eventRepository.findByIdAndHost_Id(10L, 1L)).thenReturn(Optional.of(event));
         when(eventRepository.save(any(Event.class))).thenAnswer(inv -> inv.getArgument(0));
 
         final EventStatusResponse response =
@@ -288,7 +284,7 @@ public class EventServiceTest {
 
         final Event event = Event.create(user, "第一回", "Ab12Cd34");
         ReflectionTestUtils.setField(event, "id", 10L);
-        when(eventRepository.findById(10L)).thenReturn(Optional.of(event));
+        when(eventRepository.findByIdAndHost_Id(10L, 1L)).thenReturn(Optional.of(event));
 
         assertThatThrownBy(() -> eventService.updateStatus(10L, EventStatus.CLOSED, oidc))
                 .isInstanceOf(BusinessException.class)
