@@ -5,7 +5,7 @@ public enum EventStatus {
     OPEN,
     CLOSED;
 
-    public boolean canTransitioinTo(EventStatus next) {
+    public boolean canTransitionTo(EventStatus next) {
         return switch (this) {
             case DRAFT -> next == OPEN;
             case OPEN -> next == CLOSED;

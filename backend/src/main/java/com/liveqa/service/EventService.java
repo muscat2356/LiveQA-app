@@ -81,7 +81,7 @@ public class EventService {
                     "status は OPEN / CLOSED のいずれかです。");
         }
         final Event event = requireOwnedEvent(id, oidc);
-        if (!event.getStatus().canTransitioinTo(status)) {
+        if (!event.getStatus().canTransitionTo(status)) {
             throw new BusinessException(
                     HttpStatus.CONFLICT,
                     "Conflict",
