@@ -11,6 +11,8 @@ import com.liveqa.domain.Event;
 import com.liveqa.domain.JoinCode;
 import com.liveqa.domain.User;
 import com.liveqa.dto.response.EventCreateResponse;
+import com.liveqa.dto.response.EventDetailResponse;
+import com.liveqa.dto.response.EventJoinResponse;
 import com.liveqa.dto.response.EventSummaryResponse;
 import com.liveqa.exception.BusinessException;
 import com.liveqa.repository.EventRepository;
@@ -27,19 +29,51 @@ public class EventService {
         this.userService = userService;
     }
 
+    @Transactional(readOnly = true)
     public List<EventSummaryResponse> findAll(OidcUser oidc) {
-        User user = requiredUser(oidc);
+        final User user = requiredUser(oidc);
         return eventRepository.findByHost_IdOrderByCreatedAtDesc(user.getId())
                 .stream()
                 .map(e -> toEventSummaryResponse(e))
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public EventDetailResponse findById(Long id, OidcUser oidc) {
+        final User user = requiredUser(oidc);
+        final Event event = eventRepository.findByIdAndHost_Id(id, user.getId())
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        "Not Found",
+                        "イベントが見つかりません。"));
+
+        return toEventDetailResponse(event);
+    }
+
+    @Transactional(readOnly = true)
+    public EventJoinResponse findByJoinCode(String code) {
+        final JoinCode joinCode;
+        try {
+            joinCode = JoinCode.form(code);
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException(
+                    HttpStatus.BAD_REQUEST,
+                    "Bad Request",
+                    "参加コードが不正です。");
+        }
+        final Event event = eventRepository.findByJoinCode(joinCode.code())
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        "Not Found",
+                        "該当するルームが見つかりません。"));
+        return toEventJoinResponse(event);
+    }
+
     @Transactional
     public EventCreateResponse save(OidcUser oidc, String title) {
-        User user = requiredUser(oidc);
-        JoinCode code = generateJoinCode();
-        Event event = eventRepository.save(Event.create(user, title, code.code()));
+        final User user = requiredUser(oidc);
+        final JoinCode code = generateJoinCode();
+        final Event event = eventRepository.save(Event.create(user, title, code.code()));
         return toEventCreateResponse(event);
     }
 
@@ -48,20 +82,19 @@ public class EventService {
     }
 
     public JoinCode generateJoinCode() {
-        JoinCode code =  JoinCode.generate();
-        
-        for(int i = 0; i < 3; i++) {
-            if(eventRepository.existsByJoinCode(code.code())) {
+        JoinCode code = JoinCode.generate();
+
+        for (int i = 0; i < 3; i++) {
+            if (eventRepository.existsByJoinCode(code.code())) {
                 code = JoinCode.generate();
             } else {
                 return code;
             }
         }
-            throw new BusinessException(
+        throw new BusinessException(
                 HttpStatus.CONFLICT,
                 "Conflict",
-                "コード再生成の上限に達しました。"
-            );
+                "コード再生成の上限に達しました。");
     }
 
     public EventSummaryResponse toEventSummaryResponse(Event event) {
@@ -81,5 +114,24 @@ public class EventService {
                 "/join/" + event.getJoinCode(),
                 event.getStatus(),
                 event.getCreatedAt());
+    }
+
+    public EventDetailResponse toEventDetailResponse(Event event) {
+        return new EventDetailResponse(
+                event.getId(),
+                event.getTitle(),
+                event.getJoinCode(),
+                "/join/" + event.getJoinCode(),
+                event.getStatus(),
+                event.getQuestionCount(),
+                event.getCreatedAt(),
+                event.getUpdatedAt());
+    }
+
+    public EventJoinResponse toEventJoinResponse(Event event) {
+        return new EventJoinResponse(
+                event.getId(),
+                event.getTitle(),
+                event.getStatus());
     }
 }

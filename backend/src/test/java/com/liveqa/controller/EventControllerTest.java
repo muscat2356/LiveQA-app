@@ -1,0 +1,150 @@
+package com.liveqa.controller;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.oidcLogin;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.time.Instant;
+import java.util.List;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.security.oauth2.client.servlet.OAuth2ClientAutoConfiguration;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+
+import com.liveqa.dto.response.EventCreateResponse;
+import com.liveqa.dto.response.EventDetailResponse;
+import com.liveqa.dto.response.EventSummaryResponse;
+import com.liveqa.enums.EventStatus;
+import com.liveqa.service.EventService;
+
+/**
+ * EventController の HTTP 面を検証する。
+ * 本番 SecurityConfig は Import せず、@PreAuthorize と csrf() で HOST / CSRF を分ける。
+ */
+@WebMvcTest(
+        controllers = EventController.class,
+        excludeAutoConfiguration = OAuth2ClientAutoConfiguration.class
+)
+@Import(EventControllerTest.MethodSecurityTestConfig.class)
+class EventControllerTest {
+
+    @Autowired
+    MockMvc mockMvc;
+
+    @MockitoBean
+    EventService eventService;
+
+    @Test
+    void findAll_HOSTなら200() throws Exception {
+        final Instant createdAt = Instant.parse("2026-08-07T05:00:00Z");
+        when(eventService.findAll(any(OidcUser.class)))
+                .thenReturn(List.of(new EventSummaryResponse(
+                        10L, "第一回", "Ab12Cd34", EventStatus.DRAFT, createdAt)));
+
+        mockMvc.perform(get("/api/events").with(oidcLogin()
+                        .authorities(new SimpleGrantedAuthority("ROLE_HOST"))
+                        .idToken(id -> id.subject("sub-1"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(10))
+                .andExpect(jsonPath("$[0].title").value("第一回"))
+                .andExpect(jsonPath("$[0].joinCode").value("Ab12Cd34"))
+                .andExpect(jsonPath("$[0].status").value("DRAFT"))
+                .andExpect(jsonPath("$[0].questionCount").doesNotExist());
+    }
+
+    @Test
+    void findAll_HOST以外なら403() throws Exception {
+        mockMvc.perform(get("/api/events").with(oidcLogin()
+                        .authorities(new SimpleGrantedAuthority("ROLE_USER"))
+                        .idToken(id -> id.subject("sub-1"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void create_HOSTなら201() throws Exception {
+        final Instant createdAt = Instant.parse("2026-08-07T05:00:00Z");
+        when(eventService.save(any(OidcUser.class), eq("curlテストイベント")))
+                .thenReturn(new EventCreateResponse(
+                        20L,
+                        "curlテストイベント",
+                        "Xy9kLm2n",
+                        "/join/Xy9kLm2n",
+                        EventStatus.DRAFT,
+                        createdAt));
+
+        mockMvc.perform(post("/api/events")
+                        .with(oidcLogin()
+                                .authorities(new SimpleGrantedAuthority("ROLE_HOST"))
+                                .idToken(id -> id.subject("sub-1")))
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"curlテストイベント\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(20))
+                .andExpect(jsonPath("$.title").value("curlテストイベント"))
+                .andExpect(jsonPath("$.joinCode").value("Xy9kLm2n"))
+                .andExpect(jsonPath("$.joinUrl").value("/join/Xy9kLm2n"))
+                .andExpect(jsonPath("$.status").value("DRAFT"));
+    }
+
+    @Test
+    void create_HOST以外なら403() throws Exception {
+        mockMvc.perform(post("/api/events")
+                        .with(oidcLogin()
+                                .authorities(new SimpleGrantedAuthority("ROLE_USER"))
+                                .idToken(id -> id.subject("sub-1")))
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"x\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void findById_HOSTなら200() throws Exception {
+        final Instant t = Instant.parse("2026-08-07T05:00:00Z");
+        when(eventService.findById(eq(10L), any(OidcUser.class)))
+                .thenReturn(new EventDetailResponse(
+                        10L,
+                        "第一回",
+                        "Ab12Cd34",
+                        "/join/Ab12Cd34",
+                        EventStatus.DRAFT,
+                        12,
+                        t,
+                        t));
+
+        mockMvc.perform(get("/api/events/10").with(oidcLogin()
+                        .authorities(new SimpleGrantedAuthority("ROLE_HOST"))
+                        .idToken(id -> id.subject("sub-1"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(10))
+                .andExpect(jsonPath("$.questionCount").value(12))
+                .andExpect(jsonPath("$.joinUrl").value("/join/Ab12Cd34"));
+    }
+
+    @Test
+    void findById_HOST以外なら403() throws Exception {
+        mockMvc.perform(get("/api/events/10").with(oidcLogin()
+                        .authorities(new SimpleGrantedAuthority("ROLE_USER"))
+                        .idToken(id -> id.subject("sub-1"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @EnableMethodSecurity
+    static class MethodSecurityTestConfig {
+    }
+}
