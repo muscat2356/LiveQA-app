@@ -8,6 +8,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -15,8 +16,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.liveqa.dto.request.EventCreateRequest;
+import com.liveqa.dto.request.EventStatusRequest;
 import com.liveqa.dto.response.EventCreateResponse;
 import com.liveqa.dto.response.EventDetailResponse;
+import com.liveqa.dto.response.EventStatusResponse;
 import com.liveqa.dto.response.EventSummaryResponse;
 import com.liveqa.service.EventService;
 
@@ -56,5 +59,14 @@ public class EventController {
         return ResponseEntity.ok(eventService.findById(id, oidc));
     }
 
+    @PatchMapping("/events/{id}/status")
+    @PreAuthorize("hasRole('HOST')")
+    public ResponseEntity<EventStatusResponse> updateStatus(
+        @AuthenticationPrincipal OidcUser oidc,
+        @PathVariable Long id,
+        @Valid @RequestBody EventStatusRequest request
+    ) {
+        return ResponseEntity.ok(eventService.updateStatus(id, request.status(), oidc));
+    }
 
 }

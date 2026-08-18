@@ -85,6 +85,11 @@ public class Event {
         return e;
     }
 
+    public void changeStatus(EventStatus next) {
+        this.status = next;
+        this.updatedAt = Instant.now();
+    }
+
     public Long getId() {
         return id;
     }

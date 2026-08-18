@@ -42,6 +42,8 @@ Agent は回答のたびにここへ **新規作成または追記**する（`.c
 | [43-post-403-server-side.md](43-post-403-server-side.md) | **POST 403 サーバー側切り分け**（CSRF message 分離） |
 | [44-post-events-500-joincode-regex.md](44-post-events-500-joincode-regex.md) | **POST /api/events 500**（JoinCode 正規表現 typo） |
 | [45-f02-event-tests.md](45-f02-event-tests.md) | **F-02 Event テスト解説**（Service / WebMvcTest） |
+| [46-jpa-managed-save-optional.md](46-jpa-managed-save-optional.md) | **JPA 管理下で save 省略可の理由** |
+| [47-f03-status-review.md](47-f03-status-review.md) | **F-03 status 変更レビュー**（遷移・docs照合・残課題） |
 | [48-owned-event-sql-404.md](48-owned-event-sql-404.md) | **所有者 SQL+404**（openapi/constraints 反映済み） |
 | [49-f04-guest-voter-key.md](49-f04-guest-voter-key.md) | **F-04 匿名セッション / voter_key**（到達点・写経順） |
 
