@@ -47,13 +47,14 @@ public class EventController {
         return ResponseEntity.status(HttpStatus.CREATED).body(eventService.save(oidc, request.title()));
     }
 
-    @GetMapping("/evnts/{id}")
+    @GetMapping("/events/{id}")
     @PreAuthorize("hasRole('HOST')")
     public ResponseEntity<EventDetailResponse> findById(
-        @AuthenticationPrincipal OidcUser oidc,
-        @PathVariable Long id) {
-            return ResponseEntity.ok(eventService.findById(id, oidc));
-        }
+            @AuthenticationPrincipal OidcUser oidc,
+            @PathVariable Long id
+    ) {
+        return ResponseEntity.ok(eventService.findById(id, oidc));
+    }
 
 
 }

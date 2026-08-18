@@ -54,13 +54,18 @@ User.hostOf("sub-1") + id=1 を Reflection で付与
 【EJ】あえて外す … Entity の id は Reflection で可変に見せる（JPA 前提）
 ```
 
-## セットで足す分岐（Service）
+## 詳細 GET / join GET（追記）
 
 | テスト | 検証 |
 |--------|------|
-| `save_...` | 作成 → `EventCreateResponse`（joinUrl・DRAFT） |
-| `generateJoinCode_衝突...` | `exists` true→false で再発行 |
-| `generateJoinCode_上限...` | ずっと true → `BusinessException` Conflict |
+| `findById_*`（Service） | 所有者詳細／404／他人 403 |
+| `findByJoinCode_*`（Service） | 紹介 DTO／無し 404／形式不正 **400** |
+| `EventControllerTest#findById_*` | HOST 200 + `questionCount`／非 HOST 403 |
+| `JoinControllerTest` | 公開 200（`addFilters = false`） |
+| `JoinCodeTest` | generate / form 正常・不正 |
+
+本番パス typo `/evnts/{id}` → `/events/{id}` をテスト追加時に修正。
+
 
 ## EventControllerTest（HTTP 面）
 

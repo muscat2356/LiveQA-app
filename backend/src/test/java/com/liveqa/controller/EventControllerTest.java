@@ -26,6 +26,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.liveqa.dto.response.EventCreateResponse;
+import com.liveqa.dto.response.EventDetailResponse;
 import com.liveqa.dto.response.EventSummaryResponse;
 import com.liveqa.enums.EventStatus;
 import com.liveqa.service.EventService;
@@ -109,6 +110,37 @@ class EventControllerTest {
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\":\"x\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void findById_HOSTなら200() throws Exception {
+        final Instant t = Instant.parse("2026-08-07T05:00:00Z");
+        when(eventService.findById(eq(10L), any(OidcUser.class)))
+                .thenReturn(new EventDetailResponse(
+                        10L,
+                        "第一回",
+                        "Ab12Cd34",
+                        "/join/Ab12Cd34",
+                        EventStatus.DRAFT,
+                        12,
+                        t,
+                        t));
+
+        mockMvc.perform(get("/api/events/10").with(oidcLogin()
+                        .authorities(new SimpleGrantedAuthority("ROLE_HOST"))
+                        .idToken(id -> id.subject("sub-1"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(10))
+                .andExpect(jsonPath("$.questionCount").value(12))
+                .andExpect(jsonPath("$.joinUrl").value("/join/Ab12Cd34"));
+    }
+
+    @Test
+    void findById_HOST以外なら403() throws Exception {
+        mockMvc.perform(get("/api/events/10").with(oidcLogin()
+                        .authorities(new SimpleGrantedAuthority("ROLE_USER"))
+                        .idToken(id -> id.subject("sub-1"))))
                 .andExpect(status().isForbidden());
     }
 

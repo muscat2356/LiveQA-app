@@ -29,6 +29,7 @@ public class EventService {
         this.userService = userService;
     }
 
+    @Transactional(readOnly = true)
     public List<EventSummaryResponse> findAll(OidcUser oidc) {
         final User user = requiredUser(oidc);
         return eventRepository.findByHost_IdOrderByCreatedAtDesc(user.getId())
@@ -37,6 +38,7 @@ public class EventService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public EventDetailResponse findById(Long id, OidcUser oidc) {
         final User user = requiredUser(oidc);
         final Event event = eventRepository.findById(id)
@@ -53,6 +55,7 @@ public class EventService {
         return toEventDetailResponse(event);
     }
 
+    @Transactional(readOnly = true)
     public EventJoinResponse findByJoinCode(String code) {
         final JoinCode joinCode;
         try {
@@ -73,9 +76,9 @@ public class EventService {
 
     @Transactional
     public EventCreateResponse save(OidcUser oidc, String title) {
-        User user = requiredUser(oidc);
-        JoinCode code = generateJoinCode();
-        Event event = eventRepository.save(Event.create(user, title, code.code()));
+        final User user = requiredUser(oidc);
+        final JoinCode code = generateJoinCode();
+        final Event event = eventRepository.save(Event.create(user, title, code.code()));
         return toEventCreateResponse(event);
     }
 
