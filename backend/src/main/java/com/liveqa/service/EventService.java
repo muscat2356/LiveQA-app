@@ -41,17 +41,12 @@ public class EventService {
     @Transactional(readOnly = true)
     public EventDetailResponse findById(Long id, OidcUser oidc) {
         final User user = requiredUser(oidc);
-        final Event event = eventRepository.findById(id)
+        final Event event = eventRepository.findByIdAndHost_Id(id, user.getId())
                 .orElseThrow(() -> new BusinessException(
                         HttpStatus.NOT_FOUND,
                         "Not Found",
                         "イベントが見つかりません。"));
-        if (!event.getHost().getId().equals(user.getId())) {
-            throw new BusinessException(
-                    HttpStatus.FORBIDDEN,
-                    "Forbidden",
-                    "権限がありません。");
-        }
+
         return toEventDetailResponse(event);
     }
 
