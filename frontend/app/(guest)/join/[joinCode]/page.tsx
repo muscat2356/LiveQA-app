@@ -24,7 +24,7 @@ export default async function JoinLanding({
             <Card>
                 <CardHeader>
                     <StatusBadge status={event.status} />
-                    <CardTitle></CardTitle>
+                    <CardTitle>{event.title}</CardTitle>
                 </CardHeader>
                 <CardContent>
                     {event.status === "DRAFT" && <WaitingBody />}

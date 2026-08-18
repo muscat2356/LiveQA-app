@@ -28,7 +28,7 @@ export default function EnterForm({
                     id="nickname"
                     name="nickname"
                     placeholder="ニックネームを入力してください"
-                    maxLength={20}
+                    maxLength={50}
                     defaultValue={initialNickname}
                     autoComplete="off"
                 />
