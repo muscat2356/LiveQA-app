@@ -13,7 +13,9 @@ import com.liveqa.domain.User;
 import com.liveqa.dto.response.EventCreateResponse;
 import com.liveqa.dto.response.EventDetailResponse;
 import com.liveqa.dto.response.EventJoinResponse;
+import com.liveqa.dto.response.EventStatusResponse;
 import com.liveqa.dto.response.EventSummaryResponse;
+import com.liveqa.enums.EventStatus;
 import com.liveqa.exception.BusinessException;
 import com.liveqa.repository.EventRepository;
 
@@ -40,19 +42,7 @@ public class EventService {
 
     @Transactional(readOnly = true)
     public EventDetailResponse findById(Long id, OidcUser oidc) {
-        final User user = requiredUser(oidc);
-        final Event event = eventRepository.findById(id)
-                .orElseThrow(() -> new BusinessException(
-                        HttpStatus.NOT_FOUND,
-                        "Not Found",
-                        "イベントが見つかりません。"));
-        if (!event.getHost().getId().equals(user.getId())) {
-            throw new BusinessException(
-                    HttpStatus.FORBIDDEN,
-                    "Forbidden",
-                    "権限がありません。");
-        }
-        return toEventDetailResponse(event);
+        return toEventDetailResponse(requireOwnedEvent(id, oidc));
     }
 
     @Transactional(readOnly = true)
@@ -82,6 +72,26 @@ public class EventService {
         return toEventCreateResponse(event);
     }
 
+    @Transactional
+    public EventStatusResponse updateStatus(Long id, EventStatus status, OidcUser oidc) {
+        if (status == EventStatus.DRAFT) {
+            throw new BusinessException(
+                    HttpStatus.BAD_REQUEST,
+                    "Bad Request",
+                    "status は OPEN / CLOSED のいずれかです。");
+        }
+        final Event event = requireOwnedEvent(id, oidc);
+        if (!event.getStatus().canTransitioinTo(status)) {
+            throw new BusinessException(
+                    HttpStatus.CONFLICT,
+                    "Conflict",
+                    "この状態遷移はできません。");
+        }
+        event.changeStatus(status);
+        eventRepository.save(event);
+        return toEventStatusResponse(event);
+    }
+
     public User requiredUser(OidcUser oidc) {
         return userService.requireByOidcSubject(oidc.getSubject());
     }
@@ -100,6 +110,23 @@ public class EventService {
                 HttpStatus.CONFLICT,
                 "Conflict",
                 "コード再生成の上限に達しました。");
+    }
+
+    @Transactional(readOnly = true)
+    protected Event requireOwnedEvent(Long id, OidcUser oidc) {
+        final User user = requiredUser(oidc);
+        final Event event = eventRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        "Not Found",
+                        "イベントが見つかりません。"));
+        if (!event.getHost().getId().equals(user.getId())) {
+            throw new BusinessException(
+                    HttpStatus.FORBIDDEN,
+                    "Forbidden",
+                    "権限がありません。");
+        }
+        return event;
     }
 
     public EventSummaryResponse toEventSummaryResponse(Event event) {
@@ -137,6 +164,12 @@ public class EventService {
         return new EventJoinResponse(
                 event.getId(),
                 event.getTitle(),
+                event.getStatus());
+    }
+
+    public EventStatusResponse toEventStatusResponse(Event event) {
+        return new EventStatusResponse(
+                event.getId(),
                 event.getStatus());
     }
 }
