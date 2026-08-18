@@ -20,6 +20,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.liveqa.domain.User;
 import com.liveqa.dto.response.MeResponse;
+import com.liveqa.exception.BusinessException;
 import com.liveqa.repository.UserRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -80,8 +81,8 @@ class UserServiceTest {
                 .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> userService.requireByOidcSubject("missing"))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("JIT未実行");
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("ユーザーが見つかりません");
     }
 
     @Test

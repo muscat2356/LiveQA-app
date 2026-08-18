@@ -55,8 +55,8 @@
 |-----------|-------|-------------|
 | 400 | Bad Request | 入力バリデーション違反（必須・桁数・形式・選択数） |
 | 401 | Unauthorized | 未ログイン（HOST操作） / 匿名セッション未確立での投票 |
-| 403 | Forbidden | 他人のイベント・質問・ポールの操作 |
-| 404 | Not Found | 無効な参加コード、存在しないリソース |
+| 403 | Forbidden | ROLE 不足・CSRF 失敗など（認可フィルタ） |
+| 404 | Not Found | 無効な参加コード、存在しないリソース、**他人所有のイベント等（存在を漏らさない）** |
 | 409 | Conflict | ルーム/ポールが受付状態でない、二重投票、不正な状態遷移 |
 
 ## 認証（SSO / OIDC・担当B）
@@ -176,13 +176,7 @@
 ```
 
 - `questionCount` は `events.question_count`（非正規化スナップショット）。質問投稿時に原子的 +1。一覧には出さない
-- Response 403:
-
-```json
-{ "status": 403, "error": "Forbidden", "message": "このイベントを操作する権限がありません" }
-```
-
-- Response 404:
+- Response 404（存在しない、または自分の所有でない。区別しない）:
 
 ```json
 { "status": 404, "error": "Not Found", "message": "イベントが見つかりません" }
@@ -231,6 +225,12 @@
 
 ```json
 { "status": 409, "error": "Conflict", "message": "この状態遷移はできません" }
+```
+
+- Response 404（存在しない、または自分の所有でない。詳細 GET と同じ）:
+
+```json
+{ "status": 404, "error": "Not Found", "message": "イベントが見つかりません" }
 ```
 
 ## 質問 API（担当B）

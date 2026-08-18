@@ -54,10 +54,11 @@ flowchart LR
 
 ### 権限（所有者チェック）
 
-- 次は **HOST かつ対象イベントの所有者のみ**（他人のイベントは 403）:
-  - イベント作成 / 開閉（`PATCH /api/events/{id}/status`）
+- 次は **HOST かつ対象イベントの所有者のみ**:
+  - イベント詳細 / 開閉（`GET|PATCH /api/events/{id}` …）
   - ポール作成 / 開閉（`PATCH /api/polls/{pollId}/status`）
   - 質問ステータス変更（`PATCH /api/questions/{qid}/status`）
+- 所有者判定は **SQL 条件（例: `id` + `host_id`）** で行い、0件なら **404**（存在しない／他人所有を区別しない。存在漏洩を避ける）
 - 質問投稿・いいね・ポール回答は参加者（匿名セッション）でも可
 
 ### 状態遷移
@@ -114,8 +115,8 @@ ALTER TABLE poll_options ADD CONSTRAINT ck_poll_options_order CHECK (display_ord
 |--------|---------|
 | 400 Bad Request | 入力バリデーション違反（必須・桁数・形式・選択数） |
 | 401 Unauthorized | 未ログイン（HOST操作） / 匿名セッション未確立での投票 |
-| 403 Forbidden | 他人のイベント・質問・ポールの操作 |
-| 404 Not Found | 無効な `joinCode`、存在しないリソース |
+| 403 Forbidden | ROLE 不足・CSRF 失敗など（認可フィルタ） |
+| 404 Not Found | 無効な `joinCode`、存在しないリソース、他人所有のイベント等 |
 | 409 Conflict | ルーム/ポールが受付状態でない、二重投票、不正な状態遷移 |
 
 - エラーボディは共通形式 `{ status, error, message }` の3項目を基本とする。400では任意で `fields`（フィールド別メッセージ）を付与（[../api/openapi-notes.md](../api/openapi-notes.md)）

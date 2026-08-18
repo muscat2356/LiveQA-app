@@ -63,7 +63,8 @@ MVP-A（F-01〜F-09）が死守。日程・F-xx 詳細は docs。権限の正は
 | 5 | [live-qa-backend.mdc](.cursor/rules/live-qa-backend.mdc) | Java形の正 | glob |
 | 6 | [live-qa-frontend.mdc](.cursor/rules/live-qa-frontend.mdc) | フロント確定方針 | glob |
 
-キーワード: `実装` `解説` `確認` `修復` `PR案作成`。実装は本人。Agentは写経＋テストセット＋解説。
+キーワード: `実装` `解説` `確認` `修復` `PR案作成`。  
+**実装・修復は本人が手書き（厳守）。** Agent は写経＋テストセット＋解説のみ。ソース自動編集は「Agentがファイルを編集してよい」明示時だけ（[keywords](.cursor/rules/live-qa-keywords.mdc)）。
 
 ## 参照リポジトリ
 
