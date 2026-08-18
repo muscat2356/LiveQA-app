@@ -203,7 +203,35 @@ public ResponseEntity<GuestResponse> createGuestSession(HttpSession session) {
 }
 ```
 
-## レビュー（2026-08-18）
+## Q. GuestSessionControllerTest は CSRF を見ていない？
+
+**認識どおり。** `addFilters = false` は Security Filter（CSRF 含む）を切った **Controller 配線のスライス**。openapi の「CSRF 必須」と矛盾しているのではなく、**検証レイヤが違う**。
+
+| 層 | 何を保証するか | この PR のテスト |
+|----|----------------|------------------|
+| Filter（SecurityConfig） | CSRF あり→通過／なし→403 | **対象外**（`addFilters=false`） |
+| Controller | Session↔Service↔JSON | **対象**（現状） |
+
+本番では `SecurityConfig` の CSRF が全 POST に効く（Controller に CSRF 宣言は無い）。[`docs/qa/35-csrf-header-how-to-define.md`](35-csrf-header-how-to-define.md)
+
+### 別途確認の想定は？
+
+はい。次のどちらか（または両方）:
+
+1. **手動** … Bruno/curl で `POST /api/auth/guest`  
+   - CSRF あり → 200  
+   - CSRF なし → 403  
+   → PR テンプレの「CSRF を確認した」にチェック  
+2. **自動** … `GuestSessionControllerCsrfTest`  
+   - `.with(csrf())` → 200  
+   - csrf なし → 403  
+   （配線スライス `GuestSessionControllerTest` は `addFilters=false` のまま）
+
+JoinControllerTest も同様に `addFilters=false`（GET なので CSRF 論点が薄い）。Event の POST 系は以前 `.with(csrf())` 付きで Filter 有効側を見るパターン。
+
+### 一文
+
+> スライステストは CSRF 対象外で意図的。契約上の CSRF 必須は Filter＋手動（または Filter 有効テスト）で担保する想定でよい。
 
 **結論: F-04 の B 範囲として十分。openapi / `VoterKey` リネーム反映済み。**
 

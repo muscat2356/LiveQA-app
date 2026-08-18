@@ -24,8 +24,9 @@ import com.liveqa.dto.response.GuestResponse;
 import com.liveqa.service.GuestSessionService;
 
 /**
- * GuestSessionController の HTTP 面。
+ * GuestSessionController の HTTP 面（配線スライス）。
  * Session の get/set は Controller、発行ロジックは Service（Mock）。
+ * CSRF は {@link GuestSessionControllerCsrfTest} で検証する。
  */
 @WebMvcTest(
         controllers = GuestSessionController.class,
