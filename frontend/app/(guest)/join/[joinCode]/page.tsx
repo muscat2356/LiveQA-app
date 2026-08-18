@@ -3,6 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { fetchJoinEvent } from "@/lib/api/eventApi";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
+import EnterForm from "./EnterForm";
+import { ClosedBody } from "./ClosedBody";
+import { WaitingBody } from "./WaitingBody";
 
 export default async function JoinLanding({
     params,
@@ -26,7 +29,7 @@ export default async function JoinLanding({
                 <CardContent>
                     {event.status === "DRAFT" && <WaitingBody />}
                     {event.status === "OPEN" && (<EnterForm joinCode={joinCode} initialNickname={saveNickName} />)}
-                    {event.status === "CLOSED" && (<ClosedBody joinCode={joinCode} />)}
+                    {event.status === "CLOSED" && (<ClosedBody />)}
                 </CardContent>
             </Card>
         </div>
