@@ -26,6 +26,7 @@ import com.liveqa.domain.User;
 import com.liveqa.dto.response.EventCreateResponse;
 import com.liveqa.dto.response.EventDetailResponse;
 import com.liveqa.dto.response.EventJoinResponse;
+import com.liveqa.dto.response.EventStatusResponse;
 import com.liveqa.dto.response.EventSummaryResponse;
 import com.liveqa.enums.EventStatus;
 import com.liveqa.exception.BusinessException;
@@ -207,6 +208,103 @@ public class EventServiceTest {
                     final BusinessException be = (BusinessException) ex;
                     assertThat(be.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
                     assertThat(be.getMessage()).contains("参加コードが不正");
+                });
+    }
+
+    @Test
+    void updateStatus_DRAFTからOPENへ() {
+        final User user = User.hostOf("sub-1");
+        ReflectionTestUtils.setField(user, "id", 1L);
+        final OidcUser oidc = mock(OidcUser.class);
+        when(oidc.getSubject()).thenReturn("sub-1");
+        when(userService.requireByOidcSubject("sub-1")).thenReturn(user);
+
+        final Event event = Event.create(user, "第一回", "Ab12Cd34");
+        ReflectionTestUtils.setField(event, "id", 10L);
+        when(eventRepository.findByIdAndHost_Id(10L, 1L)).thenReturn(Optional.of(event));
+        when(eventRepository.save(any(Event.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        final EventStatusResponse response =
+                eventService.updateStatus(10L, EventStatus.OPEN, oidc);
+
+        assertThat(response.id()).isEqualTo(10L);
+        assertThat(response.status()).isEqualTo(EventStatus.OPEN);
+        assertThat(event.getStatus()).isEqualTo(EventStatus.OPEN);
+        verify(eventRepository).save(event);
+    }
+
+    @Test
+    void updateStatus_OPENからCLOSEDへ() {
+        final User user = User.hostOf("sub-1");
+        ReflectionTestUtils.setField(user, "id", 1L);
+        final OidcUser oidc = mock(OidcUser.class);
+        when(oidc.getSubject()).thenReturn("sub-1");
+        when(userService.requireByOidcSubject("sub-1")).thenReturn(user);
+
+        final Event event = Event.create(user, "第一回", "Ab12Cd34");
+        ReflectionTestUtils.setField(event, "id", 10L);
+        event.changeStatus(EventStatus.OPEN);
+        when(eventRepository.findByIdAndHost_Id(10L, 1L)).thenReturn(Optional.of(event));
+        when(eventRepository.save(any(Event.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        final EventStatusResponse response =
+                eventService.updateStatus(10L, EventStatus.CLOSED, oidc);
+
+        assertThat(response.status()).isEqualTo(EventStatus.CLOSED);
+    }
+
+    @Test
+    void updateStatus_CLOSEDからOPENへ() {
+        final User user = User.hostOf("sub-1");
+        ReflectionTestUtils.setField(user, "id", 1L);
+        final OidcUser oidc = mock(OidcUser.class);
+        when(oidc.getSubject()).thenReturn("sub-1");
+        when(userService.requireByOidcSubject("sub-1")).thenReturn(user);
+
+        final Event event = Event.create(user, "第一回", "Ab12Cd34");
+        ReflectionTestUtils.setField(event, "id", 10L);
+        event.changeStatus(EventStatus.OPEN);
+        event.changeStatus(EventStatus.CLOSED);
+        when(eventRepository.findByIdAndHost_Id(10L, 1L)).thenReturn(Optional.of(event));
+        when(eventRepository.save(any(Event.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        final EventStatusResponse response =
+                eventService.updateStatus(10L, EventStatus.OPEN, oidc);
+
+        assertThat(response.status()).isEqualTo(EventStatus.OPEN);
+    }
+
+    @Test
+    void updateStatus_DRAFTからCLOSEDは409() {
+        final User user = User.hostOf("sub-1");
+        ReflectionTestUtils.setField(user, "id", 1L);
+        final OidcUser oidc = mock(OidcUser.class);
+        when(oidc.getSubject()).thenReturn("sub-1");
+        when(userService.requireByOidcSubject("sub-1")).thenReturn(user);
+
+        final Event event = Event.create(user, "第一回", "Ab12Cd34");
+        ReflectionTestUtils.setField(event, "id", 10L);
+        when(eventRepository.findByIdAndHost_Id(10L, 1L)).thenReturn(Optional.of(event));
+
+        assertThatThrownBy(() -> eventService.updateStatus(10L, EventStatus.CLOSED, oidc))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> {
+                    final BusinessException be = (BusinessException) ex;
+                    assertThat(be.getStatus()).isEqualTo(HttpStatus.CONFLICT);
+                    assertThat(be.getMessage()).contains("状態遷移");
+                });
+    }
+
+    @Test
+    void updateStatus_要求がDRAFTなら400() {
+        final OidcUser oidc = mock(OidcUser.class);
+
+        assertThatThrownBy(() -> eventService.updateStatus(10L, EventStatus.DRAFT, oidc))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> {
+                    final BusinessException be = (BusinessException) ex;
+                    assertThat(be.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+                    assertThat(be.getMessage()).contains("OPEN / CLOSED");
                 });
     }
 }

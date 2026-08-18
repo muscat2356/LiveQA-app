@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.oidcLogin;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -27,6 +28,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.liveqa.dto.response.EventCreateResponse;
 import com.liveqa.dto.response.EventDetailResponse;
+import com.liveqa.dto.response.EventStatusResponse;
 import com.liveqa.dto.response.EventSummaryResponse;
 import com.liveqa.enums.EventStatus;
 import com.liveqa.service.EventService;
@@ -141,6 +143,35 @@ class EventControllerTest {
         mockMvc.perform(get("/api/events/10").with(oidcLogin()
                         .authorities(new SimpleGrantedAuthority("ROLE_USER"))
                         .idToken(id -> id.subject("sub-1"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void updateStatus_HOSTなら200() throws Exception {
+        when(eventService.updateStatus(eq(10L), eq(EventStatus.OPEN), any(OidcUser.class)))
+                .thenReturn(new EventStatusResponse(10L, EventStatus.OPEN));
+
+        mockMvc.perform(patch("/api/events/10/status")
+                        .with(oidcLogin()
+                                .authorities(new SimpleGrantedAuthority("ROLE_HOST"))
+                                .idToken(id -> id.subject("sub-1")))
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"OPEN\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(10))
+                .andExpect(jsonPath("$.status").value("OPEN"));
+    }
+
+    @Test
+    void updateStatus_HOST以外なら403() throws Exception {
+        mockMvc.perform(patch("/api/events/10/status")
+                        .with(oidcLogin()
+                                .authorities(new SimpleGrantedAuthority("ROLE_USER"))
+                                .idToken(id -> id.subject("sub-1")))
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"OPEN\"}"))
                 .andExpect(status().isForbidden());
     }
 
