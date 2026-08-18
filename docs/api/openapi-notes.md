@@ -103,7 +103,22 @@
 - 動作: ローカルセッションを破棄。既定ではRP-initiated logoutでKeycloak側のSSOセッションも終了（Keycloakのend-session endpointへリダイレクト）
 - Response: 204（ローカルのみの場合） / 302（Keycloak連動ログアウトの場合）
 
-> メモ: 参加者はログイン不要のため、認証エンドポイントは主催者専用。参加者には匿名セッション（CSRFトークン付き）が付与される。
+### POST /api/auth/guest （公開・参加者）
+
+匿名セッションを発行（または既存を再利用）。ログイン不要。CSRF 必須。
+
+- Request: ボディなし（要 `X-XSRF-TOKEN`。先にいずれかの GET で `XSRF-TOKEN` Cookie を取得）
+- Response 200:
+
+```json
+{ "guestId": "3f2a9c1e-8b4d-4e2a-9c1e-8b4d4e2a9c1e", "voterKey": "g:3f2a9c1e-8b4d-4e2a-9c1e-8b4d4e2a9c1e" }
+```
+
+- `voterKey` は `g:{guestId}`（HOST ログイン時の投票キーは `u:{userId}`。組み立ては共通の `VoterKey`）
+- 同じ `SESSION` で再 POST すると同じ `guestId` / `voterKey` を返す（Session 属性に保持）
+- 参加者は `users` 表には登録しない
+
+> メモ: 主催者向け認証エンドポイント（`/api/me` / logout）とは別。参加者は本 API で匿名 Session + CSRF を得る。
 
 ## イベント API（担当B）
 
