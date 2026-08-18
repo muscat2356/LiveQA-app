@@ -63,7 +63,11 @@ export type EventsStatusResponse = {
 
 export type SubmitState = "idle" | "submitting" | "error";
 
-
+export type JoinEvent = {
+  eventId: number;
+  title: string;
+  status: EventStatus;
+};
 
 
 
