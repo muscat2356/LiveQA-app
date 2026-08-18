@@ -42,6 +42,7 @@ Agent は回答のたびにここへ **新規作成または追記**する（`.c
 | [43-post-403-server-side.md](43-post-403-server-side.md) | **POST 403 サーバー側切り分け**（CSRF message 分離） |
 | [44-post-events-500-joincode-regex.md](44-post-events-500-joincode-regex.md) | **POST /api/events 500**（JoinCode 正規表現 typo） |
 | [45-f02-event-tests.md](45-f02-event-tests.md) | **F-02 Event テスト解説**（Service / WebMvcTest） |
+| [48-owned-event-sql-404.md](48-owned-event-sql-404.md) | **所有者 SQL+404**（openapi/constraints 反映済み） |
 
 > ラボ時代のメモ（04〜06）は Keycloak `8081` / realm `live-qa` 前提で書かれている。本番は Keycloak `8080` / realm `LibraShare`（09 参照）。
 
