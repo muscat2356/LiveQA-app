@@ -4,6 +4,7 @@ import { JoinEvent } from "@/types/event/event";
 import { useState } from "react";
 import type { Sort } from "@/types/question/question";
 import { Button } from "@/components/ui/button";
+import useQuestions from "./useQuestions";
 
 
 export default function QaScreen({ event }: { event: JoinEvent}) {
