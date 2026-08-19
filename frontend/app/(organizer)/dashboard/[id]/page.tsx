@@ -1,5 +1,8 @@
+import StatusChangeDialog from "@/components/event/statusChangeDialog";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { EventDetailResponse } from "@/types/event/event";
 import { cookies } from "next/headers";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 export default async function detailPage({
@@ -29,9 +32,24 @@ export default async function detailPage({
     return(
         <div>
             <Card>
-                
+                <CardHeader>
+                    <CardTitle>イベント詳細</CardTitle>
+                    <CardDescription></CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <p></p>
+                    <p></p>
+                    <Link href={""}>
+                    </Link>
+                </CardContent>
+                <CardFooter>
+                    <StatusChangeDialog
+                        eventId={event.id}
+                        title={event.title}
+                        status={event.status}
+                    />
+                </CardFooter>
             </Card>
-
         </div>
     )
 }
