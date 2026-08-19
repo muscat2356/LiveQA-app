@@ -11,6 +11,17 @@ export type EventListResponse = {
     createdAt: string;
 }
 
+export type EventDetailResponse = {
+    id: number;
+    title: string;
+    joinCode: string;
+    joinUrl: string;
+    status: EventStatus;
+    questionCount: number;
+    createdAt: string;
+    updatedAt: string;
+}
+
 //POST /api/events （HOST）イベント作成
 //Request 
 export type EventCreateRequest = {
