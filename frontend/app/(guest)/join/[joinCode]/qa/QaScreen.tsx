@@ -8,6 +8,7 @@ import useQuestions from "./useQuestions";
 import { StatusBadge } from "@/components/event/statusBadge";
 import PostForm from "./PostForm";
 import VoteButton from "./VoteButton";
+import SortTab from "./SortTab";
 
 
 export default function QaScreen({ event, nickname }: { event: JoinEvent; nickname: string}) {
@@ -26,6 +27,8 @@ export default function QaScreen({ event, nickname }: { event: JoinEvent; nickna
             {!loading && questions.length === 0 && (
                 <p>まだ質問はありません。最初の質問を投稿してみましょう！</p>
             )}
+
+            <SortTab value={sort} onChange={setSort} />
 
             <ul>
                 {questions.map((q) => (
