@@ -7,12 +7,13 @@ import { Button } from "@/components/ui/button";
 import useQuestions from "./useQuestions";
 import { StatusBadge } from "@/components/event/statusBadge";
 import PostForm from "./PostForm";
+import VoteButton from "./VoteButton";
 
 
 export default function QaScreen({ event, nickname }: { event: JoinEvent; nickname: string}) {
 
     const [sort, setSort] = useState<Sort>("popular");
-    const {questions, loading, load} = useQuestions(event.eventId, sort);
+    const {questions, loading, load, applyVote} = useQuestions(event.eventId, sort);
 
     return(
         <div>
@@ -30,10 +31,16 @@ export default function QaScreen({ event, nickname }: { event: JoinEvent; nickna
                 {questions.map((q) => (
                     <li key={q.id}>
                         <p>{q.body}</p>
-                        <p>
-                            {q.displayName ?? "匿名"} / いいね{q.upvoteCount}/
-                            {q.votedByMe ? "いいね" : "未選択"} / {q.status}
-                        </p>
+                        <div>
+                            {q.displayName ?? "匿名"} / 
+                            <VoteButton 
+                                questionId={q.id}
+                                upvoteCount={q.upvoteCount}
+                                votedByMe={q.votedByMe}
+                                applyVote={applyVote}
+                            />/ 
+                            {q.status}
+                        </div>
                     </li>
                 ))}
             </ul>

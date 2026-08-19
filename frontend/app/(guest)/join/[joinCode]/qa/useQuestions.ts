@@ -8,6 +8,12 @@ export default function useQuestions(eventId: number, sort: Sort){
     const [questions, setQuestions] = useState<QuestionResponse[]>([]);
     const [loading, setLoading] = useState(true);
 
+    function applyVote(questionId: number, upvoteCount: number, votedByMe: boolean){
+        setQuestions(prev =>
+            prev.map(q => (q.id === questionId ? { ...q, upvoteCount, votedByMe } : q))
+        );  
+    }
+
     async function load(){
         
         setLoading(true);
@@ -35,5 +41,5 @@ export default function useQuestions(eventId: number, sort: Sort){
         load();
     }, [eventId, sort]);
 
-    return { questions, loading, load};
+    return { questions, loading, load, applyVote};
 }
