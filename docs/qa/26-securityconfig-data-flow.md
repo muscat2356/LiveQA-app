@@ -1112,11 +1112,9 @@ loadUser:
 
 ## 関連
 
-- [05-security-config.md](05-security-config.md) — 設定の概要・ハマり  
-- [02-session-cookie.md](02-session-cookie.md) — SESSION / Redis  
-- [15-jit-provisioning.md](15-jit-provisioning.md) — JIT  
-- [16-userservice-when-oidcsubject.md](16-userservice-when-oidcsubject.md) — oidcSubject のタイミング  
-- [18-delegate-loaduser.md](18-delegate-loaduser.md) — `delegate.loadUser`  
+- [f01-auth.md](f01-auth.md) — 本番 F-01 の入口（JIT / loadUser / me）
+- [ops.md](ops.md) — LibraShare realm / URL 2種
+- [java.md](java.md) — DTO record
+- [05-security-config.md](05-security-config.md) — 設定の概要・ハマり
+- [02-session-cookie.md](02-session-cookie.md) — SESSION / Redis
 - [06-me-controller.md](06-me-controller.md) — `/api/me` と Authentication  
-- [09-keycloak-realm-librashare.md](09-keycloak-realm-librashare.md) — LibraShare / token URL  
-- [19-dto-record.md](19-dto-record.md) — record  
