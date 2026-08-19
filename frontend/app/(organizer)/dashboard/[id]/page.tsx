@@ -1,3 +1,4 @@
+import { StatusBadge } from "@/components/event/statusBadge";
 import StatusChangeDialog from "@/components/event/statusChangeDialog";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { EventDetailResponse } from "@/types/event/event";
@@ -12,7 +13,6 @@ export default async function detailPage({
 }){
 
     const { id } = await params;
-
     const cookieStore = await cookies();
 
     const res = await fetch (`${process.env.API_BASE_URL}/api/events/${id}`, {
@@ -31,25 +31,51 @@ export default async function detailPage({
 
     return(
         <div>
+            <Link href="/dashboard">
+                ← ダッシュボード
+            </Link>
+
+            {/*イベント詳細の説明*/}
             <Card>
                 <CardHeader>
-                    <CardTitle>イベント詳細</CardTitle>
-                    <CardDescription></CardDescription>
+                    <StatusBadge status={event.status}/>
+                    <CardTitle>{event.title}</CardTitle>
+                    <CardDescription>
+                        作成日時：{event.createdAt}
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <p></p>
-                    <p></p>
-                    <Link href={""}>
-                    </Link>
+                    <p>質問数</p>
+                    <p>{event.questionCount}</p>
                 </CardContent>
-                <CardFooter>
+            </Card>
+
+            {/*参加者招待画面 */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>参加者を招待</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p>参加コード:{event.joinCode}</p>
+                    <p>参加URL:{`http://localhost:3000/join/${event.joinCode}`}</p>
+                </CardContent>
+            </Card>
+
+            {/*ステータス更新画面*/}
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>受付の操作</CardTitle>
+                    <CardDescription>
+                        締め切ると参加者は投稿できなくなります。
+                    </CardDescription>
                     <StatusChangeDialog
                         eventId={event.id}
                         title={event.title}
                         status={event.status}
                     />
-                </CardFooter>
+                </CardHeader>
             </Card>
         </div>
-    )
+    );
 }

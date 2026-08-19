@@ -68,6 +68,9 @@ export default function statusChangeDialog({
                         状態を「{statusLabel[nextStatus]}」に変更します。
                     </DialogDescription>
                 </DialogHeader>
+                {nextStatus === "CLOSED" && (
+                        <p>締め切ると質問はすべて削除されます。この操作は取り消せません。</p>
+                    )}
                 {errorMessage && (
                         <p>{errorMessage}</p>
                     )}
