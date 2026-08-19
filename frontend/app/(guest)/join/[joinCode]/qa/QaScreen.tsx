@@ -6,9 +6,10 @@ import type { Sort } from "@/types/question/question";
 import { Button } from "@/components/ui/button";
 import useQuestions from "./useQuestions";
 import { StatusBadge } from "@/components/event/statusBadge";
+import PostForm from "./PostForm";
 
 
-export default function QaScreen({ event }: { event: JoinEvent}) {
+export default function QaScreen({ event, nickname }: { event: JoinEvent; nickname: string}) {
 
     const [sort, setSort] = useState<Sort>("popular");
     const {questions, loading, load} = useQuestions(event.eventId, sort);
@@ -35,8 +36,9 @@ export default function QaScreen({ event }: { event: JoinEvent}) {
                         </p>
                     </li>
                 ))}
-
             </ul>
+
+            <PostForm eventId={event.eventId} nickname={nickname} onPosted={load} />
         </div>
     )
 }
