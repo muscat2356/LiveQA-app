@@ -1,6 +1,6 @@
 import { fetchJoinEvent } from "@/lib/api/eventApi";
 import { notFound, redirect } from "next/navigation";
-import { join } from "path";
+import QaScreen from "./QaScreen";
 
 export default async function QaPage({
     params,

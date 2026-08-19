@@ -1,20 +1,18 @@
-import { EventStatus } from "../event/event";
-
-export type QuestionDto = {
+export type QuestionResponse = {
     id: number;
     eventId: number;
     body: string;
     displayName: string | null;
     upvoteCount: number;
-    status: EventStatus;
+    status: QuestionStatus;
     votedByMe: boolean;
     createdAt: string;
 };
 
 export type VoteResponse = {
     questionId: number;
-    upvotedCount: number;
-    votedbyMe: boolean;
+    upvoteCount: number;
+    votedByMe: boolean;
 }
 
 export type QuestionStatus = "OPEN" | "ANSWERED" | "ARCHIVED";
