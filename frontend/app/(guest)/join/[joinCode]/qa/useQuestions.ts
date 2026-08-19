@@ -26,8 +26,6 @@ export default function useQuestions(eventId: number, sort: Sort){
             const data: QuestionResponse[] = await res.json();
             setQuestions(data);
 
-           
-
         }finally{
             setLoading(false);
         }
