@@ -1,7 +1,5 @@
 package com.liveqa.controller;
 
-import java.util.Optional;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,8 +19,6 @@ import jakarta.servlet.http.HttpSession;
 @RequestMapping("/api/auth")
 public class GuestSessionController {
 
-    public static final String ATTR_GUEST_ID = "guestId";
-
     private final GuestSessionService guestSessionService;
 
     public GuestSessionController(GuestSessionService guestSessionService) {
@@ -31,12 +27,9 @@ public class GuestSessionController {
 
     @PostMapping("/guest")
     public ResponseEntity<GuestResponse> createGuestSession(HttpSession session) {
-        final Object existing = session.getAttribute(ATTR_GUEST_ID);
-        final Optional<String> check = existing instanceof String s 
-            ?  Optional.of(s)
-            : Optional.empty();
-        final GuestResponse response = guestSessionService.issueOrReuse(check);
-        session.setAttribute(ATTR_GUEST_ID, response.guestId());
+        final GuestResponse response =
+         guestSessionService.issueOrReuse(GuestSession.readGuestId(session));
+         GuestSession.writeGuestId(session, response.guestId());
         return ResponseEntity.ok(response);
     }
 }

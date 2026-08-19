@@ -90,6 +90,11 @@ public class Event {
         this.updatedAt = Instant.now();
     }
 
+    public void incrementQuestionCount() {
+        this.questionCount++;
+        this.updatedAt = Instant.now();
+    }
+
     public Long getId() {
         return id;
     }

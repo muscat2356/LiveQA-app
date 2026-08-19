@@ -56,7 +56,7 @@ class GuestSessionControllerTest {
         final ArgumentCaptor<Optional<String>> captor = ArgumentCaptor.forClass(Optional.class);
         verify(guestSessionService).issueOrReuse(captor.capture());
         assertThat(captor.getValue()).isEmpty();
-        assertThat(session.getAttribute(GuestSessionController.ATTR_GUEST_ID)).isEqualTo("new-id");
+        assertThat(session.getAttribute(GuestSession.ATTR_GUEST_ID)).isEqualTo("new-id");
     }
 
     @Test
@@ -65,7 +65,7 @@ class GuestSessionControllerTest {
                 .thenReturn(new GuestResponse("fixed-id", "g:fixed-id"));
 
         final MockHttpSession session = new MockHttpSession();
-        session.setAttribute(GuestSessionController.ATTR_GUEST_ID, "fixed-id");
+        session.setAttribute(GuestSession.ATTR_GUEST_ID, "fixed-id");
 
         mockMvc.perform(post("/api/auth/guest").session(session))
                 .andExpect(status().isOk())
@@ -75,6 +75,6 @@ class GuestSessionControllerTest {
         final ArgumentCaptor<Optional<String>> captor = ArgumentCaptor.forClass(Optional.class);
         verify(guestSessionService).issueOrReuse(captor.capture());
         assertThat(captor.getValue()).contains("fixed-id");
-        assertThat(session.getAttribute(GuestSessionController.ATTR_GUEST_ID)).isEqualTo("fixed-id");
+        assertThat(session.getAttribute(GuestSession.ATTR_GUEST_ID)).isEqualTo("fixed-id");
     }
 }

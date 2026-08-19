@@ -87,6 +87,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                 .requestMatchers("/api/auth/guest").permitAll()
+                .requestMatchers("/api/events/*/questions").permitAll()
                 .requestMatchers("/api/me", "/api/auth/logout", "/api/events", "/api/events/**").authenticated()
                 .requestMatchers("/api/join/**").permitAll()
                 .anyRequest().permitAll()
