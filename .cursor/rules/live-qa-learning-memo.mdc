@@ -5,12 +5,14 @@ alwaysApply: true
 
 # 学習メモ（docs/qa/）
 
-説明したらチャットだけで終わらせず **`docs/qa/` に新規 or 追記**。索引 [`docs/qa/README.md`](../../docs/qa/README.md)。言語化は [explain](live-qa-learning-explain.mdc)。
+説明したらチャットだけで終わらせず **`docs/qa/` の機能メモへ追記**。索引 [`docs/qa/README.md`](../../docs/qa/README.md)。言語化は [explain](live-qa-learning-explain.mdc)。
+
+**1 機能 = 1 md**（`f01-auth.md` …）。番号連番（`51-….md`）は増やさない。横断は `java.md` / `ops.md`。F-06 以降は同型でファイル追加。
 
 | いつ | どこ |
 |------|------|
-| 概念・トラブル・解説/確認/修復の説明 | 既存mdに見出し or 新規＋README更新 |
-| 写経だけの実装 | 必須ではない（補足したら書いてよい） |
+| 概念・トラブル・解説/確認/修復の説明 | 該当 `f0x-*.md` に見出し追記（無ければ機能ファイルを新規＋README） |
+| 写経だけの実装 | 必須ではない（補足したら機能メモへ） |
 
 書き方: 日本語・質問見出し・秘密禁止。Askモード不可時は案内し、Agent復帰後に追記。
 

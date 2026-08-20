@@ -18,8 +18,8 @@ scope: 参加ページは A 主。B は **guest + `voter_key`**。Join 照会は
 
 ```text
 Controller
-  → existing = session.getAttribute("guestId")   // Web
-  → response = service.issueOrReuse(Optional)    // 業務（HttpSession は渡さない）
+  → source = VoterKeySources.fromGuestSession(session)  // Guest / Missing（form は使わない）
+  → response = service.issueOrReuse(source)             // 業務（HttpSession は渡さない）
   → session.setAttribute("guestId", response.guestId())
   → ResponseEntity.ok(response)
 ```
@@ -60,7 +60,7 @@ Controller
 
 ## Q. Service が HttpSession に触ってよいか？
 
-**触らない。** Servlet API は Controller。Service が `ResponseEntity` を持たないのと同系統。引数は `String`（null 可）か `GuestId`（null 可）。`Optional` は戻り専用。詳細は [java.md](java.md) の「String ラッパーは Optional 引数を消すか」。
+**触らない。** Servlet API は Controller。Service が `ResponseEntity` を持たないのと同系統。引数は `VoterKeySource`（`fromGuestSession` の Guest / Missing）。`Optional` は戻り専用。詳細は [java.md](java.md) の Optional（項目55）。
 
 ## Q. GuestSessionControllerTest は CSRF を見ていない？
 
@@ -82,3 +82,14 @@ POST /api/auth/guest + X-XSRF-TOKEN
 【EJ】静的ファクトリ … VoterKey.guest
 【EJ】あえて外す … Service に HttpSession を渡さない／Repository なし
 ```
+
+## Q. GuestSessionService の引数は Optional ではなく VoterKeySource？
+
+**Guest / Missing ならそうする。`form` は使わない。**
+
+| 組み立て | 用途 |
+|----------|------|
+| `VoterKeySources.form(oidc, session)` | 投票者は誰か（Host 優先）。質問・いいね・一覧 |
+| `VoterKeySources.fromGuestSession(session)` | 匿名 guestId の有無だけ。`POST /api/auth/guest` |
+
+`issueOrReuse` は `switch`。`Guest` 再利用 / `Missing` 新規 UUID / `Host` は 400（`form` を繋いだときに壊れる）。Session の書き込みは今どおり Controller。

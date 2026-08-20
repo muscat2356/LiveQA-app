@@ -18,7 +18,7 @@
 
 | ファイル | 内容 |
 |----------|------|
-| [java.md](java.md) | 三層・DTO record・JPA・`var`・UNIQUE・削除・テスト |
+| [java.md](java.md) | 三層・DTO record・JPA・Javadoc 粒度・`var`・UNIQUE・削除・テスト |
 | [ops.md](ops.md) | Keycloak 相乗り・CI・Docker・エディタ |
 
 F-06 以降は実装が始まったら同型で `f06-*.md` を足す。

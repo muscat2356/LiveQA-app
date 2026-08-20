@@ -1,7 +1,5 @@
 package com.liveqa.controller;
 
-import java.util.Optional;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -13,15 +11,14 @@ import com.liveqa.service.GuestSessionService;
 import jakarta.servlet.http.HttpSession;
 
 /**
- * 匿名セッション発行（参加者用・最小）。
- * voter_key = g:{guestId}。CSRF 必須（permitAll でも POST）。
- * 出典: live-qa-session-lab GuestSession（余力）の考え方
+ * リソースguestに対するAPIコントローラー（匿名セッション発行）
+ * CSRF必須（permitAllでもPOST）
+ * GuestSessionController
+ * @author ichikura
  */
 @RestController
 @RequestMapping("/api/auth")
 public class GuestSessionController {
-
-    public static final String ATTR_GUEST_ID = "guestId";
 
     private final GuestSessionService guestSessionService;
 
@@ -29,14 +26,17 @@ public class GuestSessionController {
         this.guestSessionService = guestSessionService;
     }
 
+    /**
+     * 匿名セッションの発行または再利用を行うPOSTメソッド
+     * 組み立てはfromGuestSession（formは使わない）
+     * @param session guestIdを読み書きするHttpSession
+     * @return guestIdとvoterKey
+     */
     @PostMapping("/guest")
     public ResponseEntity<GuestResponse> createGuestSession(HttpSession session) {
-        final Object existing = session.getAttribute(ATTR_GUEST_ID);
-        final Optional<String> check = existing instanceof String s 
-            ?  Optional.of(s)
-            : Optional.empty();
-        final GuestResponse response = guestSessionService.issueOrReuse(check);
-        session.setAttribute(ATTR_GUEST_ID, response.guestId());
+        final GuestResponse response =
+         guestSessionService.issueOrReuse(VoterKeySources.fromGuestSession(session));
+         GuestSession.writeGuestId(session, response.guestId());
         return ResponseEntity.ok(response);
     }
 }

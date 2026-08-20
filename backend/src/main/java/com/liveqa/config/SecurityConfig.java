@@ -47,7 +47,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 /**
  * F-01: oauth2Login（Keycloak）→ セッション / CSRF / RBAC。
- * 出典: live-qa-session-lab SecurityConfig（lab/ping は移植しない）
+ * @author ichikura
  */
 @Configuration
 @EnableWebSecurity
@@ -87,6 +87,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                 .requestMatchers("/api/auth/guest").permitAll()
+                .requestMatchers("/api/events/*/questions").permitAll()
                 .requestMatchers("/api/me", "/api/auth/logout", "/api/events", "/api/events/**").authenticated()
                 .requestMatchers("/api/join/**").permitAll()
                 .anyRequest().permitAll()

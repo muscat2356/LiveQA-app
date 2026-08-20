@@ -11,7 +11,8 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 
 /**
- * Userドメイン
+ * テーブルusersに対応するEntity（HOSTのJIT用）
+ * User
  * @author ichikura
  */
 
@@ -42,8 +43,8 @@ public class User {
 
     /**
      * 専用のファクトリ、インスタンス化の入り口はここだけ
-     * @param oidcSubject oidcSub無しのUser生成を防ぐため
-     * @return 生成されたUser
+     * @param oidcSubject Keycloakのsub
+     * @return HOSTとして生成したUser
      */
     public static User hostOf(String oidcSubject) {
         User user = new User();

@@ -76,7 +76,7 @@ Controller で Session / principal を開けて `VoterKeySource` にする。戻
 
 `GuestId` の中に空を入れて `isPresent()` すると、Optional を自作しただけになる。VO は「ある値」だけを表し、無いときは引数 null か `Missing`。
 
-`issueOrReuse` は「無ければ発行」なので、いちばん小さい修正は `String existing`（null／空なら UUID）。`GuestId` は `g:` キーや nickname と混ぜたくなったら足す。質問・いいねの入口は `VoterKeySource` の方が HOST も吸える。
+`issueOrReuse` は「無ければ発行」なので、引数は `VoterKeySource`（`Guest` 再利用 / `Missing` 新規 UUID）。`form`（Host 優先）は使わない。`fromGuestSession` が Guest / Missing だけを組み立てる。詳細は [f04-guest.md](f04-guest.md)。
 
 ## ユーティリティクラス
 
@@ -110,3 +110,17 @@ MVP は行を消すより **status で閉じる**。User 行は `host_id` の FK
 【EJ】公開面最小化 … Controller は薄く
 【EJ】あえて外す … Entity は JPA で可変
 ```
+
+## Javadoc の粒度
+
+**役割 → クラス名 → `@author`。getter / record アクセサ / `JpaRepository` 由来 / コンストラクタは付けない。**
+
+| 層 | 付ける | 付けない |
+|----|--------|----------|
+| Entity | ファクトリ、変更メソッド、compact | getter |
+| enum | 定数1行、`canTransitionTo` | — |
+| DTO | どの API の入出力か。`ErrorResponse` の `of` / `withField` | `body()` 等 |
+| Repository | 自前の派生クエリ | `save` / `findById` |
+| Service | 公開メソッド（404/409/401）、`toXxxResponse` | コンストラクタ・フィールド |
+
+enum の遷移の正は [constraints](../design/constraints.md)。`EventStatus` は `DRAFT→OPEN`、`OPEN⇔CLOSED`。`QuestionStatus` は `OPEN→ANSWERED→ARCHIVED`（`OPEN→ARCHIVED` 可）。`PollStatus` は `DRAFT→OPEN→CLOSED`（終端、MVP-B）。

@@ -1,7 +1,10 @@
 package com.liveqa.dto.response;
 
 /**
- * GET /api/me 応答。openapi-notes の認証節に合わせる。
+ * ログインユーザー情報GETの応答DTO
+ * roleはローカルusers.role（認可用Authenticationとは別）
+ * MeResponse
+ * @author ichikura
  */
 public record MeResponse(
     Long id,
