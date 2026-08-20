@@ -10,19 +10,8 @@ import {
   actionLabelMap,
 } from "@/types/event/event";
 
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import Link from "next/link";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { readCookie } from "@/components/cookie";
 import StatusChangeDialog from "@/components/event/statusChangeDialog";
