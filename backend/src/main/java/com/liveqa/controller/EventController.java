@@ -25,6 +25,11 @@ import com.liveqa.service.EventService;
 
 import jakarta.validation.Valid;
 
+/**
+ * リソースeventsに対するAPIコントローラー
+ * EventController
+ * @author ichikura
+ */
 @RestController
 @RequestMapping("/api")
 public class EventController {
@@ -35,12 +40,23 @@ public class EventController {
         this.eventService = eventService;
     }
 
+    /**
+     * 自分のイベント一覧を返すGETメソッド
+     * @param oidc SecurityContext内のOidcUser情報
+     * @return イベント一覧情報（List）
+     */
     @GetMapping("/events")
     @PreAuthorize("hasRole('HOST')")
     public ResponseEntity<List<EventSummaryResponse>> findAll(@AuthenticationPrincipal OidcUser oidc) {
         return ResponseEntity.ok(eventService.findAll(oidc));
     }
 
+    /**
+     * イベント作成を行うPOSTメソッド
+     * @param oidc SecurityContext内のOidcUser情報
+     * @param request イベント作成時の入力内容
+     * @return 作成したイベント情報
+     */
     @PostMapping("/events")
     @PreAuthorize("hasRole('HOST')")
     public ResponseEntity<EventCreateResponse> create(
@@ -50,6 +66,12 @@ public class EventController {
         return ResponseEntity.status(HttpStatus.CREATED).body(eventService.save(oidc, request.title()));
     }
 
+    /**
+     * id指定でイベント詳細を返すGETメソッド
+     * @param oidc SecurityContext内のOidcUser情報
+     * @param id イベントid
+     * @return 抽出したイベント詳細情報
+     */
     @GetMapping("/events/{id}")
     @PreAuthorize("hasRole('HOST')")
     public ResponseEntity<EventDetailResponse> findById(
@@ -59,6 +81,14 @@ public class EventController {
         return ResponseEntity.ok(eventService.findById(id, oidc));
     }
 
+    /**
+     * ルームステータスを遷移するPATCHメソッド
+     * ステータスの検証はservice
+     * @param oidc SecurityContext内のOidcUser情報
+     * @param id イベントid
+     * @param request 遷移したいステータス
+     * @return 遷移後のステータス情報
+     */
     @PatchMapping("/events/{id}/status")
     @PreAuthorize("hasRole('HOST')")
     public ResponseEntity<EventStatusResponse> updateStatus(

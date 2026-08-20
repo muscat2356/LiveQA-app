@@ -13,6 +13,11 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 
+/**
+ * テーブルvotesに対応するEntity（質問×voter_keyのUNIQUE）
+ * Vote
+ * @author ichikura
+ */
 @Entity
 @Table(
     name = "votes",
@@ -39,6 +44,13 @@ public class Vote {
 
     protected Vote() {}
 
+    /**
+     * いいね1件のインスタンス化を行うファクトリ
+     * upvote_countの加算はRepositoryの原子的更新（このメソッドでは触らない）
+     * @param question 対象質問
+     * @param voterKey g:{guestId}またはu:{userId}
+     * @return インスタンス化したVote
+     */
     public static Vote cast(Question question, String voterKey) {
         Vote v = new Vote();
         v.question = question;

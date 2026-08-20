@@ -26,3 +26,9 @@ JPA Entity（`User` / `Event` 等）は従来どおり **class**（可変＋フ�
 - 深い継承が必要な古い DTO 設計（本プロジェクトでは不要）
 
 正: `.cursor/rules/live-qa-backend.mdc` / `live-qa-learning-explain.mdc` の【EJ】不変性。
+
+## Q: Request/Response の Javadoc はコンポーネント（アクセサ）まで付ける？
+
+**付けない。** クラス（どの API の入出力か）＋ファクトリ／compact だけ。record の `body()` 等は Entity の getter と同じ粒度。
+
+検証は Request では Bean Validation（`@NotBlank` 等）、遷移可否は Service。`ErrorResponse` だけ `of` / `withField` と compact（null fields → 空 Map）がある。`@author` は既存作者を残す（ErrorResponse は mizumura）。

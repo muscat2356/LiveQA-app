@@ -40,4 +40,35 @@ class VoterKeySourcesTest {
 
         assertThat(source).isEqualTo(new VoterKeySource.Missing());
     }
+
+    @Test
+    void fromGuestSession_guestIdありならGuest() {
+        final MockHttpSession session = new MockHttpSession();
+        session.setAttribute(GuestSession.ATTR_GUEST_ID, "abc");
+
+        final VoterKeySource source = VoterKeySources.fromGuestSession(session);
+
+        assertThat(source).isEqualTo(new VoterKeySource.Guest("abc"));
+    }
+
+    @Test
+    void fromGuestSession_無ければMissing() {
+        final VoterKeySource source = VoterKeySources.fromGuestSession(new MockHttpSession());
+
+        assertThat(source).isEqualTo(new VoterKeySource.Missing());
+    }
+
+    @Test
+    void fromGuestSession_OIDCがあってもHostにしない() {
+        final MockHttpSession session = new MockHttpSession();
+        session.setAttribute(GuestSession.ATTR_GUEST_ID, "abc");
+
+        final VoterKeySource guestOnly = VoterKeySources.fromGuestSession(session);
+        final OidcUser oidc = mock(OidcUser.class);
+        when(oidc.getSubject()).thenReturn("sub-1");
+        final VoterKeySource forVote = VoterKeySources.form(oidc, session);
+
+        assertThat(guestOnly).isEqualTo(new VoterKeySource.Guest("abc"));
+        assertThat(forVote).isEqualTo(new VoterKeySource.Host("sub-1"));
+    }
 }

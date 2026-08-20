@@ -20,7 +20,11 @@ import com.liveqa.service.QuestionService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 
-
+/**
+ * リソースquestionsに対するAPIコントローラー
+ * QuestionController
+ * @author ichikura
+ */
 @RestController
 @RequestMapping("/api")
 public class QuestionController {
@@ -31,6 +35,14 @@ public class QuestionController {
         this.questionService = questionService;
     }
 
+    /**
+     * 質問投稿を行うPOSTメソッド
+     * @param id イベントid
+     * @param request 質問本文と任意ニックネーム
+     * @param oidc SecurityContext内のOidcUser情報（未ログインならnull）
+     * @param session 匿名guestIdを持つHttpSession
+     * @return 作成した質問情報
+     */
     @PostMapping("/events/{id}/questions")
     public ResponseEntity<QuestionResponse> create(
             @PathVariable Long id,
@@ -50,6 +62,14 @@ public class QuestionController {
                 );
         }
     
+    /**
+     * イベント配下の質問一覧を返すGETメソッド
+     * votedByMeは今のセッション視点。Sessionが無くても200
+     * @param id イベントid
+     * @param oidc SecurityContext内のOidcUser情報（未ログインならnull）
+     * @param session 匿名guestIdを持つHttpSession
+     * @return 質問一覧（List）
+     */
     @GetMapping("/events/{id}/questions")
     public ResponseEntity<List<QuestionResponse>> findByEventId(
         @PathVariable Long id,

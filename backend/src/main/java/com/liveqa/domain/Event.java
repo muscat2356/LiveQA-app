@@ -18,7 +18,8 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 
 /**
- * Eventのドメイン
+ * テーブルeventsに対応するEntity
+ * Event
  * @author ichikura
  */
 @Entity
@@ -85,11 +86,20 @@ public class Event {
         return e;
     }
 
+    /**
+     * ルームステータスの更新を行うメソッド
+     * 遷移可否の検証はService
+     * @param next 遷移先のステータス
+     */
     public void changeStatus(EventStatus next) {
         this.status = next;
         this.updatedAt = Instant.now();
     }
 
+    /**
+     * 質問数の加算を行うメソッド
+     * いいね数（upvote_count）は触らない
+     */
     public void incrementQuestionCount() {
         this.questionCount++;
         this.updatedAt = Instant.now();

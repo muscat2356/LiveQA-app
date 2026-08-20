@@ -247,3 +247,14 @@ JoinControllerTest も同様に `addFilters=false`（GET なので CSRF 論点�
 | Service の `final` / 引数名 | 他クラスと揃えるとよい |
 
 HOST の `u:{id}` 利用・投票未確立 401 は **F-05**。
+
+## Q. GuestSessionService の引数は Optional ではなく VoterKeySource？
+
+**Guest / Missing ならそうする。`form` は使わない。**
+
+| 組み立て | 用途 |
+|----------|------|
+| `VoterKeySources.form(oidc, session)` | 投票者は誰か（Host 優先） |
+| `VoterKeySources.fromGuestSession(session)` | 匿名 guestId の有無だけ |
+
+`issueOrReuse` は `switch`。`Guest` 再利用 / `Missing` 新規 UUID / `Host` は 400（form を繋いだときに壊れる）。Session の書き込みは今どおり Controller。

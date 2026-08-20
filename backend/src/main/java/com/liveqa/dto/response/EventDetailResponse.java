@@ -4,6 +4,11 @@ import java.time.Instant;
 
 import com.liveqa.enums.EventStatus;
 
+/**
+ * イベント詳細GETの応答DTO
+ * EventDetailResponse
+ * @author ichikura
+ */
 public record EventDetailResponse(
         Long id,
         String title,

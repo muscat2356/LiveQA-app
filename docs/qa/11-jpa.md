@@ -285,3 +285,42 @@ Keycloak にユーザーがいるだけでは、ローカル DB にはまだ行�
 
 関連: [10-get-api-events.md](10-get-api-events.md)
 
+## Q: Entity の Javadoc は getter まで付ける？
+
+**付けない。Controller と同じく「役割 → クラス名 → `@author`」、メソッドはファクトリと状態を変えるものだけ。**
+
+getter は列を返すだけなので「〜を行う」が空転する。コメント対象は次。
+
+| 対象 | 例 |
+|------|-----|
+| クラス | どのテーブル／値オブジェクトか |
+| 静的ファクトリ | `create` / `hostOf` / `post` / `cast` / `generate` / `form` |
+| 変更メソッド | `changeStatus` / `incrementQuestionCount` |
+| compact constructor | `JoinCode` の 8 文字検証 |
+
+値オブジェクト（`JoinCode` / `VoterKey`）は record で不変。Entity は JPA のため可変（protected 無引数＋ファクトリ）。`upvote_count` の加減は `Vote.cast` では触らず、Repository の原子的更新側。
+
+## Q: enum の Javadoc は定数まで付ける？
+
+**定数は1行だけ付ける。** クラス（どの列の状態か＋遷移の正）＋メソッド（あれば `canTransitionTo`）。
+
+| enum | 遷移の正（constraints） |
+|------|-------------------------|
+| `EventStatus` | `DRAFT→OPEN`、`OPEN⇔CLOSED`。`DRAFT` へは戻さない |
+| `QuestionStatus` | `OPEN→ANSWERED→ARCHIVED`（`OPEN→ARCHIVED` 可）。`ARCHIVED` からは戻さない |
+| `PollStatus` | `DRAFT→OPEN→CLOSED`。`CLOSED` は終端（MVP-B、メソッドは未） |
+
+DB へは `@Enumerated(EnumType.STRING)` で名前を格納する。
+
+## Q: Repository の Javadoc は save / findById まで付ける？
+
+**付けない。** `JpaRepository` 由来はコメントしない。自前の派生クエリだけ（`EventRepository` 型）。
+
+| 対象 | 例 |
+|------|-----|
+| クラス | どのテーブルを操作するか |
+| 派生クエリ | `findBy…` / `existsBy…` / `deleteBy…` |
+| Optional | `@return Optional（無い可能性があるため）` |
+
+`upvote_count` の原子的 `@Query` を足すときは、そのメソッドにも付ける。
+

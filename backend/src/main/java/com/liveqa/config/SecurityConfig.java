@@ -47,7 +47,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 /**
  * F-01: oauth2Login（Keycloak）→ セッション / CSRF / RBAC。
- * 出典: live-qa-session-lab SecurityConfig（lab/ping は移植しない）
+ * @author ichikura
  */
 @Configuration
 @EnableWebSecurity

@@ -21,8 +21,11 @@ import com.liveqa.repository.EventRepository;
 import com.liveqa.repository.QuestionRepository;
 import com.liveqa.repository.VoteRepository;
 
-
-
+/**
+ * Questionsに対する業務処理を行うサービスクラス
+ * QuestionService
+ * @author ichikura
+ */
 @Service
 public class QuestionService {
 
@@ -44,6 +47,17 @@ public class QuestionService {
         this.voterKeyResolver = voterKeyResolver;
     }
 
+    /**
+     * 質問投稿を行うメソッド
+     * 識別未確立は401
+     * イベントが無ければ404、ルームがOPENでなければ409
+     * 空ニックネームは「匿名」、投稿後にquestion_countを加算
+     * votedByMeは投稿直後なのでfalse
+     * @param eventId イベントid
+     * @param request 質問本文と任意ニックネーム
+     * @param source 投票キーの取得元
+     * @return 作成した質問情報Responseクラス
+     */
     @Transactional
     public QuestionResponse create(
         Long eventId,
@@ -78,6 +92,15 @@ public class QuestionService {
 
     }
 
+    /**
+     * イベント配下の質問一覧を返すメソッド
+     * イベントが無ければ404
+     * キー未確立でも200、votedByMeは全部false
+     * 並びはcreated_at DESC
+     * @param eventId イベントid
+     * @param source 投票キーの取得元
+     * @return 一覧Responseクラス
+     */
     @Transactional(readOnly = true)
     public List<QuestionResponse> findByEventId(Long eventId, VoterKeySource source) {
         if (!eventRepository.existsById(eventId)) {
@@ -100,6 +123,13 @@ public class QuestionService {
 
     }
 
+    /**
+     * 今のセッションがいいねした質問idの集合を返すメソッド
+     * キー未確立なら空のSet（votedByMeは全部false）
+     * @param eventId イベントid
+     * @param source 投票キーの取得元
+     * @return いいね済み質問id
+     */
     private Set<Long> votedQuestionIds(Long eventId, VoterKeySource source) {
         final Optional<VoterKey> voterKey = voterKeyResolver.tryResolve(source);
         if (voterKey.isEmpty()) {
@@ -112,6 +142,13 @@ public class QuestionService {
             .collect(Collectors.toSet());
     }
 
+    /**
+     * RequestからQuestionへ変換するメソッド
+     * 空ニックネームは「匿名」
+     * @param event 所属イベント
+     * @param request 質問本文と任意ニックネーム
+     * @return 投稿用のQuestion
+     */
     private Question toPostQuestion(Event event, QuestionCreateRequest request) {
         final String body = request.body().trim();
         final String displayName = Optional.ofNullable(request.nickname())
@@ -121,6 +158,13 @@ public class QuestionService {
         return Question.post(event, body, displayName);
     }
 
+    /**
+     * レスポンスDTOへ変換するメソッド
+     * @param question DBから取得されたドメイン
+     * @param eventId イベントid
+     * @param votedByMe 今のセッションがいいね済みか
+     * @return レスポンス
+     */
     private QuestionResponse toQuestionResponse(
         Question question,
         Long eventId,

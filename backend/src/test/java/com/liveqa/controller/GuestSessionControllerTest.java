@@ -8,8 +8,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.util.Optional;
-
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +18,7 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.liveqa.domain.VoterKeySource;
 import com.liveqa.dto.response.GuestResponse;
 import com.liveqa.service.GuestSessionService;
 
@@ -42,7 +41,7 @@ class GuestSessionControllerTest {
     GuestSessionService guestSessionService;
 
     @Test
-    void createGuestSession_属性なしならemptyを渡して200() throws Exception {
+    void createGuestSession_属性なしならMissingを渡して200() throws Exception {
         when(guestSessionService.issueOrReuse(any()))
                 .thenReturn(new GuestResponse("new-id", "g:new-id"));
 
@@ -53,14 +52,14 @@ class GuestSessionControllerTest {
                 .andExpect(jsonPath("$.guestId").value("new-id"))
                 .andExpect(jsonPath("$.voterKey").value("g:new-id"));
 
-        final ArgumentCaptor<Optional<String>> captor = ArgumentCaptor.forClass(Optional.class);
+        final ArgumentCaptor<VoterKeySource> captor = ArgumentCaptor.forClass(VoterKeySource.class);
         verify(guestSessionService).issueOrReuse(captor.capture());
-        assertThat(captor.getValue()).isEmpty();
+        assertThat(captor.getValue()).isEqualTo(new VoterKeySource.Missing());
         assertThat(session.getAttribute(GuestSession.ATTR_GUEST_ID)).isEqualTo("new-id");
     }
 
     @Test
-    void createGuestSession_既存属性があればOptionalで渡す() throws Exception {
+    void createGuestSession_既存属性があればGuestを渡す() throws Exception {
         when(guestSessionService.issueOrReuse(any()))
                 .thenReturn(new GuestResponse("fixed-id", "g:fixed-id"));
 
@@ -72,9 +71,9 @@ class GuestSessionControllerTest {
                 .andExpect(jsonPath("$.guestId").value("fixed-id"))
                 .andExpect(jsonPath("$.voterKey").value("g:fixed-id"));
 
-        final ArgumentCaptor<Optional<String>> captor = ArgumentCaptor.forClass(Optional.class);
+        final ArgumentCaptor<VoterKeySource> captor = ArgumentCaptor.forClass(VoterKeySource.class);
         verify(guestSessionService).issueOrReuse(captor.capture());
-        assertThat(captor.getValue()).contains("fixed-id");
+        assertThat(captor.getValue()).isEqualTo(new VoterKeySource.Guest("fixed-id"));
         assertThat(session.getAttribute(GuestSession.ATTR_GUEST_ID)).isEqualTo("fixed-id");
     }
 }

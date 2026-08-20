@@ -88,3 +88,9 @@ public MeResponse currentHost(OidcUser oidcUser) {
 - Service が `ResponseEntity` を返す  
 - Repository が `MeResponse` を返す  
 - Entity を Controller から直接 JSON にする  
+
+## Q: Service の Javadoc はコンストラクタまで付ける？
+
+**付けない。** `EventService` 型。クラス（どの集約の業務か）＋公開メソッド（分岐・HTTP相当の結果）＋ヘルパー／DTO変換。
+
+コンストラクタとフィールドはコメントしない。`toXxxResponse` は「レスポンスDTOへ変換するメソッド」。エラーは本文に 404 / 409 / 401 を書く。  
