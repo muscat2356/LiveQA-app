@@ -2,6 +2,7 @@
 import { QuestionResponse } from "@/types/question/question";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
+import HostQaScreen from "./HostQaScreen";
 
 export default async function HostQaPage({
     params,
