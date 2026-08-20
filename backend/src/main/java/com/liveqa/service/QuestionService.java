@@ -101,7 +101,6 @@ public class QuestionService {
      * @param source 投票キーの取得元
      * @return 一覧Responseクラス
      */
-    @Transactional(readOnly = true)
     public List<QuestionResponse> findByEventId(Long eventId, VoterKeySource source) {
         if (!eventRepository.existsById(eventId)) {
             throw new BusinessException(
