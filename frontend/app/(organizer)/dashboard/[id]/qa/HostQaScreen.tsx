@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { EventDetailResponse } from "@/types/event/event";
 import { Sort } from "@/types/question/question";
 import { useState } from "react";
+import QuestionStatusButton from "./QuestionStatusButton";
+import { QuestionStatusBadge } from "@/components/question/questionStatusBadge";
 
 export default  function HostQaScreen({
      event 
@@ -37,15 +39,19 @@ export default  function HostQaScreen({
             <ul>
                 {questions.map((q) => (
                     <li key={q.id}>
+                        <QuestionStatusBadge status={q.status} />
                         <p>{q.body}</p>
                         <div>
                             {q.displayName ?? "匿名"}
-                            {q.status}
                         </div>
                         <div>
-                            いいね数；{q.upvoteCount}
+                            いいね数:{q.upvoteCount}
                         </div>
-                        <QuestionStatusButton />
+                        <QuestionStatusButton 
+                            questionId={q.id}
+                            status={q.status}
+                            load={load}
+                        />
                     </li>
                 ))}
             </ul>
