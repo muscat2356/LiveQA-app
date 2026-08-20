@@ -9,7 +9,7 @@ import org.springframework.session.web.http.DefaultCookieSerializer;
 /**
  * Spring Session + Redis。
  * Cookie 名 SESSION / SameSite 等は本番方針に合わせる。
- * 出典: live-qa-session-lab SessionConfig（移植）
+ * @author ichikura
  */
 @Configuration
 @EnableRedisHttpSession(redisNamespace = "live-qa")

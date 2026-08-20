@@ -5,7 +5,7 @@ F-01 骨組みは `live-qa-session-lab` から移植済み。手順・差分は:
 - [docs/qa/00-transplant-from-lab.md](../docs/qa/00-transplant-from-lab.md)
 - [docs/qa/08-backend-project-migrate.md](../docs/qa/08-backend-project-migrate.md)
 
-認証先は **LibraShare realm に相乗り**（サードパーティークライアント）。設計は [docs/qa/09-keycloak-realm-librashare.md](../docs/qa/09-keycloak-realm-librashare.md)。
+認証先は **LibraShare realm に相乗り**（サードパーティークライアント）。要点は [docs/qa/ops.md](../docs/qa/ops.md)。学習メモの入口は [docs/qa/README.md](../docs/qa/README.md)。
 
 | 項目 | 値 |
 |------|-----|
@@ -31,4 +31,4 @@ mvn spring-boot:run -Dspring-boot.run.arguments=--server.port=8081
 - `GET /api/me`（SESSION Cookie）
 - `POST /api/auth/guest`（CSRF ヘッダ必須）
 
-realm の client `live-qa-app` は redirect URI に `http://localhost:8081/*` と `http://localhost:3000/*` を許可済み。`realm_access.roles` の `HOST` を `ROLE_HOST` に読み替える mapper は backend 側の実装（[docs/qa/05-security-config.md](../docs/qa/05-security-config.md)）。
+realm の client `live-qa-app` は redirect URI に `http://localhost:8081/*` と `http://localhost:3000/*` を許可済み。`realm_access.roles` の `HOST` を `ROLE_HOST` に読み替える mapper は backend 側の実装（[docs/qa/f01-auth.md](../docs/qa/f01-auth.md) / [docs/qa/05-security-config.md](../docs/qa/05-security-config.md)）。

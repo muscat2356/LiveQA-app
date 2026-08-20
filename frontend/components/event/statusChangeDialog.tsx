@@ -43,7 +43,7 @@ export default function statusChangeDialog({
                 if(!res.ok){
                     // 本文にエラー情報が入っている場合はここで読む
                     const problem = await res.json().catch(() => null)
-                    throw new Error(problem?.detail ?? `HTTP ${res.status}`);
+                    throw new Error(problem?.message ?? "エラーが発生しました");
                 }
     
                 setOpen(false);

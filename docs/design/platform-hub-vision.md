@@ -47,9 +47,9 @@
 | IdP | Keycloak・realm `LibraShare` に **client として相乗り** | 同じ IdP を母体が正面に出し、配下は第三者クライアントのまま |
 | ユーザー行 | 各アプリが JIT でローカル `users`（FK 用の橋） | 無効化・退会の**業務の正**は母体。配下は必要なら反映用フラグ |
 | ユーザー管理 UI | 無し（スコープ外） | 母体アプリに集約 |
-| live-qa の削除カラム | **入れない**（[qa/12-delete-strategy.md](../qa/12-delete-strategy.md)） | 母体の方針が固まってから、配下へ Flyway で後付け可 |
+| live-qa の削除カラム | **入れない**（[qa/java.md](../qa/java.md)） | 母体の方針が固まってから、配下へ Flyway で後付け可 |
 
-**重要**: 母体が無い今でも、[qa/09-keycloak-realm-librashare.md](../qa/09-keycloak-realm-librashare.md) の「同じ realm に複数 client」は、この将来像の**下準備**になっている。
+**重要**: 母体が無い今でも、[qa/ops.md](../qa/ops.md) の「同じ realm に複数 client」は、この将来像の**下準備**になっている。
 
 ---
 
@@ -135,9 +135,9 @@
 | ドキュメント | 関係 |
 |--------------|------|
 | [architecture.md](../architecture.md) | いまの live-qa 単体構成（正） |
-| [qa/09-keycloak-realm-librashare.md](../qa/09-keycloak-realm-librashare.md) | realm 相乗り・第三者クライアント（下準備） |
-| [qa/12-delete-strategy.md](../qa/12-delete-strategy.md) | 削除／無効化を今足さない理由と将来フラグ |
-| [qa/15-jit-provisioning.md](../qa/15-jit-provisioning.md) | 配下の JIT（ローカル橋） |
+| [qa/ops.md](../qa/ops.md) | realm 相乗り・第三者クライアント（下準備） |
+| [qa/java.md](../qa/java.md) | 削除／無効化を今足さない理由 |
+| [qa/f01-auth.md](../qa/f01-auth.md) | 配下の JIT（ローカル橋） |
 | [scope.md](../scope.md) | MVP 境界（本構想は対象外） |
 
 ## 改訂メモ

@@ -270,7 +270,7 @@ Redis Insight で「OidcUser オブジェクト」がそのまま見えるわけ
 > いまの `MeController` は `userService.currentHost` → **`users.role`（DB）** を返す。`backend/src` に `"UNKNOWN"` は無い。  
 > したがって **SecurityConfig 不備では `"UNKNOWN"` は出ない**（出るのはだいたい **403**）。  
 > `"UNKNOWN"` が見えるなら、(a) ラボ型の旧 Controller が動いている、(b) DB に `UNKNOWN` が入っている、(c) 古いビルド、を疑う。  
-> 詳細手順は [14-f01-finish.md](14-f01-finish.md) の「UNKNOWN 切り分け」。
+> 詳細手順は [f01-auth.md](f01-auth.md) の「role: UNKNOWN」。
 
 ### 切り分けの順番（ラボ時代の旧実装向け）
 

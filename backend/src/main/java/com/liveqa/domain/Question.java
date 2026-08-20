@@ -16,6 +16,11 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
+/**
+ * テーブルquestionsに対応するEntity
+ * Question
+ * @author ichikura
+ */
 @Entity
 @Table(name = "questions")
 public class Question {
@@ -50,6 +55,14 @@ public class Question {
 
     protected Question() {}
 
+    /**
+     * 質問投稿時のインスタンス化を行うファクトリ
+     * 空ニックネームを「匿名」にする処理とquestion_count加算はService
+     * @param event 所属イベント
+     * @param body 質問本文
+     * @param displayName 表示名（Service側で空なら「匿名」済み）
+     * @return インスタンス化したQuestion（statusはOPEN、upvoteCountは0）
+     */
     public static Question post(
         Event event,
         String body,
