@@ -19,7 +19,6 @@ export default function useQuestions(eventId: number, sort: Sort){
         setLoading(true);
 
         try{
-
             const res = await fetch(`/api/events/${eventId}/questions?sort=${sort}`,{
              credentials: "same-origin", 
              headers: { Accept: "application/json" }
