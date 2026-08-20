@@ -10,21 +10,11 @@ import {
   actionLabelMap,
 } from "@/types/event/event";
 
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import Link from "next/link";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { readCookie } from "@/components/cookie";
+import StatusChangeDialog from "@/components/event/statusChangeDialog";
 
 export default function EventRow({ event }: {event: EventListResponse }) {
     const router = useRouter();
@@ -84,31 +74,11 @@ export default function EventRow({ event }: {event: EventListResponse }) {
 
                 <div>
                     <Badge variant={statusVariant[status]}>{statusLabel[status]}</Badge>
-
-                    <Dialog open={open} onOpenChange={setOpen}>
-                        <DialogTrigger render={<Button variant="outline" size="sm"/>}>
-                            {actionLabel}
-                        </DialogTrigger>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>{event.title}</DialogTitle>
-                                <DialogDescription>
-                                    状態を「{statusLabel[nextStatus]}」に変更します。
-                                </DialogDescription>
-                            </DialogHeader>
-                            {errorMessage && (
-                                    <p>{errorMessage}</p>
-                                )}
-                            <DialogFooter>
-                                <DialogClose render={<Button variant="outline" disabled={pending}/>}>
-                                    キャンセル
-                                </DialogClose>
-                                <Button onClick={handleConfirm} disabled={pending}>
-                                    {pending ? "送信中..." : actionLabel}
-                                </Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
+                    <StatusChangeDialog
+                        eventId={event.id}
+                        title={event.title}
+                        status={event.status}
+                    />
                 </div>
             </CardContent>
         </Card>
