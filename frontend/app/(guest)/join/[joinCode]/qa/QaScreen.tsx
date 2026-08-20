@@ -14,17 +14,20 @@ import SortTab from "./SortTab";
 export default function QaScreen({ event, nickname }: { event: JoinEvent; nickname: string}) {
 
     const [sort, setSort] = useState<Sort>("popular");
-    const {questions, loading, load, applyVote} = useQuestions(event.eventId, sort);
+    const {questions, loading, error, load, applyVote} = useQuestions(event.eventId, sort);
 
     return(
         <div>
             <h1>{event.title}</h1>
             <StatusBadge status={event.status} />
-            <Button onClick={load}>更新</Button>
+            <Button onClick={load}>
+                {!error ? "更新" : "再更新"}
+            </Button>
+            {!loading && error && <p>{error}</p>}
 
             {loading && <p>読み込み中・・・</p>}
 
-            {!loading && questions.length === 0 && (
+            {!loading && !error &&questions.length === 0 && (
                 <p>まだ質問はありません。最初の質問を投稿してみましょう！</p>
             )}
 
@@ -41,6 +44,7 @@ export default function QaScreen({ event, nickname }: { event: JoinEvent; nickna
                                 upvoteCount={q.upvoteCount}
                                 votedByMe={q.votedByMe}
                                 applyVote={applyVote}
+                                onSync={load}
                             />/ 
                             {q.status}
                         </div>

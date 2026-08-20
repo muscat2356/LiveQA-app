@@ -7,7 +7,7 @@
 | 想定時間 | **本編 30〜35分** ＋ Q&A 10分（合計 ~45分） |
 | 聞き手 | Java / Spring 経験者 |
 | 契約の正 | [openapi-notes 認証節](../api/openapi-notes.md) / [scope F-01](../scope.md) |
-| 学習メモ | `docs/qa/02,03,05,06,07,09,14–18,23,25,26` ／ 用語は各節冒頭＋[qa/README](../qa/README.md#質問に出てきた用語一覧グロッサリ) |
+| 学習メモ | [qa/f01-auth.md](../qa/f01-auth.md)（入口）／深いカタログは `02,03,05,06,26` ／ 用語は [qa/README](../qa/README.md#用語グロッサリ) |
 
 設計の核:
 
@@ -74,7 +74,7 @@ openapi 認証節のエンドポイント:
 | `POST /api/auth/logout` | ログアウト（CSRF） | ✅ |
 | `POST /api/auth/guest` | 匿名セッション（参加者） | ✅ 最小実装 |
 
-受け入れ疎通（[14](../qa/14-f01-finish.md)）:
+受け入れ疎通（[f01-auth.md](../qa/f01-auth.md)）:
 
 1. 初回ログイン後 `users` に HOST 行  
 2. `/api/me` → 数値 `id` + `role: HOST`  
@@ -396,7 +396,7 @@ userRequest
 
 Entity を principal にしない → Session に JPA エンティティを載せない。
 
-### 4.4 JIT（[15](../qa/15-jit-provisioning.md)）
+### 4.4 JIT（[f01-auth.md](../qa/f01-auth.md)）
 
 | 世界 | 持つもの |
 |------|----------|
@@ -541,7 +541,7 @@ config で触れるのは:
 
 ---
 
-### 5.2 層分担（[23](../qa/23-dto-mapping-layer.md)）
+### 5.2 層分担（[java.md](../qa/java.md)）
 
 ```text
 MeController
@@ -720,7 +720,7 @@ F-04/F-05 の土台。F-01 では「匿名 Session + CSRF が付く」までが�
 | Mockito | 依存を偽オブジェクトにして単体検証 |
 | issuer / AutoConfig exclude | 起動時の IdP 解決を避けるためのテスト工夫 |
 
-### 10.1 Realm（[09](../qa/09-keycloak-realm-librashare.md)）
+### 10.1 Realm（[ops.md](../qa/ops.md)）
 
 - Realm: **LibraShare** 相乗り  
 - Client: `live-qa-app`（confidential）  
@@ -736,7 +736,7 @@ F-04/F-05 の土台。F-01 では「匿名 Session + CSRF が付く」までが�
 | `application.yml` | client / `app.logout.post-logout-redirect-uri` |
 | `application-docker.yml` | コンテナ向け provider URI |
 
-### 10.3 テスト（[25](../qa/25-userservice-unit-test.md)）
+### 10.3 テスト（[f01-auth.md](../qa/f01-auth.md)）
 
 | クラス | 技法 | 検証 |
 |--------|------|------|

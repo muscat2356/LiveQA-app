@@ -21,9 +21,9 @@ live-qa-app（リアルタイム ライブQ&A + 投票 / sli.do風）の方向�
 
 ## 学習メモ（JIT）
 
-- [qa/README.md](qa/README.md) — 質問と回答の蓄積（Agent が説明のたびに追記。ルール: `.cursor/rules/live-qa-learning-memo.mdc`）
-- [qa/00-transplant-from-lab.md](qa/00-transplant-from-lab.md) — session-lab からの **移植判断**（F-01 素振りの持ち込み／除外）
-- [qa/08-backend-project-migrate.md](qa/08-backend-project-migrate.md) — **backend プロジェクト移行手順**（Maven 骨組み）
+- [qa/README.md](qa/README.md) — **機能ごと 1 ファイル**（`f01-auth.md` …）。Agent は既存メモへ追記
+- [qa/00-transplant-from-lab.md](qa/00-transplant-from-lab.md) — session-lab からの **移植判断**
+- [qa/08-backend-project-migrate.md](qa/08-backend-project-migrate.md) — **backend プロジェクト移行手順**
 - [backend/README.md](../backend/README.md) — 起動・疎通の入口
 
 > Member B の GitHub Issue 案（B-01〜）は本番リポに置かず、ラボ  

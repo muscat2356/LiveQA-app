@@ -11,10 +11,10 @@ import com.liveqa.exception.BusinessException;
 import com.liveqa.repository.UserRepository;
 
 /**
- * usersテーブルとIDPの橋渡しを行うサービス
- * ログイン成功時等に、oidcSubjectでusersを索引
+ * usersに対する業務処理を行うサービスクラス
+ * IDPのoidcSubjectでusersを索引（JIT・/api/me）
+ * UserService
  * @author ichikura
- * 
  */
 @Service
 public class UserService {
@@ -69,7 +69,7 @@ public class UserService {
     }
 
     /**
-     * DB空の復元 + 組み立てを呼び出すメソッド
+     * DBからの復元 + 組み立てを呼び出すメソッド
      * @param oidcUser OIDCユーザー情報
      * @return レスポンス
      */

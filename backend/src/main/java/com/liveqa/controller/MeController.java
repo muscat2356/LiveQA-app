@@ -12,10 +12,9 @@ import com.liveqa.dto.response.MeResponse;
 import com.liveqa.service.UserService;
 
 /**
- * GET /api/me … ログインユーザー情報。
- * 権限は principal（OidcUser）ではなく Authentication から読む
- * （GrantedAuthoritiesMapper の結果は Authentication に載る）。
- * 出典: live-qa-session-lab MeController（lab/ping は移植しない）
+ * リソースmeに対するAPIコントローラー（ログインユーザー情報）
+ * 権限はprincipal（OidcUser）ではなくAuthenticationから読む
+ * MeController
  * @author ichikura
  */
 @RestController
@@ -29,10 +28,10 @@ public MeController(UserService userService) {
 }
 
 /**
-* セッション情報を返すGETメソッド
-* @param oidcUser Authenticationの中のOidcUserprincipalで直接受け取る
-* @return 200 ユーザー情報のResponse
-*/
+ * ログインユーザー情報を返すGETメソッド
+ * @param oidcUser Authenticationの中のOidcUser。principalで直接受け取る
+ * @return ユーザー情報
+ */
 @GetMapping("/me")
 @PreAuthorize("hasRole('HOST')")
 public ResponseEntity<MeResponse> me(

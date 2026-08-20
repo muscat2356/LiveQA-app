@@ -3,6 +3,11 @@ package com.liveqa.dto.request;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+/**
+ * イベント作成POSTの入力DTO
+ * EventCreateRequest
+ * @author ichikura
+ */
 public record EventCreateRequest(
         @Size(min = 1, max = 100, message = "1～100文字で入力してください")
         @NotBlank(message = "1～100文字で入力してください")
