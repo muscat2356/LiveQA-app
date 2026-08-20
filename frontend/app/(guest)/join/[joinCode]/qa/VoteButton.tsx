@@ -11,11 +11,13 @@ export default function VoteButton({
     upvoteCount,
     votedByMe,
     applyVote,
+    onSync,
 }: {
     questionId: number;
     upvoteCount: number;
     votedByMe: boolean;
     applyVote: (questionId: number, upvoteCount: number, votedByMe: boolean) => void;
+    onSync: () => void;
 }){
     const [ pending, setPending] = useState(false);
 
@@ -36,8 +38,20 @@ export default function VoteButton({
 
             if(!res.ok){
                 const problem = await res.json().catch(() => null);
-                throw new Error(problem?.message??"再度実行してください")
+
+                if(res.status === 401){
+                toast.error("セッションが切れました。ページを読み込みください")
+                }
+
+                if(res.status === 409){
+                    toast.error(problem?.message ?? "既に投票済みです")
+                    onSync?.();
+                    return;
+                }
+                
             }
+
+            
 
             const voted : VoteResponse = await res.json();
             applyVote(voted.questionId, voted.upvoteCount, voted.votedByMe);
@@ -51,8 +65,12 @@ export default function VoteButton({
     }
     return(
         <div>
-            <Button onClick={handleVote} disabled={pending}>
-                👍{upvoteCount}
+            <Button 
+                onClick={handleVote} 
+                disabled={pending}  
+                variant={votedByMe ? "default" : "outline"}
+            >
+                {votedByMe ? "♥" : "♡"} {upvoteCount}
             </Button>
         </div>
     );

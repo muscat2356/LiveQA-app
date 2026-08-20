@@ -7,6 +7,7 @@ export default function useQuestions(eventId: number, sort: Sort){
     
     const [questions, setQuestions] = useState<QuestionResponse[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     function applyVote(questionId: number, upvoteCount: number, votedByMe: boolean){
         setQuestions(prev =>
@@ -17,6 +18,7 @@ export default function useQuestions(eventId: number, sort: Sort){
     async function load(){
         
         setLoading(true);
+        setError(null);
 
         try{
 
@@ -26,12 +28,14 @@ export default function useQuestions(eventId: number, sort: Sort){
             });
 
             if(!res.ok){
-                throw new Error("再度実行してください。")
+                const problem = await res.json().catch(() => null);
+                throw new Error(problem?.message ?? "エラーが発生しました");
             }
 
             const data: QuestionResponse[] = await res.json();
             setQuestions(data);
-
+        }catch (e){
+            setError(e instanceof Error ? e.message : "エラーが発生しました");
         }finally{
             setLoading(false);
         }
@@ -41,5 +45,5 @@ export default function useQuestions(eventId: number, sort: Sort){
         load();
     }, [eventId, sort]);
 
-    return { questions, loading, load, applyVote};
+    return { questions, loading, error, load, applyVote};
 }
