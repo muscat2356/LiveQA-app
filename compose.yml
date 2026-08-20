@@ -25,13 +25,13 @@ services:
   frontend:
     container_name: Live-qa-frontend
     build: ./frontend
+    environment:
+      # コンテナ間通信 → サービス名 + コンテナ側ポート
+      API_BASE_URL: http://backend:8080
+      # ブラウザが踏む URL → localhost + ホスト側ポート
+      NEXT_PUBLIC_KEYCLOAK_LOGIN_URL: http://localhost:8081/oauth2/authorization/keycloak
     ports:
       - "3000:3000"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    depends_on:
-      - backend
 
   postgres:
     image: postgres:16
