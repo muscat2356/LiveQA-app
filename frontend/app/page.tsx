@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Logo } from "@/components/brand/Logo";
 import { RiArrowRightLine, RiLoginBoxLine } from "@remixicon/react";
+import Image from "next/image";
 import Link from "next/link";
 
 /**
@@ -93,16 +94,15 @@ export default function Home() {
 
           {/* Right: brand visual */}
           <div className="relative hidden lg:block">
-            <div className="brand-gradient relative aspect-square overflow-hidden rounded-4xl p-10 shadow-2xl shadow-primary/30">
-              <div className="flex h-full flex-col items-center justify-center gap-6 text-center text-primary-foreground">
-                <Logo size={96} showWordmark={false} className="scale-125" />
-                <div>
-                  <p className="text-5xl font-black tracking-tight">LiveQA</p>
-                  <p className="mt-2 text-sm font-semibold uppercase tracking-[0.3em] text-accent">
-                    Live Question &amp; Answer
-                  </p>
-                </div>
-              </div>
+            <div className="brand-gradient relative flex aspect-square items-center justify-center overflow-hidden rounded-4xl p-10 shadow-2xl shadow-primary/30">
+              <Image
+                src="/liveqa-mark.png"
+                alt="LiveQA"
+                width={1024}
+                height={404}
+                priority
+                className="w-[82%] drop-shadow-lg"
+              />
               {/* decorative bubbles */}
               <span className="absolute -right-6 top-10 size-24 rounded-3xl bg-white/10 blur-xl" />
               <span className="absolute -left-4 bottom-12 size-32 rounded-full bg-accent/20 blur-2xl" />
