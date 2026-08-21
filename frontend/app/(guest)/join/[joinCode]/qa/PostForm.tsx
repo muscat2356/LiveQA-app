@@ -61,21 +61,24 @@ export default  function PostForm({
     }
 
     return(
-        <div>
-            <Textarea 
+        <div className="sticky bottom-4 space-y-3 rounded-2xl border bg-card p-4 shadow-lg ring-1 ring-foreground/5">
+            <Textarea
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
                 placeholder="質問を入力してください。"
                 maxLength={500}
+                className="min-h-24 resize-none"
             />
 
-            {errorMessage && <p>{errorMessage}</p>}
+            {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
 
-            <p>{nickname || "匿名"}として投稿</p>
+            <div className="flex items-center justify-between gap-3">
+                <p className="text-xs text-muted-foreground">{nickname || "匿名"}として投稿</p>
 
-            <Button onClick={handlePost} disabled={pending}>
-                {pending ? "送信中" : "送信"}
-            </Button>
+                <Button onClick={handlePost} disabled={pending}>
+                    {pending ? "送信中" : "送信"}
+                </Button>
+            </div>
         </div>
     );
 }
