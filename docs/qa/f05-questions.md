@@ -49,7 +49,7 @@ HttpSession.getAttribute → Object
 | GET 一覧（`votedByMe`） | **本番あり**（暫定 `created_at DESC`、キー無しは全部 false。`sort`/`status` は F-06 / F-12） |
 | GET 一覧テスト | **あり**（票あり true / キーなし false / 404 / Controller 200） |
 | いいね POST/DELETE | **あり**（`VoteService` / `VoteController`。`upvote_count` は原子的 ±1。`add`/`remove` とも `@Transactional`。STOMP は F-07） |
-| いいねテスト | **あり**（`VoteServiceTest` 正常/409/401/404、`VoteControllerTest` 配線、`VoteControllerCsrfTest` あり→200／なし→403） |
+| いいねテスト | **あり**（`VoteServiceTest` 正常/409/401/404/UNIQUE 409、`VoteControllerTest` 配線、`VoteControllerCsrfTest` あり→200／なし→403） |
 
 `/api/events/**` が `authenticated()` なので、**その前**に `/api/events/*/questions` を `permitAll`。vote も同様に `/api/questions/*/vote` をその前へ。permitAll でも POST/DELETE は CSRF 必須。
 
@@ -64,7 +64,7 @@ HttpSession.getAttribute → Object
 | 二重 409 | メッセージは `"既に投票済みです。"`（openapi 例は句点なし。実害小） |
 | Controller Javadoc | DELETE を「POSTメソッド」と書いていたので直した |
 
-UNIQUE 違反を Service で 409 に拾う帯は任意（exists 先回り＋制約が本丸）。STOMP は F-07。
+UNIQUE 違反は `saveAndFlush` ＋制約名で 409（#72 指摘）。exists は先回り。STOMP は F-07。
 
 ## 写経順
 
@@ -118,7 +118,7 @@ GET は公開。キーが無くても 200。`votedByMe` は全部 false。いい
 
 UNIQUE `(question_id, voter_key)`。同じキーで二度 INSERT → **設計上は** 409「既に投票済みです」。アプリの `exists` は先回り。本丸は制約。
 
-**現状ギャップ（要確認／要対応）:** `VoteService.add` は `exists` → 409 だけ。`DataIntegrityViolationException`（UNIQUE 違反）を 409 に変換する Handler / Service catch が **無い**。同時リクエストで両方が exists をすり抜けた場合、後続の `save` は catch-all で **500** になりうる。詳細は下の Q。
+同時リクエストは `exists` をすり抜ける。本丸は UNIQUE。`saveAndFlush` して制約名 `uq_votes_question_voter` なら 409「既に投票済みです。」（#72）。詳細は下の Q。
 
 `upvote_count` は votes 件数のキャッシュ。メモリで +1 して save しない。契約は `UPDATE questions SET upvote_count = upvote_count + 1`（取消は −1）。並行で数字がずれないため。
 
@@ -485,34 +485,25 @@ Controller が Session / principal を開けて `VoterKeySource` を組み立て
 
 ## Q. `exists` 通過後の同時いいねは 409 になるか？
 
-**ならない（現状）。指摘どおり UNIQUE 違反は 500 になりうる。**
+**`save()` だけだとならない。** flush/commit まで遅れると catch-all で 500。`saveAndFlush` して制約名を 409 に変換する（#72）。
 
-### 流れ（競合）
+### 流れ（競合・修復後）
 
 ```text
 リクエスト A                         リクエスト B
 exists → false                       exists → false
-save(INSERT) OK                      save(INSERT) → uq_votes_question_voter 違反
+saveAndFlush OK                      saveAndFlush → uq_votes_question_voter
                                      → DataIntegrityViolationException
-                                     → GlobalExceptionHandler の Exception catch-all
-                                     → 500 INTERNAL_SERVER_ERROR
+                                     → 制約名一致 → BusinessException 409
 ```
 
-| 層 | 役割 | 現状 |
-|----|------|------|
-| `existsByQuestion_IdAndVoterKey` | 先回り（変換 → 既投票なら即 409） | あり。単発二重には効く |
-| DB `uq_votes_question_voter` | 本丸（1人1票の最終防衛） | Flyway / Entity あり |
-| UNIQUE 違反 → 409 | 制約違反を業務 Conflict に読み替える | **未実装** |
+| 層 | 役割 |
+|----|------|
+| `exists` | 先回り（よくある二重を例外にしない） |
+| DB UNIQUE | 1人1票の本丸 |
+| Service catch | 制約名 `uq_votes_question_voter` → 409。他は再 throw（500） |
 
-設計の正（`docs/design/er-diagram.md` / `constraints.md`）: INSERT 時の制約違反 → **409**。  
-コードの正（`GlobalExceptionHandler`）: `BusinessException` と validation / 401 / 403 のみ。`DataIntegrityViolationException` 専用ハンドラなし。
-
-### 直し方の型（実装時）
-
-1. **Service catch（いいね専用）** … `save` を try/catch。制約名 `uq_votes_question_voter` なら `BusinessException(409, "Conflict", "既に投票済みです。")`
-2. **Advice 共通** … `@ExceptionHandler(DataIntegrityViolationException.class)` で制約名マップ（いいね・将来の poll 等）
-
-exists は残してよい（よくある二重は例外にしない）。本丸は UNIQUE + 409 変換。
+Advice 共通（ポール用）は今は足さない。いいね専用の最小差分。
 
 ## Q. `votedByMe` の意味は？
 

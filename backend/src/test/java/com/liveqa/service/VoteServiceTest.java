@@ -14,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -50,7 +51,7 @@ class VoteServiceTest {
         when(voterKeyResolver.resolve(any())).thenReturn(VoterKey.guest("abc"));
         when(questionRepository.findById(42L)).thenReturn(Optional.of(question));
         when(voteRepository.existsByQuestion_IdAndVoterKey(42L, "g:abc")).thenReturn(false);
-        when(voteRepository.save(any(Vote.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(voteRepository.saveAndFlush(any(Vote.class))).thenAnswer(inv -> inv.getArgument(0));
         when(questionRepository.incrementUpvoteCount(42L)).thenAnswer(inv -> {
             ReflectionTestUtils.setField(question, "upvoteCount", 1);
             return 1;
@@ -61,7 +62,7 @@ class VoteServiceTest {
         assertThat(response.questionId()).isEqualTo(42L);
         assertThat(response.upvoteCount()).isEqualTo(1);
         assertThat(response.votedByMe()).isTrue();
-        verify(voteRepository).save(any(Vote.class));
+        verify(voteRepository).saveAndFlush(any(Vote.class));
         verify(questionRepository).incrementUpvoteCount(42L);
     }
 
@@ -79,7 +80,26 @@ class VoteServiceTest {
                     assertThat(be.getStatus()).isEqualTo(HttpStatus.CONFLICT);
                     assertThat(be.getMessage()).contains("既に投票済み");
                 });
-        verify(voteRepository, never()).save(any());
+        verify(voteRepository, never()).saveAndFlush(any());
+        verify(questionRepository, never()).incrementUpvoteCount(any());
+    }
+
+    @Test
+    void add_UNIQUE違反なら409() {
+        final Question question = openQuestion(42L);
+        when(voterKeyResolver.resolve(any())).thenReturn(VoterKey.guest("abc"));
+        when(questionRepository.findById(42L)).thenReturn(Optional.of(question));
+        when(voteRepository.existsByQuestion_IdAndVoterKey(42L, "g:abc")).thenReturn(false);
+        when(voteRepository.saveAndFlush(any(Vote.class)))
+                .thenThrow(new DataIntegrityViolationException("uq_votes_question_voter"));
+
+        assertThatThrownBy(() -> voteService.add(42L, new VoterKeySource.Guest("abc")))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> {
+                    final BusinessException be = (BusinessException) ex;
+                    assertThat(be.getStatus()).isEqualTo(HttpStatus.CONFLICT);
+                    assertThat(be.getMessage()).contains("既に投票済み");
+                });
         verify(questionRepository, never()).incrementUpvoteCount(any());
     }
 
@@ -97,7 +117,7 @@ class VoteServiceTest {
                     assertThat(be.getStatus()).isEqualTo(HttpStatus.UNAUTHORIZED);
                 });
         verify(questionRepository, never()).findById(any());
-        verify(voteRepository, never()).save(any());
+        verify(voteRepository, never()).saveAndFlush(any());
     }
 
     @Test
@@ -113,7 +133,7 @@ class VoteServiceTest {
                     assertThat(be.getStatus()).isEqualTo(HttpStatus.CONFLICT);
                     assertThat(be.getMessage()).contains("受け付けていません");
                 });
-        verify(voteRepository, never()).save(any());
+        verify(voteRepository, never()).saveAndFlush(any());
         verify(questionRepository, never()).incrementUpvoteCount(any());
     }
 
@@ -128,7 +148,7 @@ class VoteServiceTest {
                     final BusinessException be = (BusinessException) ex;
                     assertThat(be.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
                 });
-        verify(voteRepository, never()).save(any());
+        verify(voteRepository, never()).saveAndFlush(any());
     }
 
     @Test

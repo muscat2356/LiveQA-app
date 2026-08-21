@@ -1,5 +1,6 @@
 package com.liveqa.service;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +21,7 @@ public class VoteService {
     private final QuestionRepository questionRepository;
     private final VoteRepository voteRepository;
     private final VoterKeyResolver voterKeyResolver;
+    private static final String VOTE_UNIQUE = "uq_votes_question_voter";
 
     public VoteService(QuestionRepository questionRepository, VoteRepository voteRepository,
             VoterKeyResolver voterKeyResolver) {
@@ -51,7 +53,17 @@ public class VoteService {
                 "既に投票済みです。"
             );
         }
-        voteRepository.save(Vote.cast(question, voteKey.value()));
+        try {
+            voteRepository.saveAndFlush(Vote.cast(question, voteKey.value()));
+        } catch (DataIntegrityViolationException ex) {
+            if (isVoteUniqueViolation(ex)) {
+                throw new BusinessException(
+                        HttpStatus.CONFLICT,
+                        "Conflict",
+                        "既に投票済みです。");
+            }
+            throw ex;
+        }
         questionRepository.incrementUpvoteCount(questionId);
 
         return toVoteResponse(questionId, true);
@@ -122,6 +134,15 @@ public class VoteService {
                     "質問が見つかりません。"
                 ));
         return new VoteResponse(questionId, refreshed.getUpvoteCount(), votedByMe);
+    }
+
+    /**
+     * UNIQUE 違反（同じ質問×同じ voter_key）かを判定する。
+     * メッセージに制約名が含まれる場合だけ業務 409 にする。
+     */
+    private static boolean isVoteUniqueViolation(DataIntegrityViolationException ex) {
+        final String message = ex.getMostSpecificCause().getMessage();
+        return message != null && message.contains(VOTE_UNIQUE);
     }
 
 }
