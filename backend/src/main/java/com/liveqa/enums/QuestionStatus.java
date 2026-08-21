@@ -12,5 +12,19 @@ public enum QuestionStatus {
     /** 回答済み */
     ANSWERED,
     /** アーカイブ */
-    ARCHIVED
+    ARCHIVED;
+
+    /**
+     * 遷移可否の判定を行うメソッド
+     * OPEN→ANSWERED / OPEN→ARCHIVED / ANSWERED→ARCHIVED。ARCHIVED からは戻さない
+     * @param next 遷移先
+     * @return 遷移してよければtrue
+     */
+    public boolean canTransitionTo(QuestionStatus next) {
+        return switch(this) {
+            case OPEN -> next == ANSWERED || next == ARCHIVED;
+            case ANSWERED -> next == ARCHIVED;
+            case ARCHIVED -> false;
+        };
+    }
 }
