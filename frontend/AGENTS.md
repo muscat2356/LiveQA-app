@@ -6,6 +6,7 @@ Next.js フロント。**規定の正はルートのルール6本 + `docs/`**。
 
 | 読む順 | 何か |
 |--------|------|
+| [../docs/codex.md](../docs/codex.md) | Codex 利用時（Cursor と同じ 6 本。`.mdc` は自動注入されない） |
 | [../AGENTS.md](../AGENTS.md) | 索引 |
 | [../.cursor/rules/live-qa-keywords.mdc](../.cursor/rules/live-qa-keywords.mdc) | 実装 / 解説 / 確認 / 修復 / PR案作成（**手書き厳守**） |
 | [../.cursor/rules/live-qa-learning-explain.mdc](../.cursor/rules/live-qa-learning-explain.mdc) | 写経・解説の言語化 |

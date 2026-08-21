@@ -36,3 +36,7 @@ live-qa-app（リアルタイム ライブQ&A + 投票 / sli.do風）の方向�
 ## AI レビュー（Gemini on GitHub）
 
 - [../.gemini/README.md](../.gemini/README.md) — Gemini Code Assist（`styleguide.md` / `config.yaml`）
+
+## AI Agent（ChatGPT Codex）
+
+- [codex.md](codex.md) — Cursor のルール 6 本を Codex でも守る手順（`.mdc` は Codex に自動注入されない）
