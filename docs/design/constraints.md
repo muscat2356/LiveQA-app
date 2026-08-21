@@ -23,9 +23,9 @@ flowchart LR
 |------|-----------|------|------|-----------|
 | events | title | 必須 | trim後 1〜100文字、空白のみ不可 | Front + Back |
 | events | join_code | 系生成 | `[A-Za-z0-9]{8}`、UNIQUE | Back + DB |
-| events | status | 必須 | `DRAFT` / `OPEN` / `CLOSED` | Back + DB(CHECK) |
+| events | status | 必須 | `DRAFT` / `OPEN` / `CLOSED` / `DELETED` | Back + DB(CHECK) |
 | questions | body | 必須 | trim後 1〜500文字、空白のみ不可 | Front + Back |
-| questions | display_name | 任意 | 0〜50文字（未入力は「匿名」表示） | Front + Back |
+| questions | display_name | 任意 | 0〜50文字。**未入力は `"匿名"` を格納**（JSON も `"匿名"`。列は NULL 可だがアプリは書かない） | Front + Back |
 | questions | status | 必須 | `OPEN` / `ANSWERED` / `ARCHIVED` | Back + DB(CHECK) |
 | polls | question_text | 必須 | trim後 1〜200文字 | Front + Back |
 | polls | type | 必須 | `SINGLE` / `MULTI` | Back + DB(CHECK) |
@@ -55,7 +55,7 @@ flowchart LR
 ### 権限（所有者チェック）
 
 - 次は **HOST かつ対象イベントの所有者のみ**:
-  - イベント詳細 / 開閉（`GET|PATCH /api/events/{id}` …）
+  - イベント詳細 / 名称更新 / 削除 / 開閉（`GET|PATCH|DELETE /api/events/{id}` …）
   - ポール作成 / 開閉（`PATCH /api/polls/{pollId}/status`）
   - 質問ステータス変更（`PATCH /api/questions/{qid}/status`）
 - 所有者判定は **SQL 条件（例: `id` + `host_id`）** で行い、0件なら **404**（存在しない／他人所有を区別しない。存在漏洩を避ける）
@@ -71,6 +71,9 @@ stateDiagram-v2
         DRAFT --> OPEN
         OPEN --> CLOSED
         CLOSED --> OPEN
+        DRAFT --> DELETED
+        OPEN --> DELETED
+        CLOSED --> DELETED
     }
     state 質問 {
         [*] --> Q_OPEN
@@ -85,7 +88,7 @@ stateDiagram-v2
     }
 ```
 
-- ルーム: `DRAFT → OPEN ⇔ CLOSED`（`OPEN`/`CLOSED` は往復可、`DRAFT` へは戻さない）
+- ルーム: `DRAFT → OPEN ⇔ CLOSED`（`OPEN`/`CLOSED` は往復可、`DRAFT` へは戻さない）。論理削除は `DRAFT|OPEN|CLOSED → DELETED`（終端。`PATCH /status` では扱わない。`DELETE /api/events/{id}`）
 - 質問: `OPEN → ANSWERED → ARCHIVED`（`OPEN → ARCHIVED` 可）。`ARCHIVED` からは戻さない
 - ポール: `DRAFT → OPEN → CLOSED`。`CLOSED` は終端、`DRAFT` へは戻さない
 - 上記以外の遷移リクエストは 409（不正な状態遷移）
@@ -96,7 +99,7 @@ stateDiagram-v2
 
 ```sql
 ALTER TABLE users        ADD CONSTRAINT ck_users_role   CHECK (role IN ('HOST','PARTICIPANT'));
-ALTER TABLE events       ADD CONSTRAINT ck_events_status CHECK (status IN ('DRAFT','OPEN','CLOSED'));
+ALTER TABLE events       ADD CONSTRAINT ck_events_status CHECK (status IN ('DRAFT','OPEN','CLOSED','DELETED'));
 ALTER TABLE events       ADD CONSTRAINT ck_events_question_count CHECK (question_count >= 0);
 ALTER TABLE questions    ADD CONSTRAINT ck_questions_status CHECK (status IN ('OPEN','ANSWERED','ARCHIVED'));
 ALTER TABLE questions    ADD CONSTRAINT ck_questions_upvote CHECK (upvote_count >= 0);
@@ -106,6 +109,7 @@ ALTER TABLE poll_options ADD CONSTRAINT ck_poll_options_order CHECK (display_ord
 ```
 
 - 文字長はカラム長（`varchar(n)`）＋アプリ層で担保
+- Flyway 現行は `ck_events_question_count`。他の CHECK は上の SQL どおり足す
 - 「選択肢2〜10個」「同一ポール内のラベル重複禁止」「SINGLEは1票」などの複合ルールはDBでは表現しづらいため **サービス層で担保**
 - 一意制約: `votes(question_id, voter_key)` / `poll_responses(poll_option_id, voter_key)`
 

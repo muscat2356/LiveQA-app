@@ -1,7 +1,7 @@
 # F-02 ルーム作成・一覧・Join 照会
 
-scope: `POST/GET /api/events`、`GET /api/events/{id}`、`GET /api/join/{code}`。開閉は [f03-status.md](f03-status.md)。  
-正: [openapi-notes](../api/openapi-notes.md) / [constraints](../design/constraints.md) / [er-diagram](../design/er-diagram.md)。
+scope: `POST/GET /api/events`、`GET /api/events/{id}`、`PATCH /api/events/{id}`（名称）、`DELETE /api/events/{id}`、`GET /api/join/{code}`。開閉は [f03-status.md](f03-status.md)。  
+正: [openapi-notes](../api/openapi-notes.md) / [constraints](../design/constraints.md) / [er-diagram](../design/er-diagram.md)。 Issue: [#70](https://github.com/muscat2356/live-qa-app/issues/70)。
 
 ## 到達点
 
@@ -11,6 +11,8 @@ scope: `POST/GET /api/events`、`GET /api/events/{id}`、`GET /api/join/{code}`�
 | `GET /api/events` | 自分の一覧。`questionCount` **なし** |
 | `GET /api/events/{id}` | 所有者のみ。他人・無しは **404**。`questionCount` あり |
 | `GET /api/join/{code}` | 公開。紹介 DTO |
+| `PATCH /api/events/{id}` | **契約済み・実装未**（名称のみ。joinCode 不変。どの status でも可。`DELETED` は 404） |
+| `DELETE /api/events/{id}` | **契約済み・実装未**（論理削除 `status=DELETED`。204。行は残す。`deleted_at` なし） |
 
 ## データの流れ（作成）
 
@@ -24,7 +26,7 @@ POST /api/events + SESSION + X-XSRF-TOKEN + { "title": "..." }
 ```
 
 一覧: `findByHost_IdOrderByCreatedAtDesc` → `EventSummaryResponse[]`。  
-Join: 形式不正 400、無し 404。
+Join: 形式不正 400（「参加コードが不正です。」）、無し 404（「該当するルームが見つかりません。」）。
 
 ## questionCount
 
@@ -44,6 +46,8 @@ Join: 形式不正 400、無し 404。
 | 手動バリデーション | `MethodArgumentNotValidException` に無理統一しない。手チェックは `BusinessException`。統一するのは JSON 形 |
 | Request record | Bean Validation。compact ctor で `BusinessException` を投げない。値オブジェクト（JoinCode）は別 |
 | `save` 失敗 | 予防できる UNIQUE は先に exists。業務の競合（いいね）は制約名で 409。想定外は 500 |
+| 名称更新 | `PATCH /api/events/{id}`。status 用パスと混ぜない。joinCode は不変 |
+| イベント削除 | `status=DELETED`（論理・終端）。`PATCH /status` には載せない。`deleted_at` は足さない。OPEN 中も可（UI で確認）。STOMP 削除配信は出さない |
 
 ## POST が通らないとき
 
@@ -66,11 +70,58 @@ Join: 形式不正 400、無し 404。
 | `JoinControllerTest` | 公開 200（`addFilters=false`） |
 | `JoinCodeTest` | generate / form |
 
+名称更新・削除のテストは実装単位で足す（Service: 所有者 404 / title 反映 / delete 後 find 無し。Controller: CSRF あり 200・204 / なし 403）。
+
 本番 Security は Import しない。`ReflectionTestUtils.setField` は JPA が付ける id の代用。
 
+## Q. 名称更新は `PATCH /status` に混ぜないか？
+
+**混ぜない。** 開閉は状態機械、名称は属性の書き換え。パスを分ける。
+
+| API | 触るもの |
+|-----|----------|
+| `PATCH /api/events/{id}` | `title` だけ。joinCode / status はそのまま |
+| `PATCH /api/events/{id}/status` | `status` だけ（F-03） |
+
+Entity は `changeTitle`（仮）で `title` と `updatedAt` を書く。同一 TX の managed なら `save` 省略可（F-03 と同じ）。
+
+## Q. 削除はソフトデリートか？ `DELETED` を status に足すか？
+
+**status に `DELETED` を足す。`deleted_at` は足さない。** 質問の `ARCHIVED` と同じ「列を増やさず状態で隠す」。物理 DELETE だと joinCode が空いて偶然再利用されうるし、配下 CASCADE は重い。
+
+| | `deleted_at` | `status=DELETED` |
+|--|--------------|------------------|
+| 列 | 追加（Flyway） | 既存 `status` |
+| 削除前の OPEN/CLOSED | 残る | **上書きされる**（MVP は復元しないので可） |
+| このリポとの揃い | 母体ハブ用に先送り | 質問 ARCHIVED / 「status で閉じる」 |
+
+`PATCH /api/events/{id}/status` には `DELETED` を渡さない（400）。開閉は `OPEN`/`CLOSED` だけ。削除は `DELETE` が `markDeleted` する。
+
 ```text
+DELETE /api/events/{id}
+  → findByIdAndHost_Id（DELETED は empty）→ 404
+  → status を DELETED（同一 TX の managed なら save 省略可）
+  → 204
+```
+
+一覧・Join・詳細・質問 API は `DELETED` を「無い」とみなす。OPEN 中の削除は UI で確認ダイアログ必須。STOMP `EVENT_DELETED` は F-07 にしない。
+
+## Q. 未実装の API は設計 docs から外すか？
+
+**外さない。** 契約の正は openapi / ER / constraints。到達点だけ「今コードにあるか」を書く。名称更新・削除は契約どおり実装する（#80 / #81）。
+
+## Q. 一覧の日時は API で切るか？（#59）
+
+**切らない。** API の `createdAt` は ISO 8601 / UTC のまま。表示はフロント（Asia/Tokyo、日付と時まで。例 `2026/08/21 14時`）。詳細も同じヘルパ。
+
+## Q. `joinUrl` は API に要るか？（#69）
+
+**要らない。** 値は常に `"/join/" + joinCode`。参加 URL の origin はフロントの関心。DTO から外し、画面は `joinCode` から組み立てる。
+
+```text
+【EJ】enum … 開閉は canTransitionTo。DELETED は DELETE 専用
 【EJ】静的ファクトリ … Event.create / JoinCode.generate
-【EJ】enum … EventStatus
 【EJ】不変性 … Request/Response は record
 【EJ】依存性注入 … EventService コンストラクタ
+【EJ】あえて外す … Entity は可変。行は残す（物理 DELETE しない）
 ```

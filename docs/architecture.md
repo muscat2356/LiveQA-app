@@ -76,8 +76,8 @@ erDiagram
 
 - `users`: 主催者。Keycloakの `sub` を `oidc_subject`(UNIQUE)として保持し初回ログイン時に自動作成。**メール・表示名・パスワードはKeycloakに統合**し、ローカルには保持しない（必要時はクレームから取得）。RBACは `HOST` / `PARTICIPANT`
 - ポール（アンケート）機能は **MVP-B（F-10/F-11）**。`polls` / `poll_options` / `poll_responses` を追加し、Q&Aと同一ルームで共存する（詳細は [design/er-diagram.md](design/er-diagram.md)）
-- `events`: 主催者が作成。参加コード(`join_code`)またはURLで参加
-- `questions`: `status` = `OPEN` / `ANSWERED` / `ARCHIVED`、`upvote_count` を保持。`display_name` は任意ニックネーム（未入力時は「匿名」表示）
+- `events`: 主催者が作成。参加コード(`join_code`)またはURLで参加。名称更新と論理削除（`status=DELETED`）あり。`deleted_at` は持たない
+- `questions`: `status` = `OPEN` / `ANSWERED` / `ARCHIVED`、`upvote_count` を保持。`display_name` は任意ニックネーム（**現行は未入力を `"匿名"` で格納**）
 - `votes`: `question_id × voter_key` に一意制約を張り「1人1票」を担保。`voter_key` の命名規則はログインユーザー `u:{userId}` / 匿名ゲスト `g:{guestId}`
 
 > 上記は概要図。カラム定義・制約・インデックス・Flyway初期DDL案を含む詳細版は [design/er-diagram.md](design/er-diagram.md) を参照。
