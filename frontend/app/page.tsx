@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/card";
 import { Logo } from "@/components/brand/Logo";
 import { RiArrowRightLine, RiLoginBoxLine } from "@remixicon/react";
-import Image from "next/image";
 import Link from "next/link";
 
 /**
@@ -44,36 +43,37 @@ export default function Home() {
       {/* Hero */}
       <main className="app-container flex flex-1 items-center py-12 sm:py-20">
         <div className="grid w-full items-center gap-12 lg:grid-cols-2">
-          {/* Left: copy + login */}
-          <div className="space-y-8">
-            <div className="space-y-4">
-              <span className="inline-flex items-center gap-2 rounded-full bg-accent/15 px-3 py-1 text-sm font-medium text-accent-foreground ring-1 ring-accent/30">
-                Live Question &amp; Answer
-              </span>
-              <h1 className="text-4xl font-bold leading-tight tracking-tight sm:text-5xl">
-                会場の声を、
-                <br />
-                <span className="text-primary">リアルタイム</span>に。
-              </h1>
-              <p className="max-w-md text-lg text-muted-foreground">
-                イベントやセミナーで参加者からの質問を集め、投票で盛り上げる。
-                ログインして、あなたのライブを始めましょう。
-              </p>
-            </div>
+          {/* Left: copy */}
+          <div className="space-y-4">
+            <span className="inline-flex items-center gap-2 rounded-full bg-accent/15 px-3 py-1 text-sm font-medium text-accent-foreground ring-1 ring-accent/30">
+              Live Question &amp; Answer
+            </span>
+            <h1 className="text-4xl font-bold leading-tight tracking-tight sm:text-5xl">
+              会場の声を、
+              <br />
+              <span className="text-primary">リアルタイム</span>に。
+            </h1>
+            <p className="max-w-md text-lg text-muted-foreground">
+              イベントやセミナーで参加者からの質問を集め、投票で盛り上げる。
+              ログインして、あなたのライブを始めましょう。
+            </p>
+          </div>
 
-            <Card className="max-w-md">
+          {/* Right: login */}
+          <div className="lg:flex lg:justify-end">
+            <Card className="w-full max-w-md">
               <CardHeader>
                 <CardTitle>ホストとしてログイン</CardTitle>
                 <CardDescription>
                   ログインするとイベントを作成・開催できます。
                 </CardDescription>
               </CardHeader>
-              <CardContent className="flex flex-col gap-3 sm:flex-row">
+              <CardContent className="flex flex-col gap-3">
                 <Button
                   size="lg"
                   nativeButton={false}
                   render={<a href={LOGIN_URL} />}
-                  className="w-full sm:w-auto"
+                  className="w-full"
                 >
                   <RiLoginBoxLine className="size-4" />
                   ログイン
@@ -83,30 +83,13 @@ export default function Home() {
                   variant="outline"
                   nativeButton={false}
                   render={<Link href="/join" />}
-                  className="w-full sm:w-auto"
+                  className="w-full"
                 >
                   参加コードを持っている
                   <RiArrowRightLine className="size-4" />
                 </Button>
               </CardContent>
             </Card>
-          </div>
-
-          {/* Right: brand visual */}
-          <div className="relative hidden lg:block">
-            <div className="brand-gradient relative flex aspect-square items-center justify-center overflow-hidden rounded-4xl p-10 shadow-2xl shadow-primary/30">
-              <Image
-                src="/liveqa-mark.png"
-                alt="LiveQA"
-                width={1024}
-                height={404}
-                priority
-                className="w-[82%] drop-shadow-lg"
-              />
-              {/* decorative bubbles */}
-              <span className="absolute -right-6 top-10 size-24 rounded-3xl bg-white/10 blur-xl" />
-              <span className="absolute -left-4 bottom-12 size-32 rounded-full bg-accent/20 blur-2xl" />
-            </div>
           </div>
         </div>
       </main>
