@@ -127,7 +127,7 @@ DELETE /api/events/{id}
 | 参加者 | `/join/{joinCode}` → `/join/{joinCode}/qa` |
 | 主催者 Q&A | `/dashboard/{id}/qa` |
 
-到達点: 詳細の主催者URLは `/dashboard/{id}/qa`（`frontend/app/(organizer)/dashboard/[id]/page.tsx`）。`/join/1/qa` を直打ちすると、いまも `GET /api/join/1` → `JoinCode` が 8 文字でないので **400** → SSR throw。Issue: [#92](https://github.com/muscat2356/live-qa-app/issues/92)。
+到達点: 詳細の主催者URLは `/dashboard/{id}/qa`（`frontend/app/(organizer)/dashboard/[id]/page.tsx`）。`/join/1/qa` を直打ちすると、いまも `GET /api/join/1` → `JoinCode` が 8 文字でないので **400** → SSR throw。[#92](https://github.com/muscat2356/live-qa-app/issues/92) は修正済みでクローズ。
 
 ```text
 【EJ】enum … 開閉は canTransitionTo。DELETED は DELETE 専用
