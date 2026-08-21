@@ -4,7 +4,7 @@ import { getGuestSession } from "@/lib/api/guestSession";
 import { QuestionResponse, Sort } from "@/types/question/question";
 import { useEffect, useState } from "react";
 
-export default function useQuestions(eventId: number, sort: Sort){
+export default function useGuestQuestions(eventId: number, sort: Sort){
     
     const [questions, setQuestions] = useState<QuestionResponse[]>([]);
     const [loading, setLoading] = useState(true);
@@ -16,13 +16,12 @@ export default function useQuestions(eventId: number, sort: Sort){
         );  
     }
 
-    async function load(){
+    async function hostLoad(){
         
         setLoading(true);
         setError(null);
 
         try{
-            await getGuestSession();
             const res = await fetch(`/api/events/${eventId}/questions?sort=${sort}`,{
              credentials: "same-origin", 
              headers: { Accept: "application/json" }
@@ -43,8 +42,8 @@ export default function useQuestions(eventId: number, sort: Sort){
     }
 
     useEffect(() => {
-        load();
+        hostLoad();
     }, [eventId, sort]);
 
-    return { questions, loading, error, load, applyVote};
+    return { questions, loading, error, hostLoad, applyVote};
 }
