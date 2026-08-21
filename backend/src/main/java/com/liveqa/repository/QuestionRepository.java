@@ -1,7 +1,5 @@
 package com.liveqa.repository;
 
-import java.util.List;
-
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -14,15 +12,7 @@ import com.liveqa.domain.Question;
  * QuestionRepository
  * @author ichikura
  */
-public interface QuestionRepository extends JpaRepository<Question, Long> {
-
-    /**
-     * イベント配下の質問一覧を返すメソッド
-     * 新しい順（created_at DESC）
-     * @param eventId イベントid
-     * @return 質問一覧
-     */
-    List<Question> findByEvent_IdOrderByCreatedAtDesc(Long eventId);
+public interface QuestionRepository extends JpaRepository<Question, Long>, QuestionQuery {
 
     /**
      * いいね数の加算を行うメソッド（原子的）

@@ -13,6 +13,7 @@
 | [f03-status.md](f03-status.md) | **F-03** ルーム開閉・所有者 404 |
 | [f04-guest.md](f04-guest.md) | **F-04** 匿名セッション / `voter_key` |
 | [f05-questions.md](f05-questions.md) | **F-05** 質問投稿・いいね |
+| [f06-querydsl.md](f06-querydsl.md) | **F-06** 動的クエリ（QueryDSL・人気順/新着順） |
 
 ## 横断
 
@@ -21,7 +22,7 @@
 | [java.md](java.md) | 三層・DTO record・JPA・Javadoc 粒度・`var`・UNIQUE・削除・テスト |
 | [ops.md](ops.md) | Keycloak 相乗り・CI・Docker・エディタ |
 
-F-06 以降は実装が始まったら同型で `f06-*.md` を足す。
+F-07 以降は実装が始まったら同型で `f07-*.md` を足す。
 
 ## ラボ移植アーカイブ（深いカタログ）
 
