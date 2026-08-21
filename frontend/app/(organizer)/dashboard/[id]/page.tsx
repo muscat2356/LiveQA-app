@@ -53,7 +53,7 @@ export default async function detailPage({
                 </CardContent>
             </Card>
 
-            <div className="grid gap-6 sm:grid-cols-2">
+            <div className="space-y-6">
                 {/*参加者招待画面 */}
                 <Card>
                     <CardHeader>
