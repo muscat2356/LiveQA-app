@@ -65,10 +65,12 @@ export default function VoteButton({
     }
     return(
         <div>
-            <Button 
-                onClick={handleVote} 
-                disabled={pending}  
+            <Button
+                onClick={handleVote}
+                disabled={pending}
+                size="sm"
                 variant={votedByMe ? "default" : "outline"}
+                className="gap-1 tabular-nums"
             >
                 {votedByMe ? "♥" : "♡"} {upvoteCount}
             </Button>

@@ -7,14 +7,14 @@ export function WaitingBody(){
     const router = useRouter();
 
     return(
-        <div>
-            <div>
-                <p>まもなく開始します</p>
-                <p>
+        <div className="space-y-4 text-center">
+            <div className="space-y-1">
+                <p className="text-base font-semibold">まもなく開始します</p>
+                <p className="text-sm text-muted-foreground">
                     開始されると質問を投稿できます。
                 </p>
             </div>
-            <Button variant="outline" onClick={() => router.refresh()}>
+            <Button variant="outline" onClick={() => router.refresh()} className="w-full">
                 最新の状態に更新
             </Button>
         </div>
