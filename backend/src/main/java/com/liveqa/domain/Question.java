@@ -79,6 +79,16 @@ public class Question {
         return q;
     }
 
+    /**
+     * ステータス更新を行うメソッド
+     * 遷移先の可否はServiceにて検証
+     * @param status 遷移予定のステータス
+     */
+    public void changeStatus(QuestionStatus status) {
+        this.status = status;
+        this.updatedAt = Instant.now();
+    }
+
     public Long getId() {
         return id;
     }

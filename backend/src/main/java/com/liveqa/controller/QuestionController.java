@@ -4,9 +4,11 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -14,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.liveqa.dto.request.QuestionCreateRequest;
+import com.liveqa.dto.request.QuestionStatusRequest;
 import com.liveqa.dto.response.QuestionResponse;
 import com.liveqa.service.QuestionService;
 
@@ -81,4 +84,24 @@ public class QuestionController {
         );
     }
     
+    /**
+     * 質問ステータスを遷移するPATCHメソッド
+     * ステータスの検証はservice
+     */
+    @PatchMapping("/questions/{qid}/status")
+    @PreAuthorize("hasRole('HOST')")
+    public ResponseEntity<QuestionResponse> updateStatus(
+            @AuthenticationPrincipal OidcUser oidc,
+            @PathVariable Long qid,
+            @Valid @RequestBody QuestionStatusRequest request,
+            HttpSession session
+    ) {
+        return ResponseEntity.ok(
+                questionService.updateStatus(
+                        qid,
+                        request.status(),
+                        oidc,
+                        VoterKeySources.form(oidc, session)));
+    }
+
 }
