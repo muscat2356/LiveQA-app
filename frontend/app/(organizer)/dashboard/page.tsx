@@ -5,6 +5,7 @@ import Link from "next/link";
 import EventRow from "./eventRow";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import LogoutButton from "./LogoutButton";
 
 export default async function DashBoard(){
     
@@ -32,6 +33,7 @@ export default async function DashBoard(){
                 <Button size="lg" nativeButton={false} render={<Link href="/dashboard/new" />}>
                     新規作成
                 </Button>
+                <LogoutButton />
             </div>
 
             {events.length === 0 ? (

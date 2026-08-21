@@ -1,3 +1,4 @@
+import { LogoutToast } from "@/components/organizer/logoutToast";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -90,6 +91,7 @@ export default function Home() {
                 </Button>
               </CardContent>
             </Card>
+            <LogoutToast />
           </div>
         </div>
       </main>
