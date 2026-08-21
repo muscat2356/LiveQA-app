@@ -28,7 +28,7 @@ export async function verifyJoinCode(
     }
 
     if(!res.ok){
-        return{ error: "時間をおいて再度お試しください"};
+        return{ error: "参加コードが不正です"};
     }
 
      redirect(`/join/${joinCode}`);

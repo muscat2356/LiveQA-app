@@ -57,7 +57,8 @@ export default async function detailPage({
                 </CardHeader>
                 <CardContent>
                     <p>参加コード:{event.joinCode}</p>
-                    <p>参加URL:{`http://localhost:3000/join/${event.joinCode}`}</p>
+                    <p>共有用参加URL:{`http://localhost:3000/join/${event.joinCode}`}</p>
+                    <p>主催者用参加URL:{`http://localhost:3000/dashboard/${event.id}/qa`}</p>
                 </CardContent>
             </Card>
 

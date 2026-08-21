@@ -4,23 +4,23 @@ import { JoinEvent } from "@/types/event/event";
 import { useState } from "react";
 import type { Sort } from "@/types/question/question";
 import { Button } from "@/components/ui/button";
-import useQuestions from "./useQuestions";
+import useQuestions from "../../../../../components/question/useGuestQuestions";
 import { StatusBadge } from "@/components/event/statusBadge";
 import PostForm from "./PostForm";
 import VoteButton from "./VoteButton";
-import SortTab from "./SortTab";
+import SortTab from "../../../../../components/question/SortTab";
 
 
 export default function QaScreen({ event, nickname }: { event: JoinEvent; nickname: string}) {
 
     const [sort, setSort] = useState<Sort>("popular");
-    const {questions, loading, error, load, applyVote} = useQuestions(event.eventId, sort);
+    const {questions, loading, error, guestLoad, applyVote} = useQuestions(event.eventId, sort);
 
     return(
         <div>
             <h1>{event.title}</h1>
             <StatusBadge status={event.status} />
-            <Button onClick={load}>
+            <Button onClick={guestLoad}>
                 {!error ? "更新" : "再更新"}
             </Button>
             {!loading && error && <p>{error}</p>}
@@ -44,7 +44,7 @@ export default function QaScreen({ event, nickname }: { event: JoinEvent; nickna
                                 upvoteCount={q.upvoteCount}
                                 votedByMe={q.votedByMe}
                                 applyVote={applyVote}
-                                onSync={load}
+                                onSync={guestLoad}
                             />/ 
                             {q.status}
                         </div>
@@ -52,7 +52,7 @@ export default function QaScreen({ event, nickname }: { event: JoinEvent; nickna
                 ))}
             </ul>
 
-            <PostForm eventId={event.eventId} nickname={nickname} onPosted={load} />
+            <PostForm eventId={event.eventId} nickname={nickname} onPosted={guestLoad} />
         </div>
     )
 }
