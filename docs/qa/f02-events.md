@@ -118,6 +118,17 @@ DELETE /api/events/{id}
 
 **要らない。** 値は常に `"/join/" + joinCode`。参加 URL の origin はフロントの関心。DTO から外し、画面は `joinCode` から組み立てる。
 
+## Q. `/join/1/qa` がエラーになるのはなぜか？（#92）
+
+**`1` は event id。参加パスの正は joinCode。** 以前の詳細画面が「主催者URL」として `/join/${event.id}/qa` を出していた。
+
+| 画面 | 正 |
+|------|------|
+| 参加者 | `/join/{joinCode}` → `/join/{joinCode}/qa` |
+| 主催者 Q&A | `/dashboard/{id}/qa` |
+
+到達点: 詳細の主催者URLは `/dashboard/{id}/qa`（`frontend/app/(organizer)/dashboard/[id]/page.tsx`）。`/join/1/qa` を直打ちすると、いまも `GET /api/join/1` → `JoinCode` が 8 文字でないので **400** → SSR throw。[#92](https://github.com/muscat2356/live-qa-app/issues/92) は修正済みでクローズ。
+
 ```text
 【EJ】enum … 開閉は canTransitionTo。DELETED は DELETE 専用
 【EJ】静的ファクトリ … Event.create / JoinCode.generate

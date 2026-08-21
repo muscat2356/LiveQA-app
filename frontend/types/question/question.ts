@@ -19,5 +19,28 @@ export type QuestionStatus = "OPEN" | "ANSWERED" | "ARCHIVED";
 
 export type Sort = "popular" | "newest";
 
+export const nextQuestionStatusMap: Record<QuestionStatus, readonly QuestionStatus[]> = {
+  OPEN: ["ANSWERED", "ARCHIVED"],
+  ANSWERED: ["ARCHIVED"],
+  ARCHIVED: [],
+};
+
+/** from から to へ遷移できるか */
+export const canTransition = (from: QuestionStatus, to: QuestionStatus): boolean =>
+  nextQuestionStatusMap[from].includes(to);
+
+export const questionActionLabelMap: Record<QuestionStatus, string> = {
+    OPEN: "未回答に戻す",
+    ANSWERED: "回答済みにする",
+    ARCHIVED: "非表示にする",
+};
+
+export const questionStatusLabel: Record<QuestionStatus, string > = {
+    OPEN: "未回答",
+    ANSWERED: "回答済み",
+    ARCHIVED: "非表示",
+}
+
+
 
 

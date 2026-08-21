@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.liveqa.dto.request.QuestionCreateRequest;
@@ -68,8 +69,10 @@ public class QuestionController {
     /**
      * イベント配下の質問一覧を返すGETメソッド
      * votedByMeは今のセッション視点。Sessionが無くても200
+     * sortの検証はService（未指定はpopular）
      * @param id イベントid
      * @param oidc SecurityContext内のOidcUser情報（未ログインならnull）
+     * @param sort 並び（popular / newest）。未指定可
      * @param session 匿名guestIdを持つHttpSession
      * @return 質問一覧（List）
      */
@@ -77,10 +80,11 @@ public class QuestionController {
     public ResponseEntity<List<QuestionResponse>> findByEventId(
         @PathVariable Long id,
         @AuthenticationPrincipal OidcUser oidc,
+        @RequestParam(name = "sort", required = false) String sort,
         HttpSession session
     ) {
         return ResponseEntity.ok(
-            questionService.findByEventId(id, VoterKeySources.form(oidc, session))
+            questionService.findByEventId(id, sort, VoterKeySources.form(oidc, session))
         );
     }
     

@@ -54,22 +54,29 @@ export default function EventForm(){
 
     return(
         <div>
-            <div>
-                <Label htmlFor="title">タイトル名</Label>
-                <Input
-                    id="title"
-                    placeholder="イベントを入力してください"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}></Input>
-                
+            <div className="space-y-4">
+                <div className="space-y-1.5">
+                    <Label htmlFor="title">タイトル名</Label>
+                    <Input
+                        id="title"
+                        placeholder="イベントを入力してください"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        className="h-11"></Input>
+                </div>
+
                 {error && (
-                    <p>{error}</p>
+                    <p className="text-sm text-destructive">{error}</p>
                     )}
 
-                <Button onClick={handleSubmit} disabled={state === "submitting" || !title.trim()}>
+                <Button
+                    onClick={handleSubmit}
+                    disabled={state === "submitting" || !title.trim()}
+                    size="lg"
+                    className="h-11 w-full">
                     {state === "submitting" ? "作成中..." : "新規作成"}
                 </Button>
-                
+
             </div>
         </div>
     );

@@ -5,6 +5,7 @@ import Link from "next/link";
 import EventRow from "./eventRow";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import LogoutButton from "./LogoutButton";
 
 export default async function DashBoard(){
     
@@ -26,30 +27,31 @@ export default async function DashBoard(){
     const events: EventListResponse[] = await res.json();
 
     return (
-        <div>
-            <div>
-                <h1>Event DashBoard</h1>
-                <Button nativeButton={false} render={<Link href="/dashboard/new" />}>
+        <div className="app-container py-8 sm:py-12">
+            <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+                <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Event DashBoard</h1>
+                <Button size="lg" nativeButton={false} render={<Link href="/dashboard/new" />}>
                     新規作成
                 </Button>
+                <LogoutButton />
             </div>
-            
+
             {events.length === 0 ? (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>最初のイベントを作成してください。</CardTitle>
+                <Card className="mx-auto max-w-md text-center">
+                    <CardHeader className="items-center">
+                        <CardTitle className="text-lg">最初のイベントを作成してください。</CardTitle>
                         <CardDescription>
                             イベントを作成するとコードが発行されます。
                         </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                        <Button nativeButton={false} render={<Link href="/dashboard/new" />}>
+                    <CardContent className="flex justify-center">
+                        <Button size="lg" nativeButton={false} render={<Link href="/dashboard/new" />}>
                             イベント新規作成
                         </Button>
                     </CardContent>
                 </Card>
             ) : (
-                <div>
+                <div className="grid gap-4 sm:grid-cols-2">
                     {events.map((event) => (
                         <EventRow key={event.id} event={event}/>
                     ))}

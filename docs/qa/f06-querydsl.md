@@ -6,9 +6,9 @@ scope: `GET /api/events/{id}/questions` の `sort` / （F-12 で）`status`。�
 
 | 項目 | 状態 |
 |------|------|
-| 一覧 | **あり**（`findByEvent_IdOrderByCreatedAtDesc` 固定） |
-| QueryDSL 依存 | **未**（`pom` に無し） |
-| `sort=popular\|newest` | **未**（フロントはタブあり。API は無視） |
+| 一覧 | **あり**（QueryDSL `searchByEventId`） |
+| QueryDSL 依存 | **あり**（`querydsl-jpa` jakarta + apt。Q クラスは `mvn compile` で生成） |
+| `sort=popular\|newest` | **あり**（未指定は popular。不正は 400） |
 | `status` フィルタ | F-12 |
 
 ## なぜ動的か
@@ -42,7 +42,7 @@ Cookie / Redis / SecurityContext は一覧の認可には使わない（公開 G
 
 | 名前 | 正体 |
 |------|------|
-| 派生クエリ（今） | メソッド名が SQL の契約。固定 1 本 |
+| 派生クエリ | メソッド名が SQL の契約。固定 1 本 |
 | QueryDSL | コンパイル時に Entity から `QQuestion` を生成するライブラリ |
 | `QQuestion` | 生成クラス。列への型つきパス（`question.upvoteCount`） |
 | `BooleanBuilder` | 具象。AND で条件を足す箱。null なら足さない |
@@ -51,8 +51,8 @@ Cookie / Redis / SecurityContext は一覧の認可には使わない（公開 G
 | `JPAQueryFactory` | Hibernate 経由で SELECT を発行する入口 |
 
 【EJ】ジェネリクス … `JPAQuery<Question>` で戻りを Entity に固定  
-【EJ】公開面最小化 … 組み立ては Repository（または専用 query クラス）。Controller に `BooleanBuilder` を出さない  
-【EJ】あえて外す … 今は派生クエリ 1 本。F-06 で QueryDSL に替える  
+【EJ】公開面最小化 … 組み立ては Repository（`QuestionQueryImpl`）。Controller に `BooleanBuilder` を出さない  
+【EJ】あえて外す … `status` は F-12。今は WHERE に載せない  
 
 ## 組み立てのイメージ（契約）
 
@@ -89,7 +89,7 @@ architecture の代替案。このリポは JPA が正なので QueryDSL を採�
 
 ## Q. 静的クエリと何が違う？
 
-**静的**は、メソッド名（または `@Query` の文字列）が **1 本の SQL の契約**。今の `findByEvent_IdOrderByCreatedAtDesc` がそれ。引数は `eventId` だけ。並びも条件も変わらない。
+**静的**は、メソッド名（または `@Query` の文字列）が **1 本の SQL の契約**。旧実装の `findByEvent_IdOrderByCreatedAtDesc` がそれ。引数は `eventId` だけ。並びも条件も変わらない。
 
 **動的**は、同じ入口から **実行時に部品を足す**。`sort=newest` なら ORDER BY が変わる。F-12 で `status=OPEN` が来たら WHERE に AND を足す。来なければ足さない（architecture の「null はスキップ」）。
 

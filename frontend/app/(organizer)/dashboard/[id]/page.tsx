@@ -30,52 +30,71 @@ export default async function detailPage({
     const event: EventDetailResponse = await res.json();
 
     return(
-        <div>
-            <Link href="/dashboard">
+        <div className="app-container max-w-3xl space-y-6 py-8 sm:py-10">
+            <Link
+                href="/dashboard"
+                className="inline-flex items-center text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
                 ← ダッシュボード
             </Link>
 
             {/*イベント詳細の説明*/}
             <Card>
-                <CardHeader>
+                <CardHeader className="gap-2">
                     <StatusBadge status={event.status}/>
-                    <CardTitle>{event.title}</CardTitle>
+                    <CardTitle className="text-2xl">{event.title}</CardTitle>
                     <CardDescription>
                         作成日時：{event.createdAt}
                     </CardDescription>
                 </CardHeader>
-                <CardContent>
-                    <p>質問数</p>
-                    <p>{event.questionCount}</p>
+                <CardContent className="flex items-baseline gap-2">
+                    <p className="text-sm text-muted-foreground">質問数</p>
+                    <p className="text-3xl font-bold tabular-nums">{event.questionCount}</p>
                 </CardContent>
             </Card>
 
-            {/*参加者招待画面 */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>参加者を招待</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <p>参加コード:{event.joinCode}</p>
-                    <p>参加URL:{`http://localhost:3000/join/${event.joinCode}`}</p>
-                </CardContent>
-            </Card>
+            <div className="space-y-6">
+                {/*参加者招待画面 */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>参加者を招待</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3 text-sm">
+                        <p className="flex flex-wrap items-baseline gap-x-2">
+                            <span className="text-muted-foreground">参加コード:</span>
+                            <span className="font-mono text-base font-semibold tracking-wider">{event.joinCode}</span>
+                        </p>
+                        <p className="flex flex-wrap items-baseline gap-x-2">
+                            <span className="text-muted-foreground">参加者URL:</span>
+                            <span className="break-all font-mono text-primary">{`http://localhost:3000/join/${event.joinCode}`}</span>
+                        </p>
+                        <p className="flex flex-wrap items-baseline gap-x-2">
+                            <span className="text-muted-foreground">主催者URL:</span>
+                            <Link
+                                href={`/dashboard/${event.id}/qa`}
+                                className="break-all font-mono text-primary hover:underline"
+                            >
+                                {`http://localhost:3000/dashboard/${event.id}/qa`}
+                            </Link>
+                        </p>
+                    </CardContent>
+                </Card>
 
-            {/*ステータス更新画面*/}
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>受付の操作</CardTitle>
-                    <CardDescription>
-                        締め切ると参加者は投稿できなくなります。
-                    </CardDescription>
-                    <StatusChangeDialog
-                        eventId={event.id}
-                        title={event.title}
-                        status={event.status}
-                    />
-                </CardHeader>
-            </Card>
+                {/*ステータス更新画面*/}
+                <Card>
+                    <CardHeader className="gap-3">
+                        <CardTitle>受付の操作</CardTitle>
+                        <CardDescription>
+                            締め切ると参加者は投稿できなくなります。
+                        </CardDescription>
+                        <StatusChangeDialog
+                            eventId={event.id}
+                            title={event.title}
+                            status={event.status}
+                        />
+                    </CardHeader>
+                </Card>
+            </div>
         </div>
     );
 }

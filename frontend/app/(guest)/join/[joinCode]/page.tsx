@@ -20,11 +20,11 @@ export default async function JoinLanding({
     const saveNickName = (await cookies()).get("qa_nickname")?.value ?? "";
 
     return(
-        <div>
-            <Card>
-                <CardHeader>
+        <div className="flex min-h-screen items-center justify-center px-4 py-10">
+            <Card className="w-full max-w-md">
+                <CardHeader className="items-start gap-2">
                     <StatusBadge status={event.status} />
-                    <CardTitle>{event.title}</CardTitle>
+                    <CardTitle className="text-xl">{event.title}</CardTitle>
                 </CardHeader>
                 <CardContent>
                     {event.status === "DRAFT" && <WaitingBody />}

@@ -29,6 +29,7 @@ import com.liveqa.domain.VoterKeySource;
 import com.liveqa.dto.request.QuestionCreateRequest;
 import com.liveqa.dto.response.QuestionResponse;
 import com.liveqa.enums.EventStatus;
+import com.liveqa.enums.QuestionSort;
 import com.liveqa.enums.QuestionStatus;
 import com.liveqa.exception.BusinessException;
 import com.liveqa.repository.EventRepository;
@@ -137,13 +138,14 @@ class QuestionServiceTest {
         final Question notVoted = Question.post(event, "場所は？", "匿名");
         ReflectionTestUtils.setField(voted, "id", 42L);
         ReflectionTestUtils.setField(notVoted, "id", 43L);
-        when(questionRepository.findByEvent_IdOrderByCreatedAtDesc(10L))
+        when(questionRepository.searchByEventId(10L, QuestionSort.POPULAR))
                 .thenReturn(List.of(voted, notVoted));
         when(voteRepository.findByQuestion_Event_IdAndVoterKey(10L, "g:abc"))
                 .thenReturn(List.of(Vote.cast(voted, "g:abc")));
 
         final List<QuestionResponse> responses = questionService.findByEventId(
                 10L,
+                null,
                 new VoterKeySource.Guest("abc"));
 
         assertThat(responses).hasSize(2);
@@ -161,11 +163,12 @@ class QuestionServiceTest {
         final Event event = openEvent(10L);
         final Question question = Question.post(event, "資料は？", "花子");
         ReflectionTestUtils.setField(question, "id", 42L);
-        when(questionRepository.findByEvent_IdOrderByCreatedAtDesc(10L))
+        when(questionRepository.searchByEventId(10L, QuestionSort.POPULAR))
                 .thenReturn(List.of(question));
 
         final List<QuestionResponse> responses = questionService.findByEventId(
                 10L,
+                null,
                 new VoterKeySource.Missing());
 
         assertThat(responses.get(0).votedByMe()).isFalse();
@@ -178,13 +181,43 @@ class QuestionServiceTest {
 
         assertThatThrownBy(() -> questionService.findByEventId(
                 99L,
+                null,
                 new VoterKeySource.Missing()))
                 .isInstanceOf(BusinessException.class)
                 .satisfies(ex -> {
                     final BusinessException be = (BusinessException) ex;
                     assertThat(be.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
                 });
-        verify(questionRepository, never()).findByEvent_IdOrderByCreatedAtDesc(any());
+        verify(questionRepository, never()).searchByEventId(any(), any());
+    }
+
+    @Test
+    void findByEventId_newestならNEWESTで検索() {
+        when(eventRepository.existsById(10L)).thenReturn(true);
+        when(voterKeyResolver.tryResolve(any())).thenReturn(Optional.empty());
+        when(questionRepository.searchByEventId(10L, QuestionSort.NEWEST))
+                .thenReturn(List.of());
+
+        questionService.findByEventId(10L, "newest", new VoterKeySource.Missing());
+
+        verify(questionRepository).searchByEventId(10L, QuestionSort.NEWEST);
+    }
+
+    @Test
+    void findByEventId_不正sortなら400() {
+        when(eventRepository.existsById(10L)).thenReturn(true);
+
+        assertThatThrownBy(() -> questionService.findByEventId(
+                10L,
+                "oldest",
+                new VoterKeySource.Missing()))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> {
+                    final BusinessException be = (BusinessException) ex;
+                    assertThat(be.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+                    assertThat(be.getMessage()).contains("popular / newest");
+                });
+        verify(questionRepository, never()).searchByEventId(any(), any());
     }
 
     @Test

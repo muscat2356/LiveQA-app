@@ -19,6 +19,7 @@ import com.liveqa.dto.request.QuestionCreateRequest;
 import com.liveqa.dto.response.QuestionResponse;
 import com.liveqa.enums.EventStatus;
 import com.liveqa.enums.QuestionStatus;
+import com.liveqa.enums.QuestionSort;
 import com.liveqa.exception.BusinessException;
 import com.liveqa.repository.EventRepository;
 import com.liveqa.repository.QuestionRepository;
@@ -102,12 +103,16 @@ public class QuestionService {
      * イベント配下の質問一覧を返すメソッド
      * イベントが無ければ404
      * キー未確立でも200、votedByMeは全部false
-     * 並びはcreated_at DESC
+     * 並びはsort（未指定はpopular、不正は400）。検索はQueryDSL
      * @param eventId イベントid
+     * @param sort 並び順
      * @param source 投票キーの取得元
      * @return 一覧Responseクラス
      */
-    public List<QuestionResponse> findByEventId(Long eventId, VoterKeySource source) {
+    public List<QuestionResponse> findByEventId(
+        Long eventId,
+        String sort,
+        VoterKeySource source) {
         if (!eventRepository.existsById(eventId)) {
             throw new BusinessException(
                 HttpStatus.NOT_FOUND,
@@ -116,9 +121,21 @@ public class QuestionService {
             );
         }
 
+        final QuestionSort questionSort;
+
+        try {
+            questionSort = QuestionSort.form(sort);
+        } catch (IllegalArgumentException ex) {
+            throw new BusinessException(
+                HttpStatus.BAD_REQUEST,
+                "Bad Request",
+                ex.getMessage()
+            );
+        }
+
         final Set<Long> votedQuestionIds = votedQuestionIds(eventId, source);
 
-        return questionRepository.findByEvent_IdOrderByCreatedAtDesc(eventId)
+        return questionRepository.searchByEventId(eventId, questionSort)
             .stream()
             .map(question -> toQuestionResponse(
                 question,
