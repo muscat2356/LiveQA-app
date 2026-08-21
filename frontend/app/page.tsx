@@ -61,19 +61,19 @@ export default function Home() {
 
           {/* Right: login */}
           <div className="lg:flex lg:justify-end">
-            <Card className="w-full max-w-md">
+            <Card className="w-full max-w-lg gap-8 [--card-spacing:--spacing(8)] sm:[--card-spacing:--spacing(10)]">
               <CardHeader>
-                <CardTitle>ホストとしてログイン</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-2xl">ホストとしてログイン</CardTitle>
+                <CardDescription className="text-base">
                   ログインするとイベントを作成・開催できます。
                 </CardDescription>
               </CardHeader>
-              <CardContent className="flex flex-col gap-3">
+              <CardContent className="flex flex-col gap-4">
                 <Button
                   size="lg"
                   nativeButton={false}
                   render={<a href={LOGIN_URL} />}
-                  className="w-full"
+                  className="h-12 w-full text-base"
                 >
                   <RiLoginBoxLine className="size-4" />
                   ログイン
@@ -83,7 +83,7 @@ export default function Home() {
                   variant="outline"
                   nativeButton={false}
                   render={<Link href="/join" />}
-                  className="w-full"
+                  className="h-12 w-full text-base"
                 >
                   参加コードを持っている
                   <RiArrowRightLine className="size-4" />
