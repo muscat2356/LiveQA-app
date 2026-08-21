@@ -6,7 +6,7 @@ export function getGuestSession(): Promise<void> {
     if(!guestId){
         guestId = (async () =>{
             const xsrfToken = readCookie("XSRF-TOKEN");
-            const res = await fetch("/api/guest", {
+            const res = await fetch("/api/auth/guest", {
                 method: "POST",
                 headers: { ...(xsrfToken ? { "X-XSRF-TOKEN": xsrfToken }: {}) },
                 credentials: "same-origin"
