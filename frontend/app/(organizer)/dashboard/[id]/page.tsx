@@ -65,8 +65,12 @@ export default async function detailPage({
                             <span className="font-mono text-base font-semibold tracking-wider">{event.joinCode}</span>
                         </p>
                         <p className="flex flex-wrap items-baseline gap-x-2">
-                            <span className="text-muted-foreground">参加URL:</span>
+                            <span className="text-muted-foreground">参加者URL:</span>
                             <span className="break-all font-mono text-primary">{`http://localhost:3000/join/${event.joinCode}`}</span>
+                        </p>
+                        <p className="flex flex-wrap items-baseline gap-x-2">
+                            <span className="text-muted-foreground">主催者URL:</span>
+                            <span className="break-all font-mono text-primary">{`http://localhost:3000/join/${event.id}/qa`}</span>
                         </p>
                     </CardContent>
                 </Card>

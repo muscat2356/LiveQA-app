@@ -66,6 +66,11 @@ MVP-A（F-01〜F-09）が死守。日程・F-xx 詳細は docs。権限の正は
 キーワード: `実装` `解説` `確認` `修復` `PR案作成`。  
 **実装・修復は本人が手書き（厳守）。** Agent は写経＋テストセット＋解説のみ。ソース自動編集は「Agentがファイルを編集してよい」明示時だけ（[keywords](.cursor/rules/live-qa-keywords.mdc)）。
 
+## Codex（ChatGPT）
+
+Cursor は上記 6 本の `.mdc` を自動注入する。**Codex は `AGENTS.md` しか自動で読まない。**  
+作業開始時に 6 本を Read する。手順・本文の読み口: [docs/codex.md](docs/codex.md)。規範の正は `.mdc`（6本のみ・増やさない）。
+
 ## 参照リポジトリ
 
 - `../LibraShare`（Keycloak SSO・Spring Security 資産の再利用可）
