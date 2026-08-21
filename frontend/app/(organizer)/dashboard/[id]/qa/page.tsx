@@ -13,7 +13,7 @@ export default async function HostQaPage({
 
     const cookieStore = await cookies();
 
-    const res = await fetch (`${process.env.API_BASE_URL}/api/events/${id}s`, {
+    const res = await fetch (`${process.env.API_BASE_URL}/api/events/${id}`, {
             headers: { Cookie : cookieStore.toString() },
             cache: "no-store",
     });

@@ -4,11 +4,11 @@ import { JoinEvent } from "@/types/event/event";
 import { useState } from "react";
 import type { Sort } from "@/types/question/question";
 import { Button } from "@/components/ui/button";
-import useQuestions from "./useQuestions";
+import useQuestions from "../../../../../components/question/useQuestions";
 import { StatusBadge } from "@/components/event/statusBadge";
 import PostForm from "./PostForm";
 import VoteButton from "./VoteButton";
-import SortTab from "./SortTab";
+import SortTab from "../../../../../components/question/SortTab";
 
 
 export default function QaScreen({ event, nickname }: { event: JoinEvent; nickname: string}) {

@@ -18,11 +18,10 @@ export default function QuestionStatusButton({
     const [ errorMessage, setErrorMessage] = useState<string | null>(null);
 
     const nextStatus = nextQuestionStatusMap[status];
-    const actionStatus = questionActionLabelMap[status];
 
-    if (!nextStatus || !actionStatus) return null;
+    if (nextStatus.length === 0) return null;
 
-    async function handleUpdate(){
+    async function handleUpdate(target: QuestionStatus){
 
         setPending(true);
         setErrorMessage(null);
@@ -35,7 +34,7 @@ export default function QuestionStatusButton({
                     ...(xsrfToken ? { "X-XSRF-TOKEN": xsrfToken } : {}),
                 },
                 credentials: "same-origin",
-                body: JSON.stringify({ status: nextStatus }),
+                body: JSON.stringify({ status: target }),
             });
 
             if(!res.ok){
@@ -57,9 +56,18 @@ export default function QuestionStatusButton({
     return(
         <div>
             {errorMessage && <p>{errorMessage}</p>}
-            <Button onClick={handleUpdate} disabled={pending}>
-                {pending ? "更新中..." : actionStatus}
-            </Button>
+            <div>
+                {nextStatus.map((target) => (
+                    <Button 
+                        key={target}
+                        variant={target === "ARCHIVED" ? "outline" : "default"}
+                        onClick={() => handleUpdate(target)} 
+                        disabled={pending}
+                    >
+                        {pending ? "更新中..." : questionActionLabelMap[target]}
+                    </Button>
+                ))}
+            </div>
         </div>
     );
 }

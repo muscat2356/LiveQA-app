@@ -1,7 +1,7 @@
 "use client"
 
-import SortTab from "@/app/(guest)/join/[joinCode]/qa/SortTab";
-import useQuestions from "@/app/(guest)/join/[joinCode]/qa/useQuestions";
+import SortTab from "@/components/question/SortTab";
+import useQuestions from "@/components/question/useQuestions";
 import { StatusBadge } from "@/components/event/statusBadge";
 import { Button } from "@/components/ui/button";
 import { EventDetailResponse } from "@/types/event/event";
@@ -17,7 +17,7 @@ export default  function HostQaScreen({
 }){
 
     const [ sort, setSort ] = useState<Sort>("popular");
-    const { questions, loading, load } = useQuestions(event.id, sort);
+    const { questions, loading, error, load } = useQuestions(event.id, sort);
     
     return(
         <div>
@@ -34,8 +34,9 @@ export default  function HostQaScreen({
             />
 
             {loading && <p>読み込み中・・・</p>}
-            {!loading && questions.length === 0 && <p>まだ質問がありません</p>}
-
+            {!loading &&!error && questions.length === 0 && <p>まだ質問がありません</p>}
+            {!loading &&error && questions.length === 0 && <p>まだ質問がありません</p>}
+            
             <ul>
                 {questions.map((q) => (
                     <li key={q.id}>
