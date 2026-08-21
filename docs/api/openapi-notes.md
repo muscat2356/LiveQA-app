@@ -8,11 +8,13 @@
 - Content-Type: リクエスト/レスポンスとも `application/json`（認証リダイレクトを除く）
 - 日時: ISO 8601 / UTC（例 `2026-07-24T05:00:00Z`）
 
+空ニックネームは DB に `"匿名"` を格納し、JSON も `"匿名"`（`null` は返さない）。
+
 ## 横断仕様
 
 ### 認可
 
-- `HOST` 操作（イベント作成 / イベント一覧・詳細 / ルーム開閉 / 質問ステータス変更 / ポール作成・開閉）は `@PreAuthorize("hasRole('HOST')")` で制限。かつ対象イベントは自分が所有するものに限定
+- `HOST` 操作（イベント作成 / イベント一覧・詳細 / 名称更新・削除 / ルーム開閉 / 質問ステータス変更 / ポール作成・開閉）は `@PreAuthorize("hasRole('HOST')")` で制限。かつ対象イベントは自分が所有するものに限定
 - 公開エンドポイント（参加情報取得 / 質問一覧 / ポール結果）は未認証でも参照可
 - 質問投稿・いいね・ポール回答は、参加者の匿名セッション または HOST で可能
 
@@ -30,7 +32,7 @@
 {
   "status": 409,
   "error": "Conflict",
-  "message": "既に投票済みです"
+  "message": "既に投票済みです。"
 }
 ```
 
@@ -170,6 +172,7 @@
 ```
 
 - 一覧には `questionCount` を含めない（画面でも不要）。件数は詳細のみ
+- `status = DELETED` の行は載せない（論理削除済み）
 
 ### GET /api/events/{id} （HOST, 所有者のみ）
 
@@ -190,12 +193,37 @@
 }
 ```
 
-- `questionCount` は `events.question_count`（非正規化スナップショット）。質問投稿時に原子的 +1。一覧には出さない
-- Response 404（存在しない、または自分の所有でない。区別しない）:
+- `questionCount` は `events.question_count`（非正規化スナップショット）。質問投稿時に原子的 +1（`UPDATE ... SET question_count = question_count + 1`）。一覧には出さない
+- Response 404（存在しない、自分の所有でない、または `DELETED`。区別しない）:
 
 ```json
-{ "status": 404, "error": "Not Found", "message": "イベントが見つかりません" }
+{ "status": 404, "error": "Not Found", "message": "イベントが見つかりません。" }
 ```
+
+### PATCH /api/events/{id} （HOST, 所有者のみ）
+
+イベント名の更新。`joinCode` / `status` は変えない。どのルーム状態でも可（誤字修正用）。
+
+- Request（作成と同じ。trim 後 1〜100、空白のみ不可。要 `X-XSRF-TOKEN`）:
+
+```json
+{ "title": "第3回LT大会 Q&A（修正）" }
+```
+
+- Response 200: 詳細と同じ形（`EventDetailResponse`）
+- Response 400: 作成と同じ `fields.title`
+- Response 404: 詳細 GET と同じ（存在しない／他人所有／`DELETED` を区別しない）
+
+### DELETE /api/events/{id} （HOST, 所有者のみ）
+
+イベントの論理削除。`status` を `DELETED` にする（行は残す。配下の質問・いいねも残す）。ソフトデリート列（`deleted_at`）は持たない。どのルーム状態（`DRAFT` / `OPEN` / `CLOSED`）からでも可。`DELETED` は終端で復元しない（MVP）。
+
+- Request: ボディなし（要 `X-XSRF-TOKEN`）
+- Response 204: ボディなし
+- Response 404: 詳細 GET と同じ（既に `DELETED` も 404）
+- 削除後の見え方: 一覧に出ない。`GET /api/events/{id}` / `GET /api/join/{joinCode}` / 質問 API は 404。`joinCode` は行が残るので UNIQUE のまま再利用されない
+- `PATCH /api/events/{id}/status` に `DELETED` は渡せない（400。開閉は `OPEN` / `CLOSED` のみ）
+- STOMP `EVENT_DELETED` は出さない（参加者は次回 REST で 404）
 
 ### GET /api/join/{joinCode} （公開）
 
@@ -208,10 +236,10 @@
 ```
 
 - `status` は `DRAFT`（受付前） / `OPEN`（受付中） / `CLOSED`（締切）。フロントは `DRAFT` / `CLOSED` のとき投稿UIを無効化する
-- Response 404:
+- Response 404（存在しない、または `DELETED`）:
 
 ```json
-{ "status": 404, "error": "Not Found", "message": "該当するルームがありません" }
+{ "status": 404, "error": "Not Found", "message": "該当するルームが見つかりません。" }
 ```
 
 ### PATCH /api/events/{id}/status （HOST, 所有者のみ）
@@ -233,26 +261,26 @@
 - Response 400（不正な値）:
 
 ```json
-{ "status": 400, "error": "Bad Request", "message": "status は OPEN / CLOSED のいずれかです" }
+{ "status": 400, "error": "Bad Request", "message": "status は OPEN / CLOSED のいずれかです。" }
 ```
 
 - Response 409（不正な状態遷移。例: `CLOSED` から `DRAFT` へ戻す）:
 
 ```json
-{ "status": 409, "error": "Conflict", "message": "この状態遷移はできません" }
+{ "status": 409, "error": "Conflict", "message": "この状態遷移はできません。" }
 ```
 
 - Response 404（存在しない、または自分の所有でない。詳細 GET と同じ）:
 
 ```json
-{ "status": 404, "error": "Not Found", "message": "イベントが見つかりません" }
+{ "status": 404, "error": "Not Found", "message": "イベントが見つかりません。" }
 ```
 
 ## 質問 API（担当B）
 
 ### GET /api/events/{id}/questions （公開）
 
-質問一覧。QueryDSLで動的に並び替え/フィルタを組み立てる。
+質問一覧。QueryDSLで動的に並び替え/フィルタを組み立てる。イベントが無ければ 404。キー未確立でも 200（`votedByMe` は全部 false）。DRAFT/CLOSED でも返す。
 
 - Query: `sort` = `popular`（既定, `upvote_count DESC, created_at DESC`） / `newest`（`created_at DESC`）、`status` = `OPEN` / `ANSWERED` / `ARCHIVED`（任意、未指定は `ARCHIVED` 以外）
 - Response 200:
@@ -273,7 +301,7 @@
     "id": 43,
     "eventId": 10,
     "body": "懇親会の場所はどこですか？",
-    "displayName": null,
+    "displayName": "匿名",
     "upvoteCount": 3,
     "status": "ANSWERED",
     "votedByMe": false,
@@ -284,7 +312,7 @@
 
 ### POST /api/events/{id}/questions （参加者 / HOST）
 
-- Request（`nickname` は任意）:
+- Request（`nickname` は任意。省略・空白は DB に `"匿名"` を格納し、応答の `displayName` も `"匿名"`）
 
 ```json
 { "body": "登壇資料は公開されますか？", "nickname": "とくめい花子" }
@@ -358,7 +386,7 @@
 - Response 409（既に投票済み）:
 
 ```json
-{ "status": 409, "error": "Conflict", "message": "既に投票済みです" }
+{ "status": 409, "error": "Conflict", "message": "既に投票済みです。" }
 ```
 
 - 副作用: STOMP `QUESTION_UPVOTED` を配信
@@ -512,7 +540,7 @@
 }
 ```
 
-- `displayName`: `null` の場合、UIは「匿名」と表示
+- `displayName`: **常に文字列。** 未入力は `"匿名"`（DB にも `"匿名"` を格納。`null` は返さない）
 - `votedByMe`: リクエスト元セッションの `voter_key` が投票済みか
 
 ### PollDTO / PollResultDTO（MVP-B）
@@ -540,7 +568,7 @@
 ### エラーDTO
 
 ```json
-{ "status": 409, "error": "Conflict", "message": "既に投票済みです" }
+{ "status": 409, "error": "Conflict", "message": "既に投票済みです。" }
 ```
 
 - 400のみ任意で `fields`（`{ フィールド名: メッセージ }`）を付与可

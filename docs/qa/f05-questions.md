@@ -23,7 +23,7 @@ HttpSession.getAttribute → Object
 
 - `GuestId` record は項目62（取り違え防止）。Optional 引数（項目55）は消えない。無いときは null か `Missing`
 - 質問 POST は `votes` を触らない。`require` で 401 だけ
-- ニックネーム空は DB に `"匿名"`。ゲスト識別は `g:` であって display_name ではない
+- ニックネーム空は DB に `"匿名"`、JSON も `"匿名"`（`null` は返さない）。ゲスト識別は `g:` であって display_name ではない
 - 他人のイベントも質問は公開。所有者 SQL は使わない（無いとき 404）
 
 ## API
@@ -46,7 +46,7 @@ HttpSession.getAttribute → Object
 | `GuestSession` / `VoterKeySources` | **あり**（Session の Object 開け + Host/Guest/Missing 合成） |
 | `VoteRepository` | **あり**（一覧で読む。いいね POST/DELETE でも INSERT/DELETE） |
 | POST 質問 / Security 匿名可 | **あり**（`require` + `VoterKeySources.form`。件数 +1） |
-| GET 一覧（`votedByMe`） | **本番あり**（`created_at DESC`、キー無しは全部 false。`sort`/`status` は F-06） |
+| GET 一覧（`votedByMe`） | **本番あり**（暫定 `created_at DESC`、キー無しは全部 false。`sort`/`status` は F-06 / F-12） |
 | GET 一覧テスト | **あり**（票あり true / キーなし false / 404 / Controller 200） |
 | いいね POST/DELETE | **あり**（`VoteService` / `VoteController`。`upvote_count` は原子的 ±1。`add`/`remove` とも `@Transactional`。STOMP は F-07） |
 | いいねテスト | **あり**（`VoteServiceTest` 正常/409/401/404、`VoteControllerTest` 配線、`VoteControllerCsrfTest` あり→200／なし→403） |
@@ -116,7 +116,9 @@ GET は公開。キーが無くても 200。`votedByMe` は全部 false。いい
 
 ### 1人1票
 
-UNIQUE `(question_id, voter_key)`。同じキーで二度 INSERT → 409「既に投票済みです」。アプリの exists は先回り。本丸は制約。
+UNIQUE `(question_id, voter_key)`。同じキーで二度 INSERT → **設計上は** 409「既に投票済みです」。アプリの `exists` は先回り。本丸は制約。
+
+**現状ギャップ（要確認／要対応）:** `VoteService.add` は `exists` → 409 だけ。`DataIntegrityViolationException`（UNIQUE 違反）を 409 に変換する Handler / Service catch が **無い**。同時リクエストで両方が exists をすり抜けた場合、後続の `save` は catch-all で **500** になりうる。詳細は下の Q。
 
 `upvote_count` は votes 件数のキャッシュ。メモリで +1 して save しない。契約は `UPDATE questions SET upvote_count = upvote_count + 1`（取消は −1）。並行で数字がずれないため。
 
@@ -183,7 +185,7 @@ STOMP の `QUESTION_UPVOTED` には `votedByMe` を載せない（全員同じ�
 - body: trim 後 1〜500（`@NotBlank` + `@Size`）
 - request `nickname` → 列 `display_name`（任意 0〜50。空は `"匿名"` を格納）
 - ルーム非 OPEN → 409「このルームは現在質問を受け付けていません」
-- 投稿時 `events.question_count` +1（同一 TX。並行の原子的 UPDATE は後で可）
+- 投稿時 `events.question_count` を原子的 +1（同一 TX）
 - 公開イベントなので所有者 SQL は使わない。無いとき 404
 - `voter_key` は質問行には載せない（投稿時はセッション有無の検証）
 
@@ -197,7 +199,13 @@ STOMP の `QUESTION_UPVOTED` には `votedByMe` を載せない（全員同じ�
 | ゲスト | 扱わない | 主用途の一つ |
 | 依存 | `UserRepository` | UserService（HOST のときだけ）＋ guestId |
 
+## 現行（実装が正・2026-08）
+
+空 nickname は `orElse("匿名")` で **INSERT**。DTO はそのまま返す。下の「NULL で持つ」「DTO で匿名」は検討ログ（採用しなかった枝）。
+
 ## Q. nickname の Optional チェーンは何をしている？
+
+**現行は `orElse(ANONYMOUS_DISPLAY_NAME)`（`"匿名"` を格納）。** 下の `orElse(null)` 例は検討ログ。
 
 ```java
 final String displayName = Optional.ofNullable(request.nickname())
@@ -474,6 +482,37 @@ Controller が Session / principal を開けて `VoterKeySource` を組み立て
 項目1 の静的ファクトリは、すでに **Entity / 値オブジェクト** 側にある（`Question.post` / `User.hostOf` / `JoinCode.generate`）。Response の `from(Entity)` は別レイヤをまたぐ。
 
 今の単位: `toQuestionResponse` を **private** にする程度でよい。`QuestionBody` は F-05 を閉じてから、JoinCode に倣うなら検討。
+
+## Q. `exists` 通過後の同時いいねは 409 になるか？
+
+**ならない（現状）。指摘どおり UNIQUE 違反は 500 になりうる。**
+
+### 流れ（競合）
+
+```text
+リクエスト A                         リクエスト B
+exists → false                       exists → false
+save(INSERT) OK                      save(INSERT) → uq_votes_question_voter 違反
+                                     → DataIntegrityViolationException
+                                     → GlobalExceptionHandler の Exception catch-all
+                                     → 500 INTERNAL_SERVER_ERROR
+```
+
+| 層 | 役割 | 現状 |
+|----|------|------|
+| `existsByQuestion_IdAndVoterKey` | 先回り（変換 → 既投票なら即 409） | あり。単発二重には効く |
+| DB `uq_votes_question_voter` | 本丸（1人1票の最終防衛） | Flyway / Entity あり |
+| UNIQUE 違反 → 409 | 制約違反を業務 Conflict に読み替える | **未実装** |
+
+設計の正（`docs/design/er-diagram.md` / `constraints.md`）: INSERT 時の制約違反 → **409**。  
+コードの正（`GlobalExceptionHandler`）: `BusinessException` と validation / 401 / 403 のみ。`DataIntegrityViolationException` 専用ハンドラなし。
+
+### 直し方の型（実装時）
+
+1. **Service catch（いいね専用）** … `save` を try/catch。制約名 `uq_votes_question_voter` なら `BusinessException(409, "Conflict", "既に投票済みです。")`
+2. **Advice 共通** … `@ExceptionHandler(DataIntegrityViolationException.class)` で制約名マップ（いいね・将来の poll 等）
+
+exists は残してよい（よくある二重は例外にしない）。本丸は UNIQUE + 409 変換。
 
 ## Q. `votedByMe` の意味は？
 

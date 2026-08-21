@@ -1,6 +1,6 @@
 # F-03 ルーム開閉
 
-scope: `PATCH /api/events/{id}/status`。`DRAFT → OPEN ⇔ CLOSED`。`DRAFT` へは戻さない。  
+scope: `PATCH /api/events/{id}/status`。`DRAFT → OPEN ⇔ CLOSED`。`DRAFT` へは戻さない。論理削除 `DELETED` は [f02-events.md](f02-events.md) の `DELETE`（この PATCH には載せない）。  
 正: [openapi-notes](../api/openapi-notes.md) / [constraints](../design/constraints.md)。
 
 ## 到達点
