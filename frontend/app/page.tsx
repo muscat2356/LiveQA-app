@@ -1,6 +1,6 @@
+import { LogoutToast } from "@/components/organizer/logoutToast";
 import { Button } from "@/components/ui/button";
-import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import Image from "next/image";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 
 /**
@@ -34,6 +34,7 @@ export default function Home() {
           </Button>
         </CardContent>
       </Card>
+      <LogoutToast />
     </div>
   );
 }
