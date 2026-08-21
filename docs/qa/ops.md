@@ -72,6 +72,10 @@ F-09 の意図: 自分の PC だけで通っても、他人・別 OS で落ち�
 
 `EventService` 等に `@Service` が無いと DI 失敗でコンテナが起動しない。アノテーション忘れを疑う。
 
+## ChatGPT Codex
+
+Cursor と同じルール 6 本を Codex で使う手順は [`docs/codex.md`](../codex.md)。`.cursor/rules/` は増やさない。Codex は `.mdc` を自動注入しない。
+
 ## `.vscode/settings.json` の個人パス
 
 リポジトリに自分のホームパスを置かない。User 設定へ移すか、ワークスペースは相対・変数にする。チームの Java 設定（formatter 等）だけ残す。
