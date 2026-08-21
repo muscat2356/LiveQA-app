@@ -93,7 +93,14 @@ Controller で Session / principal を開けて `VoterKeySource` にする。戻
 
 `Math.max` や `Objects.requireNonNull` が同じ仲間。やりすぎると「何でも static」になる。業務の流れ・DB は Service。
 
-MVP は行を消すより **status で閉じる**。User 行は `host_id` の FK 受け皿なので残す。Vote 取消だけ物理 DELETE。`deleted_at` は今足さない。
+MVP は行を消すより **status で閉じる**。物理 DELETE はいいね取消だけ。`deleted_at` は今足さない。
+
+| 消す／隠す | やり方 |
+|------------|--------|
+| いいね取消 | `votes` 1行の物理 DELETE |
+| **イベント削除** | `status = DELETED`（論理。行も配下も残す。一覧・Join から消す） |
+| 不適切質問 | `ARCHIVED`（F-08 / F-13）。質問行は残す |
+| User | 消さない（`host_id` の FK 受け皿） |
 
 ## テスト・JaCoCo
 
@@ -123,4 +130,4 @@ MVP は行を消すより **status で閉じる**。User 行は `host_id` の FK
 | Repository | 自前の派生クエリ | `save` / `findById` |
 | Service | 公開メソッド（404/409/401）、`toXxxResponse` | コンストラクタ・フィールド |
 
-enum の遷移の正は [constraints](../design/constraints.md)。`EventStatus` は `DRAFT→OPEN`、`OPEN⇔CLOSED`。`QuestionStatus` は `OPEN→ANSWERED→ARCHIVED`（`OPEN→ARCHIVED` 可）。`PollStatus` は `DRAFT→OPEN→CLOSED`（終端、MVP-B）。
+enum の遷移の正は [constraints](../design/constraints.md)。`EventStatus` は `DRAFT→OPEN`、`OPEN⇔CLOSED`。論理削除 `DELETED` は `DELETE` API 専用（`canTransitionTo` には載せない）。`QuestionStatus` は `OPEN→ANSWERED→ARCHIVED`（`OPEN→ARCHIVED` 可）。`PollStatus` は `DRAFT→OPEN→CLOSED`（終端、MVP-B）。

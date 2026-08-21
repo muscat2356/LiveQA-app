@@ -95,14 +95,14 @@ erDiagram
 | host_id | bigint | FK→users(id), NOT NULL | 主催者 |
 | title | varchar(200) | NOT NULL | イベント名 |
 | join_code | varchar(12) | UNIQUE, NOT NULL | 参加コード（推測困難なランダム文字列） |
-| status | varchar(20) | NOT NULL DEFAULT 'DRAFT' | `DRAFT`（開始前・受付前） / `OPEN`（受付中） / `CLOSED`（締切） |
+| status | varchar(20) | NOT NULL DEFAULT 'DRAFT' | `DRAFT`（開始前・受付前） / `OPEN`（受付中） / `CLOSED`（締切） / `DELETED`（論理削除・非表示） |
 | question_count | int | NOT NULL DEFAULT 0 | 質問数の非正規化スナップショット（API 詳細の `questionCount`） |
 | created_at | timestamptz | NOT NULL DEFAULT now() | 作成日時 |
 | updated_at | timestamptz | NOT NULL DEFAULT now() | 更新日時 |
 
 - 作成直後は `DRAFT`（部屋はあるが質問受付前）。主催者が開始で `OPEN`、締切で `CLOSED`
 - `updated_at` は `status`（`DRAFT`→`OPEN`⇔`CLOSED`）やタイトル編集で変化するため保持する
-- `question_count` は `questions` 件数のキャッシュ。質問 POST 時に原子的 +1（`upvote_count` と同発想）。物理 DELETE する API が無い MVP では減算は原則不要。イベント行 DELETE 時は CASCADE で質問も消えるが、件数はイベント行と一緒に消える
+- `question_count` は `questions` 件数のキャッシュ。質問投稿時に `UPDATE ... SET question_count = question_count + 1` で足す（同一 TX）。質問の物理 DELETE API は無い
 
 ### questions（質問）
 
@@ -111,7 +111,7 @@ erDiagram
 | id | bigserial | PK | 主キー |
 | event_id | bigint | FK→events(id), NOT NULL | 所属イベント |
 | body | text | NOT NULL | 質問本文 |
-| display_name | varchar(100) | NULL | 任意ニックネーム（未入力時はUI上「匿名」） |
+| display_name | varchar(100) | NULL | 任意ニックネーム。**現行アプリは未入力を `"匿名"` で格納**（列は NULL 可） |
 | upvote_count | int | NOT NULL DEFAULT 0 | いいね数（votesの集計値のキャッシュ） |
 | status | varchar(20) | NOT NULL DEFAULT 'OPEN' | `OPEN` / `ANSWERED` / `ARCHIVED` |
 | created_at | timestamptz | NOT NULL DEFAULT now() | 作成日時 |
@@ -179,19 +179,30 @@ erDiagram
 
 - **いいねの二重投票防止**: `votes` の UNIQUE `(question_id, voter_key)` で担保。INSERT時に制約違反なら409を返す
 - **upvote_count の整合**: いいね追加/取消時に `questions.upvote_count` を原子的インクリメント（`UPDATE ... SET upvote_count = upvote_count + 1`）で更新。read-modify-writeにしないため楽観ロック（`version`）は不要
-- **question_count の整合**: 質問投稿時に `events.question_count` を原子的 +1。一覧 API には載せない（詳細のみ）。MVP では質問の物理 DELETE API が無いため減算は原則不要
+- **question_count の整合**: 質問投稿時に `events.question_count` を原子的インクリメント（`UPDATE ... SET question_count = question_count + 1`）。一覧 API には載せない（詳細のみ）
 - **ポールの1票判定**: `SINGLE`（単一選択）は「1ポール1票」をアプリ層で担保（同一 `poll_id` に既存回答があれば置換 or 409）。`MULTI`（複数選択）は `UNIQUE(poll_option_id, voter_key)` で同一選択肢の重複のみ防止
 - **得票分布**: `poll_responses` を `poll_option_id` で `GROUP BY COUNT`。件数が多くなれば `poll_options.response_count` の非正規化を追加（`upvote_count` と同じ発想）
-- **ステータス遷移**: 質問は `OPEN → ANSWERED → ARCHIVED`（`OPEN → ARCHIVED` も可）。ルームは `DRAFT → OPEN ⇔ CLOSED`（`DRAFT` へは戻さない）。ポールは `DRAFT → OPEN → CLOSED`
+- **ステータス遷移**: 質問は `OPEN → ANSWERED → ARCHIVED`（`OPEN → ARCHIVED` も可）。ルームは `DRAFT → OPEN ⇔ CLOSED`（`DRAFT` へは戻さない）。論理削除は `→ DELETED`（終端）。ポールは `DRAFT → OPEN → CLOSED`
 
 ## データ保持方針
 
-- **MVP-A/B: 削除しない**（この規模では `votes`/`poll_responses` の行数は小さくDB負担は無視できる）。イベント削除時は `ON DELETE CASCADE` で関連データが連鎖削除される
+- **票・ポール明細**: MVP-A/B では個別に消さない（`votes`/`poll_responses` の行数は小さくDB負担は無視できる）。質問の物理 DELETE API も無い
+- **イベント削除（F-02）**: `DELETE /api/events/{id}` は論理削除。`status = DELETED`（終端）。行も配下も残す。ソフトデリート列（`deleted_at`）は持たない。一覧・Join・詳細からは 404 / 非表示。FK `ON DELETE CASCADE` は「ホストやイベント行を本当に消すとき」の砦（この API では使わない）
 - **将来（負担が問題化したら）**: イベント終了（終端状態）時に選択肢ごとの最終集計を確定保存し、明細（`poll_responses`）のみを定期バッチ（Spring Batch）で削除。即時同期削除にはせず、`OPEN⇔CLOSED` の往復とも衝突させない
 
-## Flyway初期DDL案
+## Flyway（現行）
 
-`backend/src/main/resources/db/migration/V1__init.sql` 相当。
+正は `backend/src/main/resources/db/migration/`。
+
+| ファイル | 内容 |
+|----------|------|
+| `V1__init.sql` | users / events / questions / votes。events に `question_count` はまだ無い |
+| `V2__name_unique_constraints.sql` | UNIQUE 名を Entity に揃える |
+| `V3__events_question_count.sql` | `events.question_count` ＋ `ck_events_question_count` |
+
+ポール用 DDL は下の案。現行 V3 は `events.question_count` 済みのため、ポールは V4 以降。
+
+以下は V1 相当の読み物（UNIQUE は V2 で改名済み。`question_count` は V3）。
 
 ```sql
 CREATE TABLE users (
@@ -238,7 +249,7 @@ CREATE TABLE votes (
 CREATE INDEX idx_votes_question_id ON votes(question_id);
 ```
 
-ポール（MVP-B）は別マイグレーション（例 `V3__polls.sql`）で追加する想定。  
+ポール（MVP-B）は別マイグレーション（**V4 以降**）で追加する想定。  
 UNIQUE の明示名は Entity の `@UniqueConstraint` と揃える。V1 の列レベル UNIQUE の自動名リネームは `V2__name_unique_constraints.sql`。
 
 ```sql

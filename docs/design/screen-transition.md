@@ -34,15 +34,17 @@ flowchart TD
     Create -->|作成完了| Manage[イベント運営画面]
     Dash -->|イベント選択| Manage
     Manage -->|URLコピー| Share([参加URLを共有])
+    Manage -->|名称変更| Manage
+    Manage -->|イベント削除| Dash
     Manage -->|ステータス変更| Manage
     Manage -->|"ルーム開始/締切/再開 (DRAFT→OPEN⇔CLOSED)"| Manage
 ```
 
 - ログイン導線: 未ログイン時のみ表示。「主催者としてログイン」でKeycloak(SSO)へリダイレクト。専用ログインフォームは持たない
 - コールバック後にCookieセッションが発行され、以降はセッションで認証
-- 主催者ダッシュボード: 自分のイベント一覧（`GET /api/events`）
+- 主催者ダッシュボード: 自分のイベント一覧（`GET /api/events`）。名称変更（`PATCH /api/events/{id}`）と削除（`DELETE /api/events/{id}`）もここまたは運営画面から行う
 - イベント作成画面: タイトル入力 → `POST /api/events` → joinCode発行（`DRAFT`）→ 運営画面へ
-- イベント運営画面: 質問リスト（ライブ）+ ステータス操作 + 参加URL表示 + ルーム開始/締切/再開。作成直後は `DRAFT` なので「開始」で `OPEN` にして受付を始める
+- イベント運営画面: 質問リスト（ライブ）+ ステータス操作 + 参加URL表示 + ルーム開始/締切/再開 + 名称変更・削除。作成直後は `DRAFT` なので「開始」で `OPEN` にして受付を始める。削除は確認ダイアログ必須。成功後はダッシュボードへ戻る
 
 ## 参加者フロー（ログインなし）
 
