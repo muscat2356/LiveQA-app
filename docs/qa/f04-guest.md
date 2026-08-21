@@ -93,3 +93,65 @@ POST /api/auth/guest + X-XSRF-TOKEN
 | `VoterKeySources.fromGuestSession(session)` | 匿名 guestId の有無だけ。`POST /api/auth/guest` |
 
 `issueOrReuse` は `switch`。`Guest` 再利用 / `Missing` 新規 UUID / `Host` は 400（`form` を繋いだときに壊れる）。Session の書き込みは今どおり Controller。
+
+## Q. 匿名セッションが発行されずに質問投稿できない原因は？
+
+**再確認: 呼び出しヘルパはあるが、URL誤り＋未使用で実質発行されていない。**
+
+### 設計上の流れ（screen-transition）
+
+```text
+参加ページ → 匿名セッション発行 →（任意）ニックネーム → Q&A → 質問投稿
+```
+
+### 現状フロント（再確認）
+
+| 場所 | 状態 |
+|------|------|
+| `lib/api/guestSession.ts` の `getGuestSession` | **ある**。`POST /api/guest` を叩く |
+| backend 契約 | **`POST /api/auth/guest`**（`GuestSessionController`） |
+| `useGuestQuestions` | `getGuestSession` を **import のみ**で **未呼び出し** |
+| `PostForm` / `VoteButton` | guest 発行を待たず questions / vote を直叩き |
+| `enterRoom` | 引き続き `qa_nickname` のみ |
+
+ニックネーム Cookie（`qa_nickname`）は **表示名用**。Spring Session の `guestId` / `voter_key` とは別物。
+
+### 二重の原因
+
+1. **パス不一致** … フロント `/api/guest` → rewrite 後 `backend /api/guest`（存在しない → 404）。正は `/api/auth/guest`
+2. **未呼び出し** … パスを直しても、hook / PostForm が `await getGuestSession()` しない限り Session に `guestId` が載らない
+
+### 投稿時に起きること
+
+```text
+PostForm → POST questions（guest 未発行）
+  → VoterKeySources.form → Missing
+  → require → 401
+```
+
+### 直し方
+
+```text
+1. fetch URL を "/api/auth/guest" に直す
+2. Q&A 初期化または投稿・いいねの直前に await getGuestSession()
+```
+
+Network で `POST .../api/auth/guest` が 200 になり、続く questions に同じ SESSION が付くかを見る。
+
+## Q. PR #88（guest パス修正 + guestLoad 先頭で発行）は問題ないか？
+
+**本丸の2点は正しい。マージしてよい水準。** 残るのは CSRF 初回と失敗キャッシュの Should。
+
+| 変更 | 判定 |
+|------|------|
+| `/api/guest` → `/api/auth/guest` | **OK**（backend / openapi と一致） |
+| `guestLoad` 先頭で `await getGuestSession()` | **OK**（一覧前に Session 属性を載せる） |
+
+### 残リスク（止めないが知っておく）
+
+1. **初回 CSRF** … Q&A 直着で Cookie が無いと、guest POST が 403 になり一覧も落ちる。必要なら guest の前に軽い GET、または 403 時に再試行
+2. **失敗 Promise の固定** … `guestId` に一度 reject が入るとリロードまで再試行しない。失敗時は `guestId = null` に戻すとよい
+3. **PostForm 直叩き** … マウントで guestLoad が先に走れば通常は足りる。即投稿レースは稀
+
+関連: GitHub #86 / PR #88
+
