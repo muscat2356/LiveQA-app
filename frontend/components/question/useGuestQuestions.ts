@@ -22,6 +22,7 @@ export default function useGuestQuestions(eventId: number, sort: Sort){
         setError(null);
 
         try{
+            await getGuestSession();
             
             const res = await fetch(`/api/events/${eventId}/questions?sort=${sort}`,{
              credentials: "same-origin", 
