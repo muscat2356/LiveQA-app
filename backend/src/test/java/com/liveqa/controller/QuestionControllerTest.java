@@ -80,7 +80,7 @@ class QuestionControllerTest {
 
     @Test
     void findByEventId_200でGuestを渡す() throws Exception {
-        when(questionService.findByEventId(eq(10L), any()))
+        when(questionService.findByEventId(eq(10L), any(), any()))
                 .thenReturn(List.of(new QuestionResponse(
                         42L,
                         10L,
@@ -100,7 +100,18 @@ class QuestionControllerTest {
                 .andExpect(jsonPath("$[0].votedByMe").value(false));
 
         final ArgumentCaptor<VoterKeySource> captor = ArgumentCaptor.forClass(VoterKeySource.class);
-        verify(questionService).findByEventId(eq(10L), captor.capture());
+        verify(questionService).findByEventId(eq(10L), eq(null), captor.capture());
         assertThat(captor.getValue()).isEqualTo(new VoterKeySource.Guest("abc"));
+    }
+
+    @Test
+    void findByEventId_sortをServiceへ渡す() throws Exception {
+        when(questionService.findByEventId(eq(10L), eq("newest"), any()))
+                .thenReturn(List.of());
+
+        mockMvc.perform(get("/api/events/10/questions").param("sort", "newest"))
+                .andExpect(status().isOk());
+
+        verify(questionService).findByEventId(eq(10L), eq("newest"), any());
     }
 }
