@@ -70,7 +70,12 @@ export default async function detailPage({
                         </p>
                         <p className="flex flex-wrap items-baseline gap-x-2">
                             <span className="text-muted-foreground">主催者URL:</span>
-                            <span className="break-all font-mono text-primary">{`http://localhost:3000/join/${event.id}/qa`}</span>
+                            <Link
+                                href={`/dashboard/${event.id}/qa`}
+                                className="break-all font-mono text-primary hover:underline"
+                            >
+                                {`http://localhost:3000/dashboard/${event.id}/qa`}
+                            </Link>
                         </p>
                     </CardContent>
                 </Card>

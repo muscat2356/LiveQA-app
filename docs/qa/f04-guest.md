@@ -225,3 +225,7 @@ Network で `POST .../api/auth/guest` が 200 になり、続く questions に�
 
 「無意味な GET を量産する」が定石ではない。**最初の POST より前に、ブラウザ origin で Cookie を発行する GET が1回ある**のが定石。
 
+## Q. `/join/1/qa` のエラーは CSRF（#89）と同じか？
+
+**違う。** `1` は event id。Join の path は 8 文字の `joinCode`。形式不正は API 400 → SSR が throw。正しい主催者画面は `/dashboard/{id}/qa`。参加は `/join/{joinCode}/qa`。詳細は [f02-events.md](f02-events.md#q-join1qa-がエラーになるのはなぜか92)。
+

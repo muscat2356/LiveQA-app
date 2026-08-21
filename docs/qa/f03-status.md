@@ -27,6 +27,20 @@ HOST + SESSION + CSRF
 
 同一 status への PATCH（OPEN→OPEN）は現状 409。冪等 200 にはしていない。
 
+## Q. ルームを CLOSED にしたら質問を全削除するか？
+
+**しない。** 正は「締切＝閲覧のみ」。行は残す。
+
+| docs | 内容 |
+|------|------|
+| constraints | `CLOSED` は投稿・いいね不可。一覧は見える |
+| openapi `PATCH .../status` | `OPEN ⇔ CLOSED`（再開できる） |
+| openapi 質問 GET | **DRAFT/CLOSED でも返す** |
+| ER | 質問の物理 DELETE API は無い。個別の非表示は `ARCHIVED`（F-08） |
+| イベント DELETE | 論理削除。配下の質問も残す |
+
+締切で物理削除すると、再開（`CLOSED→OPEN`）で質問が消える。契約の往復と衝突する。隠したい 1 件は `PATCH /api/questions/{qid}/status` の `ARCHIVED`。イベントごと消すのは `DELETE /api/events/{id}`（質問は残したまま 404）。
+
 ## Q. 所有者チェックを Java の if で 403 にしない理由は？
 
 **SQL 条件（id + host_id）で絞り、0件なら 404 一本。** `getHost()` の LAZY を判定だけで触らない。存在しない／他人を HTTP で区別しない。403 は ROLE / CSRF。

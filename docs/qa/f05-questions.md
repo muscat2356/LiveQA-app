@@ -53,6 +53,10 @@ HttpSession.getAttribute → Object
 
 `/api/events/**` が `authenticated()` なので、**その前**に `/api/events/*/questions` を `permitAll`。vote も同様に `/api/questions/*/vote` をその前へ。permitAll でも POST/DELETE は CSRF 必須。
 
+## Q. 質問の投稿時刻は画面に出すか？（#91）
+
+**出す。** API の `createdAt` は既にある（openapi: ISO 8601 / UTC）。切らない。表示はフロント（Asia/Tokyo、日付と時まで。#59 / イベント一覧と同じヘルパ）。参加者 `QaScreen` と主催者 `HostQaScreen` は現状未使用。Issue: [#91](https://github.com/muscat2356/live-qa-app/issues/91)。
+
 ## 確認（いいね REST）
 
 本番は契約どおり動く形。テスト前に直した点:
