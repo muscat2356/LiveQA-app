@@ -30,10 +30,12 @@ export default async function DashBoard(){
         <div className="app-container py-8 sm:py-12">
             <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
                 <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Event DashBoard</h1>
-                <Button size="lg" nativeButton={false} render={<Link href="/dashboard/new" />}>
-                    新規作成
-                </Button>
-                <LogoutButton />
+                <div className="flex items-center gap-2">
+                    <Button size="lg" nativeButton={false} render={<Link href="/dashboard/new" />}>
+                        新規作成
+                    </Button>
+                    <LogoutButton />
+                </div>
             </div>
 
             {events.length === 0 ? (

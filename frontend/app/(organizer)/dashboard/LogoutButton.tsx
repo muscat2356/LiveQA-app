@@ -16,7 +16,7 @@ export default function LogoutButton(){
     return(
         <form method="POST" action="/api/auth/logout">
             <input type="hidden" name="_csrf" value={xsrfToken} />
-            <Button type="submit" onClick={() => sessionStorage.setItem("logout", "1")}>
+            <Button type="submit" variant="outline" size="lg" onClick={() => sessionStorage.setItem("logout", "1")}>
                 ログアウト
             </Button>
         </form>
