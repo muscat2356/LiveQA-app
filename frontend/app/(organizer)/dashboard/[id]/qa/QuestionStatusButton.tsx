@@ -54,14 +54,15 @@ export default function QuestionStatusButton({
 
 
     return(
-        <div>
-            {errorMessage && <p>{errorMessage}</p>}
-            <div>
+        <div className="mt-3 space-y-2 border-t pt-3">
+            {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
+            <div className="flex flex-wrap gap-2">
                 {nextStatus.map((target) => (
-                    <Button 
+                    <Button
                         key={target}
+                        size="sm"
                         variant={target === "ARCHIVED" ? "outline" : "default"}
-                        onClick={() => handleUpdate(target)} 
+                        onClick={() => handleUpdate(target)}
                         disabled={pending}
                     >
                         {pending ? "更新中..." : questionActionLabelMap[target]}
