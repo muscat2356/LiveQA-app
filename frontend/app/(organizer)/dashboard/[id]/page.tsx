@@ -59,24 +59,24 @@ export default async function detailPage({
                     <CardHeader>
                         <CardTitle>参加者を招待</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-3 text-sm">
-                        <p className="flex flex-wrap items-baseline gap-x-2">
-                            <span className="text-muted-foreground">参加コード:</span>
-                            <span className="font-mono text-base font-semibold tracking-wider">{event.joinCode}</span>
-                        </p>
-                        <p className="flex flex-wrap items-baseline gap-x-2">
-                            <span className="text-muted-foreground">参加者URL:</span>
-                            <span className="break-all font-mono text-primary">{`http://localhost:3000/join/${event.joinCode}`}</span>
-                        </p>
-                        <p className="flex flex-wrap items-baseline gap-x-2">
-                            <span className="text-muted-foreground">主催者URL:</span>
+                    <CardContent className="space-y-4 text-sm">
+                        <div className="space-y-1.5">
+                            <span className="text-xs font-medium text-muted-foreground">参加コード:</span>
+                            <div className="rounded-lg bg-muted px-3 py-2 font-mono text-base font-semibold tracking-wider">{event.joinCode}</div>
+                        </div>
+                        <div className="space-y-1.5">
+                            <span className="text-xs font-medium text-muted-foreground">参加者URL:</span>
+                            <div className="break-all rounded-lg bg-muted px-3 py-2 font-mono text-primary">{`http://localhost:3000/join/${event.joinCode}`}</div>
+                        </div>
+                        <div className="space-y-1.5">
+                            <span className="text-xs font-medium text-muted-foreground">主催者URL:</span>
                             <Link
                                 href={`/dashboard/${event.id}/qa`}
-                                className="break-all font-mono text-primary hover:underline"
+                                className="block break-all rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 font-mono text-primary transition-colors hover:bg-primary/10 hover:underline"
                             >
                                 {`http://localhost:3000/dashboard/${event.id}/qa`}
                             </Link>
-                        </p>
+                        </div>
                     </CardContent>
                 </Card>
 
