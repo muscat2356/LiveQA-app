@@ -11,6 +11,7 @@ import {
 
 import Link from "next/link";
 import StatusChangeDialog from "@/components/event/statusChangeDialog";
+import formDateTime from "@/lib/utils/date";
 
 // ステータスごとの表示色（色分けのみ）
 const statusBadgeClass: Record<EventStatus, string> = {
@@ -37,7 +38,7 @@ export default function EventRow({ event }: {event: EventListResponse }) {
                         参加コード： <span className="font-mono font-medium text-foreground">{event.joinCode}</span>
                     </p>
                     <p className="text-sm text-muted-foreground">
-                        作成日時： {event.createdAt}
+                        作成日時： {formDateTime(event.createdAt)}
                     </p>
                 </div>
 

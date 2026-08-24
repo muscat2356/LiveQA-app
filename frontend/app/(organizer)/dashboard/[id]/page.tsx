@@ -1,6 +1,7 @@
 import { StatusBadge } from "@/components/event/statusBadge";
 import StatusChangeDialog from "@/components/event/statusChangeDialog";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import formDateTime from "@/lib/utils/date";
 import { EventDetailResponse } from "@/types/event/event";
 import { cookies } from "next/headers";
 import Link from "next/link";
@@ -44,7 +45,7 @@ export default async function detailPage({
                     <StatusBadge status={event.status}/>
                     <CardTitle className="text-2xl">{event.title}</CardTitle>
                     <CardDescription>
-                        作成日時：{event.createdAt}
+                        作成日時：{formDateTime(event.createdAt)}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="flex items-baseline gap-2">
