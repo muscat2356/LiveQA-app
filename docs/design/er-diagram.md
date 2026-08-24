@@ -183,7 +183,7 @@ erDiagram
 - **upvote_count の整合**: いいね追加/取消時に `questions.upvote_count` を原子的インクリメント（`UPDATE ... SET upvote_count = upvote_count + 1`）で更新。read-modify-writeにしないため楽観ロック（`version`）は不要
 - **question_count の整合**: 質問投稿時に `events.question_count` を原子的インクリメント（`UPDATE ... SET question_count = question_count + 1`）。一覧 API には載せない（詳細のみ）。この UPDATE は `events.version` を進めない
 - **events.version の楽観ロック**: 名称更新と論理削除が同じ行を書くときの衝突検知。JPA `@Version`。衝突は 409。質問件数の加算とは混ぜない
-- **ポールの1票判定**: `SINGLE`（単一選択）は「1ポール1票」をアプリ層で担保（同一 `poll_id` に既存回答があれば置換 or 409）。`MULTI`（複数選択）は `UNIQUE(poll_option_id, voter_key)` で同一選択肢の重複のみ防止
+- **ポールの1票判定**: `SINGLE` は同一 `poll_id` に既存があれば 409（置換しない）。`MULTI` は `UNIQUE(poll_option_id, voter_key)` で同一選択肢の重複のみ防止
 - **得票分布**: `poll_responses` を `poll_option_id` で `GROUP BY COUNT`。件数が多くなれば `poll_options.response_count` の非正規化を追加（`upvote_count` と同じ発想）
 - **ステータス遷移**: 質問は `OPEN → ANSWERED → ARCHIVED`（`OPEN → ARCHIVED` も可）。ルームは `DRAFT → OPEN ⇔ CLOSED`（`DRAFT` へは戻さない）。論理削除は `→ DELETED`（終端）。ポールは `DRAFT → OPEN → CLOSED`
 
@@ -203,6 +203,7 @@ erDiagram
 | `V2__name_unique_constraints.sql` | UNIQUE 名を Entity に揃える |
 | `V3__events_question_count.sql` | `events.question_count` ＋ `ck_events_question_count` |
 | `V4__events_version.sql` | `events.version`（楽観ロック。名称更新×論理削除） |
+| `V5__polls.sql` | `polls` / `poll_options` / `poll_responses`（F-10。CHECK 込み） |
 
 ポール用 DDL は下の案。現行 V4 は `events.version` 済みのため、ポールは V5 以降。
 
@@ -253,8 +254,9 @@ CREATE TABLE votes (
 CREATE INDEX idx_votes_question_id ON votes(question_id);
 ```
 
-ポール（MVP-B）は別マイグレーション（**V4 以降**）で追加する想定。  
-UNIQUE の明示名は Entity の `@UniqueConstraint` と揃える。V1 の列レベル UNIQUE の自動名リネームは `V2__name_unique_constraints.sql`。
+ポール（MVP-B）は **V5**。UNIQUE 名は Entity の `@UniqueConstraint` と揃える。V1 の列レベル UNIQUE の自動名リネームは `V2__name_unique_constraints.sql`。
+
+入力のラベルは 1〜100（constraints）。列は `varchar(200)`（余裕）。CHECK は V5 の CREATE に載せる。
 
 ```sql
 CREATE TABLE polls (
@@ -263,7 +265,9 @@ CREATE TABLE polls (
     question_text TEXT        NOT NULL,
     type          VARCHAR(20) NOT NULL DEFAULT 'SINGLE',
     status        VARCHAR(20) NOT NULL DEFAULT 'DRAFT',
-    created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT ck_polls_type CHECK (type IN ('SINGLE', 'MULTI')),
+    CONSTRAINT ck_polls_status CHECK (status IN ('DRAFT', 'OPEN', 'CLOSED'))
 );
 CREATE INDEX idx_polls_event_id ON polls(event_id);
 
@@ -271,7 +275,8 @@ CREATE TABLE poll_options (
     id            BIGSERIAL PRIMARY KEY,
     poll_id       BIGINT       NOT NULL REFERENCES polls(id) ON DELETE CASCADE,
     label         VARCHAR(200) NOT NULL,
-    display_order INT          NOT NULL DEFAULT 0
+    display_order INT          NOT NULL DEFAULT 0,
+    CONSTRAINT ck_poll_options_order CHECK (display_order >= 0)
 );
 CREATE INDEX idx_poll_options_poll_id ON poll_options(poll_id);
 

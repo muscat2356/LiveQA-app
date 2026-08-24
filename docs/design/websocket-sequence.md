@@ -161,7 +161,7 @@ sequenceDiagram
     else 新規回答
         DB-->>API: OK
         API->>DB: 選択肢ごとに GROUP BY COUNT で集計
-        API-->>P: 200 OK (PollResultDTO)
+        API-->>P: 200 OK (PollDTO)
         API-->>WS: POLL_UPDATED を publish
         WS-->>P: 得票分布をライブ更新(棒グラフ)
     end

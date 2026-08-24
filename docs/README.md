@@ -17,7 +17,7 @@ live-qa-app（リアルタイム ライブQ&A + 投票 / sli.do風）の方向�
 - [design/websocket-sequence.md](design/websocket-sequence.md) — シーケンス図（E2E全体 / 質問投稿 / いいね / ハンドシェイク認証 / Poll）
 - [design/er-diagram.md](design/er-diagram.md) — ER図・テーブル定義・制約/インデックス・Flyway初期DDL案
 - [design/constraints.md](design/constraints.md) — 制約仕様（入力バリデーション・ビジネスルール・DB CHECK・HTTPステータス）
-- [api/openapi-notes.md](api/openapi-notes.md) — REST API / STOMP仕様メモ（Req/Res・DTO・CSRF・配信ペイロード）
+- [api/openapi-notes.md](api/openapi-notes.md) — REST API / STOMP仕様メモ（Req/Res・DTO・CSRF・配信ペイロード）。MVP-B のポールは F-10/F-11 で節が分かれている
 
 ## 学習メモ（JIT）
 

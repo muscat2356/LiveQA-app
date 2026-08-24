@@ -109,7 +109,7 @@ sequenceDiagram
 
 ## 動的クエリの設計方針
 
-- QueryDSLで `BooleanBuilder`（または `Predicate` 合成）を使い、null条件はスキップして動的にWHERE / ORDER BYを構築（人気順=`upvote_count DESC`、新着順=`created_at DESC`、未回答フィルタ=`status = OPEN`）
+- QueryDSLで `BooleanBuilder`（または `Predicate` 合成）を使い、null条件はスキップして動的にWHERE / ORDER BYを構築（人気順=`upvote_count DESC`、新着順=`created_at DESC`）。status フィルタは F-12（未指定は `ARCHIVED` 以外）
 - 代替案: MyBatisの `<where>` / `<if>` 動的SQL
 
 ## セキュリティ / 整合性方針
@@ -120,7 +120,7 @@ sequenceDiagram
 - Cookieは `HttpOnly` / `Secure` / `SameSite` を設定
 - WebSocketハンドシェイク時にセッションCookieで認証し、STOMP接続でロール認可（主催者のみステータス変更可）
 - いいねの整合性: `votes` の一意制約で二重投票を防止。`upvote_count` は原子的インクリメント（`UPDATE ... SET upvote_count = upvote_count + 1`）で整合を担保し、read-modify-writeを避けるため楽観ロック用の `version` は持たない
-- ポールの整合性（MVP-B）: 得票は `poll_responses` に集約し、`UNIQUE(poll_option_id, voter_key)` で同一選択肢の重複を防止。単一選択は「1ポール1票」をアプリ層で担保
+- ポールの整合性（MVP-B）: 得票は `poll_responses` に集約。`SINGLE` は同一ポールへの再回答を 409（置換しない）。`MULTI` は `UNIQUE(poll_option_id, voter_key)` で同一選択肢の重複を防止
 
 ## CI/CD（GitHub Actions）
 

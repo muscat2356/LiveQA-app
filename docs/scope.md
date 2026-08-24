@@ -41,11 +41,16 @@
 
 ## MVP-B（第2イテレーション・F-10〜F-13）
 
-MVP-A が E2E で通ってから着手。設計は [design/er-diagram.md](design/er-diagram.md) / [api/openapi-notes.md](api/openapi-notes.md) / [design/service-spec.md](design/service-spec.md) に記載済み。
+MVP-A が E2E で通ってから着手。API の正は [api/openapi-notes.md](api/openapi-notes.md)。ER は [design/er-diagram.md](design/er-diagram.md)。制約は [design/constraints.md](design/constraints.md)。
 
-- **F-10 / F-11 ライブ投票(Poll)**: 主催者が設問＋選択肢を作成し、参加者が選択肢から回答。得票分布をWebSocketでライブ集計する「アンケート型」（正解なし）。Q&Aと同一ルームで共存。`SINGLE` / `MULTI`。状態 `DRAFT → OPEN → CLOSED`。データ保持は削除せず、将来「終了時に集計確定＋明細のみバッチ削除」で最適化可
-- **F-12 質問フィルタ**: 未回答 / 回答済み / アーカイブ（QueryDSL拡充）
-- **F-13 簡易モデレーション**: 不適切な質問のアーカイブ
+| ID | 内容 | API（要約） | Issue |
+|----|------|-------------|-------|
+| **F-10** | ポール作成・開閉。設問＋選択肢。`DRAFT → OPEN → CLOSED`（終端）。Q&A と同一ルーム | `POST/GET /api/events/{id}/polls`、`PATCH /api/polls/{pollId}/status` | [#74](https://github.com/muscat2356/live-qa-app/issues/74) |
+| **F-11** | ポール回答・得票集計。ライブ更新は C が `POLL_UPDATED` | `POST /api/polls/{pollId}/responses`、`GET /api/polls/{pollId}/results` | [#21](https://github.com/muscat2356/live-qa-app/issues/21) |
+| **F-12** | 質問一覧の status フィルタ（QueryDSL 拡充） | `GET /api/events/{id}/questions?status=` | [#22](https://github.com/muscat2356/live-qa-app/issues/22) |
+| **F-13** | 簡易モデレーション。**新パスは作らない。** F-08 の `ARCHIVED` ＋ F-12 で参加者から隠す | `PATCH /api/questions/{qid}/status` `{ "status": "ARCHIVED" }` | [#23](https://github.com/muscat2356/live-qa-app/issues/23) |
+
+アンケート型（正解なし）。`SINGLE` / `MULTI`。明細の個別 DELETE は持たない。イベント削除は `DELETED`（論理。行は残す）。
 
 ## さらなるストレッチ（余力・F-14 / F-15）
 

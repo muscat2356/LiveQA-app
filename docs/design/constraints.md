@@ -41,14 +41,15 @@ flowchart LR
 
 ### 状態による可否
 
-- ルームが `OPEN` のときのみ、**質問投稿・いいね・ポール回答**が可能。`DRAFT`（受付前）/ `CLOSED`（締切）は閲覧のみ（違反は 409 Conflict）
-- ポール回答は `polls.status = OPEN` のときのみ可。`DRAFT` / `CLOSED` は不可（409）
+- ルームが `OPEN` のときのみ、**質問投稿・いいね**が可能。`DRAFT`（受付前）/ `CLOSED`（締切）は閲覧のみ（違反は 409 Conflict）
+- ポール回答は `polls.status = OPEN` **かつ** ルームが `OPEN` のときのみ可。`DRAFT` / `CLOSED`（ポールまたはルーム）は 409
+- ポールの作成・開閉はルーム状態を問わない（`DELETED` イベントは 404）
 
 ### 1人1票
 
 - 質問いいね: `votes(question_id, voter_key)` の UNIQUE で1人1票。二重は 409
-- ポール `SINGLE`: 1ポール1票（同一 `poll_id` に既存回答があれば置換 or 409）
-- ポール `MULTI`: `UNIQUE(poll_option_id, voter_key)` で同一選択肢の重複のみ防止
+- ポール `SINGLE`: 1ポール1票。同一 `poll_id` に既存があれば **409**（置換しない。いいねと同じ）
+- ポール `MULTI`: `UNIQUE(poll_option_id, voter_key)` で同一選択肢の重複のみ防止。同じポールへの追加選択は可（まだ選んでいない option のみ）
 - `voter_key`: ログインユーザー `u:{userId}` / ゲスト `g:{guestId}`。参加者は匿名セッション必須（未確立なら投票不可 → 401相当）
 - 自分の質問へのいいねは許可（想定内）
 
@@ -56,7 +57,7 @@ flowchart LR
 
 - 次は **HOST かつ対象イベントの所有者のみ**:
   - イベント詳細 / 名称更新 / 削除 / 開閉（`GET|PATCH|DELETE /api/events/{id}` …）
-  - ポール作成 / 開閉（`PATCH /api/polls/{pollId}/status`）
+  - ポール作成 / 開閉（`POST /api/events/{id}/polls`、`PATCH /api/polls/{pollId}/status`）
   - 質問ステータス変更（`PATCH /api/questions/{qid}/status`）
 - 所有者判定は **SQL 条件（例: `id` + `host_id`）** で行い、0件なら **404**（存在しない／他人所有を区別しない。存在漏洩を避ける）。`DELETED` も同じ 404（SQL `status <> DELETED`）
 - 質問投稿・いいね・ポール回答は参加者（匿名セッション）でも可
@@ -91,7 +92,7 @@ stateDiagram-v2
 
 - ルーム: `DRAFT → OPEN ⇔ CLOSED`（`OPEN`/`CLOSED` は往復可、`DRAFT` へは戻さない）。論理削除は `DRAFT|OPEN|CLOSED → DELETED`（終端。`PATCH /status` では扱わない。`DELETE /api/events/{id}`）
 - 質問: `OPEN → ANSWERED → ARCHIVED`（`OPEN → ARCHIVED` 可）。`ARCHIVED` からは戻さない
-- ポール: `DRAFT → OPEN → CLOSED`。`CLOSED` は終端、`DRAFT` へは戻さない
+- ポール: `DRAFT → OPEN → CLOSED`。`CLOSED` は終端、`DRAFT` へは戻さない（`PATCH /status` に `DRAFT` は 400。開閉は `OPEN` / `CLOSED` のみ）
 - 上記以外の遷移リクエストは 409（不正な状態遷移）
 
 ## 3. DB制約（CHECK等）
@@ -122,7 +123,7 @@ ALTER TABLE poll_options ADD CONSTRAINT ck_poll_options_order CHECK (display_ord
 | 401 Unauthorized | 未ログイン（HOST操作） / 匿名セッション未確立での投票 |
 | 403 Forbidden | ROLE 不足・CSRF 失敗など（認可フィルタ） |
 | 404 Not Found | 無効な `joinCode`、存在しないリソース、他人所有のイベント等 |
-| 409 Conflict | ルーム/ポールが受付状態でない、二重投票、不正な状態遷移 |
+| 409 Conflict | ルーム/ポールが受付状態でない、二重投票・二重回答、不正な状態遷移、楽観ロック衝突 |
 
 - エラーボディは共通形式 `{ status, error, message }` の3項目を基本とする。400では任意で `fields`（フィールド別メッセージ）を付与（[../api/openapi-notes.md](../api/openapi-notes.md)）
 

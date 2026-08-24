@@ -59,7 +59,7 @@
 | 401 | Unauthorized | 未ログイン（HOST操作） / 匿名セッション未確立での投票 |
 | 403 | Forbidden | ROLE 不足・CSRF 失敗など（認可フィルタ） |
 | 404 | Not Found | 無効な参加コード、存在しないリソース、**他人所有のイベント等（存在を漏らさない）** |
-| 409 | Conflict | ルーム/ポールが受付状態でない、二重投票、不正な状態遷移、楽観ロック衝突 |
+| 409 | Conflict | ルーム/ポールが受付状態でない、二重投票・二重回答、不正な状態遷移、楽観ロック衝突 |
 
 ## 認証（SSO / OIDC・担当B）
 
@@ -286,9 +286,11 @@
 
 ### GET /api/events/{id}/questions （公開）
 
-質問一覧。QueryDSLで動的に並び替え/フィルタを組み立てる。イベントが無ければ 404。キー未確立でも 200（`votedByMe` は全部 false）。DRAFT/CLOSED でも返す。
+質問一覧。QueryDSLで動的に並び替え/フィルタを組み立てる。イベントが無ければ 404（`DELETED` も含む）。キー未確立でも 200（`votedByMe` は全部 false）。DRAFT/CLOSED でも返す。
 
-- Query: `sort` = `popular`（既定, `upvote_count DESC, created_at DESC`） / `newest`（`created_at DESC`）、`status` = `OPEN` / `ANSWERED` / `ARCHIVED`（任意、未指定は `ARCHIVED` 以外）
+- Query:
+  - `sort` = `popular`（既定, `upvote_count DESC, created_at DESC`） / `newest`（`created_at DESC`）。不正は 400。**F-06 実装済**
+  - `status` = `OPEN` / `ANSWERED` / `ARCHIVED`（任意）。未指定は **`ARCHIVED` 以外**。不正は 400。**F-12**（未実装のあいだはクエリを無視し、ARCHIVED も含めて返す）
 - Response 200:
 
 ```json
@@ -377,6 +379,7 @@
 ```
 
 - 副作用: STOMP `QUESTION_ANSWERED` を配信
+- F-13（簡易モデレーション）もこの PATCH の `ARCHIVED`。専用パスは作らない
 
 ## いいね API（担当B）
 
@@ -408,15 +411,24 @@
 
 - 副作用: STOMP `QUESTION_UPVOTED` を配信
 
-## ポール API（MVP-B・F-10/F-11・担当B）
+## ポール API（MVP-B・担当B）
 
-主催者が設問と選択肢を作り、参加者が選択肢から回答する「アンケート型」ポール（正解なし）。Q&Aと同一ルームで共存する。
+主催者が設問と選択肢を作り、参加者が選択肢から回答する「アンケート型」ポール（正解なし）。Q&Aと同一ルームで共存する。  
+**F-10** = 作成・一覧・開閉。**F-11** = 回答・集計。STOMP 配信は Member C（口だけ F-10/F-11 で残す）。
 
-### POST /api/events/{id}/polls （HOST, 所有者のみ）
+イベントが `DELETED` なら作成・一覧・開閉・回答・結果はすべて **404**（質問 API と同じ。存在しないと区別しない）。ルームが `DRAFT` / `CLOSED` でも **作成と開閉は可**（下書きのうちに設問を用意する）。**回答だけ** ルーム `OPEN` かつポール `OPEN`。
 
-設問＋選択肢をまとめて作成。
+変更系（POST / PATCH）は要 `X-XSRF-TOKEN`。
 
-- Request（`type` = `SINGLE` / `MULTI`、選択肢は2〜10個）:
+JSON の形は **PollDTO 一つ**（作成・一覧・開閉・結果で同じ）。`PollResultDTO` は別名にしない。
+
+### F-10 作成・一覧・開閉
+
+#### POST /api/events/{id}/polls （HOST, 所有者のみ）
+
+設問＋選択肢をまとめて作成。作成直後は `DRAFT`。
+
+- Request（`type` = `SINGLE` / `MULTI`。`questionText` trim 後 1〜200。選択肢は 2〜10、各ラベル trim 後 1〜100、同一ポール内で重複禁止）:
 
 ```json
 {
@@ -426,7 +438,7 @@
 }
 ```
 
-- Response 201（`status=DRAFT`）:
+- Response 201:
 
 ```json
 {
@@ -451,9 +463,14 @@
 { "status": 400, "error": "Bad Request", "message": "選択肢は2〜10個にしてください" }
 ```
 
-### GET /api/events/{id}/polls （HOST=全件 / 参加者=OPENのみ）
+- Response 404: イベントが無い／他人所有／`DELETED`
 
-- Response 200: `PollDTO[]`（参加者向けは `status=OPEN` のみ返す）
+#### GET /api/events/{id}/polls （HOST=全件 / 参加者=OPENのみ）
+
+- HOST（所有者）: `DRAFT` / `OPEN` / `CLOSED` を返す
+- 参加者・未ログイン: `OPEN` のみ
+- Response 200: `PollDTO[]`
+- Response 404: イベントが無い／`DELETED`（HOST の他人所有も 404）
 
 ```json
 [
@@ -474,60 +491,63 @@
 ]
 ```
 
-### PATCH /api/polls/{pollId}/status （HOST, 所有者のみ）
+未確立セッションの `myOptionIds` は `[]`。
 
-- Request:
+#### PATCH /api/polls/{pollId}/status （HOST, 所有者のみ）
+
+遷移は `DRAFT → OPEN → CLOSED`。`CLOSED` は終端（ルームと違い再開しない）。`DRAFT` へは戻せない。
+
+- Request（受け付ける値は `OPEN` / `CLOSED`）:
 
 ```json
 { "status": "OPEN" }
 ```
 
-- Response 200: `PollDTO`（`status` 更新済み）
-- Response 409（不正な状態遷移）:
+- Response 200: PollDTO（`status` 更新済み）
+- Response 400: `DRAFT` など受け付けない値。メッセージは `"status は OPEN / CLOSED のいずれかです。"`
+- Response 409（不正な状態遷移。例: `CLOSED` → `OPEN`）:
 
 ```json
-{ "status": 409, "error": "Conflict", "message": "CLOSED から OPEN へは変更できません" }
+{ "status": 409, "error": "Conflict", "message": "この状態遷移はできません。" }
 ```
 
-- 副作用: `OPEN`→STOMP `POLL_OPENED` / `CLOSED`→`POLL_CLOSED` を配信
+- Response 404: ポールが無い／イベント他人所有／イベント `DELETED`
+- 副作用（C）: `OPEN`→`POLL_OPENED` / `CLOSED`→`POLL_CLOSED`。REST 実装は配信口を残し、中身は F-07 と同様に後続
 
-### POST /api/polls/{pollId}/responses （参加者 / HOST）
+### F-11 回答・集計
 
-選択肢へ回答（`voter_key` はセッションから算出）。
+#### POST /api/polls/{pollId}/responses （参加者 / HOST）
 
-- Request（`SINGLE` は1件、`MULTI` は複数可）:
+選択肢へ回答（`voter_key` はセッションから算出）。ポールとルームが両方 `OPEN` のときだけ可。
+
+- Request（`SINGLE` はちょうど 1 件、`MULTI` は 1〜選択肢数。全て当該ポールの選択肢）:
 
 ```json
 { "optionIds": [31] }
 ```
 
-- Response 200: `PollResultDTO`（最新集計）
+- Response 200: PollDTO（最新集計）
+- Response 401: 匿名セッション未確立
+- Response 409（既に回答済み）:
 
 ```json
-{
-  "id": 5,
-  "status": "OPEN",
-  "options": [
-    { "id": 31, "label": "AI", "count": 13 },
-    { "id": 32, "label": "Web", "count": 7 },
-    { "id": 33, "label": "インフラ", "count": 3 }
-  ],
-  "totalResponses": 23,
-  "myOptionIds": [31]
-}
+{ "status": 409, "error": "Conflict", "message": "既に回答済みです。" }
 ```
 
-- Response 409（既に回答済み / `OPEN` でない）:
+- Response 409（ポールまたはルームが `OPEN` でない）:
 
 ```json
-{ "status": 409, "error": "Conflict", "message": "既に回答済みです" }
+{ "status": 409, "error": "Conflict", "message": "このポールは現在回答を受け付けていません" }
 ```
 
-- 副作用: STOMP `POLL_UPDATED`（得票分布）を配信
+- **置換しない。** 一度入れたら 409（いいねと同じ）。`SINGLE` の「既存があれば置換」は採らない
+- 副作用（C）: STOMP `POLL_UPDATED`
 
-### GET /api/polls/{pollId}/results （公開）
+#### GET /api/polls/{pollId}/results （公開）
 
-- Response 200: `PollResultDTO`（上記 `POST responses` と同形）
+- Response 200: PollDTO（上記と同形）
+- Response 404: ポールが無い／イベント `DELETED`
+- HOST 以外は `DRAFT` の結果を 404（一覧と同じ見え方。下書きの得票は見せない）
 
 ## DTOスキーマ
 
@@ -549,7 +569,9 @@
 - `displayName`: **常に文字列。** 未入力は `"匿名"`（DB にも `"匿名"` を格納。`null` は返さない）
 - `votedByMe`: リクエスト元セッションの `voter_key` が投票済みか
 
-### PollDTO / PollResultDTO（MVP-B）
+### PollDTO（MVP-B）
+
+作成・一覧・開閉・回答・結果で同じ形。
 
 ```json
 {
@@ -568,8 +590,9 @@
 }
 ```
 
-- `options[].count` は得票数（`poll_responses` の集計）。`PollResultDTO` は `id` / `status` / `options` / `totalResponses` / `myOptionIds` を返す
-- `myOptionIds`: リクエスト元セッションが選んだ選択肢。STOMP配信ペイロードには含めない（各クライアントがローカル保持）
+- `options[].count` は `poll_responses` の集計（F-11 まで常に 0 でよい）
+- `myOptionIds`: 今のセッションが選んだ選択肢。STOMP には載せない
+- 旧称 `PollResultDTO` は使わない（同じ JSON）
 
 ### エラーDTO
 

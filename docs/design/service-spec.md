@@ -88,18 +88,18 @@ stateDiagram-v2
 | イベント | `DELETE /api/events/{id}` | イベント論理削除（`status=DELETED`。配下は残す） | HOST |
 | イベント | `GET /api/join/{joinCode}` | 参加用イベント情報取得（参加コードの有効性検証にも使用） | 公開 |
 | イベント | `PATCH /api/events/{id}/status` | ルーム開始/締切/再開（DRAFT→OPEN⇔CLOSED） | HOST |
-| 質問 | `GET /api/events/{id}/questions` | 質問一覧（人気順/新着順/未回答フィルタ） | 公開 |
+| 質問 | `GET /api/events/{id}/questions` | 質問一覧（`sort`＝F-06、`status`＝F-12） | 公開 |
 | 質問 | `POST /api/events/{id}/questions` | 質問投稿 | 参加者/HOST |
-| 質問 | `PATCH /api/questions/{qid}/status` | ステータス変更 | HOST |
+| 質問 | `PATCH /api/questions/{qid}/status` | ステータス変更（F-08。F-13 のアーカイブもここ） | HOST |
 | いいね | `POST /api/questions/{qid}/vote` | いいね（1人1票） | 参加者/HOST |
 | いいね | `DELETE /api/questions/{qid}/vote` | いいね取り消し | 参加者/HOST |
-| ポール | `POST /api/events/{id}/polls` | 設問＋選択肢を作成（MVP-B・F-10） | HOST |
-| ポール | `GET /api/events/{id}/polls` | ポール一覧（参加者はOPENのみ） | 公開/HOST |
-| ポール | `PATCH /api/polls/{pollId}/status` | 開始/締切（DRAFT/OPEN/CLOSED） | HOST |
-| ポール | `POST /api/polls/{pollId}/responses` | 選択肢へ回答 | 参加者/HOST |
-| ポール | `GET /api/polls/{pollId}/results` | 得票集計 | 公開 |
+| ポール | `POST /api/events/{id}/polls` | 設問＋選択肢を作成（F-10） | HOST |
+| ポール | `GET /api/events/{id}/polls` | ポール一覧（参加者は OPEN のみ）（F-10） | 公開/HOST |
+| ポール | `PATCH /api/polls/{pollId}/status` | 開始/締切（DRAFT→OPEN→CLOSED。終端）（F-10） | HOST |
+| ポール | `POST /api/polls/{pollId}/responses` | 選択肢へ回答（F-11） | 参加者/HOST |
+| ポール | `GET /api/polls/{pollId}/results` | 得票集計（F-11） | 公開 |
 
-- 質問一覧の並び替え/フィルタは QueryDSL の `BooleanBuilder` で動的に構築（人気順=`upvote_count DESC`、新着順=`created_at DESC`、未回答=`status = OPEN`）
+- 質問一覧: F-06 は `sort`。F-12 で `status` を `BooleanBuilder` に足す（未指定は `ARCHIVED` 以外）
 
 ### WebSocket / STOMP（担当C）
 
@@ -116,8 +116,8 @@ Q&A（参加者が質問→いいね）に加え、主催者が設問を作り�
 
 - **主役の違い**: 質問は参加者主導、ポールは主催者主導。ポールは正解なしで得票分布をライブ表示する（Mentimeter風）
 - **フロー**: 主催者が設問＋選択肢を作成（`DRAFT`）→ 開始（`OPEN`）で参加者画面に回答UIがライブ表示 → 参加者が選択して投票 → 得票分布がライブ更新 → 主催者が締切（`CLOSED`）
-- **1票の担保**: 単一選択（`SINGLE`）は1ポール1票、複数選択（`MULTI`）は選択肢ごと重複不可。回答者は参加者と同じ匿名セッション（`voter_key`）で識別
-- **画面**: 主催者=運営画面にポール作成/開始/締切/結果分布。参加者=Q&A画面にOPENなポールの回答UIと結果分布
+- **1票の担保**: 単一選択（`SINGLE`）は1ポール1票（既存があれば 409。置換しない）。複数選択（`MULTI`）は選択肢ごと重複不可。回答者は参加者と同じ匿名セッション（`voter_key`）
+- **画面**: 主催者=運営画面にポール作成/開始/締切/結果分布。参加者=Q&A画面に OPEN なポールの回答UIと結果分布。詳細は [screen-transition.md](screen-transition.md)
 - **データ保持**: 票・ポール明細の個別 DELETE は持たない。イベント削除は `DELETED`（論理。行は残す）。将来は終了時に集計確定＋明細のみバッチ削除
 
 ## ドメイン補足
