@@ -88,7 +88,6 @@ public class EventServiceTest {
         assertThat(response.id()).isEqualTo(20L);
         assertThat(response.title()).isEqualTo("curlテストイベント");
         assertThat(response.joinCode()).hasSize(8);
-        assertThat(response.joinUrl()).isEqualTo("/join/" + response.joinCode());
         assertThat(response.status()).isEqualTo(EventStatus.DRAFT);
         verify(eventRepository).save(any(Event.class));
     }
@@ -132,7 +131,7 @@ public class EventServiceTest {
 
         assertThat(response.id()).isEqualTo(10L);
         assertThat(response.questionCount()).isEqualTo(12);
-        assertThat(response.joinUrl()).isEqualTo("/join/Ab12Cd34");
+        assertThat(response.joinCode()).isEqualTo("Ab12Cd34");
         assertThat(response.status()).isEqualTo(EventStatus.DRAFT);
     }
 
