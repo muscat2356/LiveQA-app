@@ -3,7 +3,6 @@
 import { Button } from "@/components/ui/button";
 import { updateEvent } from "@/lib/api/eventApi";
 import { useRouter } from "next/navigation";
-import { eventNames } from "node:process";
 import { useState } from "react";
 
 export default function UpdateEventNameForm({
@@ -47,30 +46,29 @@ export default function UpdateEventNameForm({
         }finally{
             setPending(false);
         }
-
-        return(
-            <form onSubmit={handleSubmit}>
-                <div>
-                    <label htmlFor="eventName">イベント名更新</label>
-                    <input 
-                        id="eventName"
-                        type="text" 
-                        value={name}
-                        placeholder="更新するイベント名を入力してください。"
-                        onChange={(e) => setName(e.target.value)}
-                        disabled={pending}
-                    />
-                </div>
-
-                {error && (
-                    <p>{error}</p>
-                )}
-
-                <Button type="submit" disabled={pending}>
-                    {pending ? "更新中" : "更新"}
-                </Button>
-            </form>
-        );
     }
 
+    return(
+        <form onSubmit={handleSubmit}>
+            <div>
+                <label htmlFor="eventName">イベント名更新</label>
+                <input 
+                    id="eventName"
+                    type="text" 
+                    value={name}
+                    placeholder="更新するイベント名を入力してください。"
+                    onChange={(e) => setName(e.target.value)}
+                    disabled={pending}
+                />
+            </div>
+
+            {error && (
+                <p>{error}</p>
+            )}
+
+            <Button type="submit" disabled={pending}>
+                {pending ? "更新中" : "更新"}
+            </Button>
+        </form>
+    )
 }
