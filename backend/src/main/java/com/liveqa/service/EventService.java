@@ -74,7 +74,6 @@ public class EventService {
      * @param code 参加コード
      * @return 該当イベント情報Responseクラス
      */
-    @Transactional(readOnly = true)
     public EventJoinResponse findByJoinCode(String code) {
         final JoinCode joinCode;
         try {

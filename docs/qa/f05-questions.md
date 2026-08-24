@@ -503,6 +503,7 @@ Controller が Session / principal を開けて `VoterKeySource` を組み立て
 |------|-----|----------|
 | `QuestionBody` record | 項目62 文字列回避、49 生成時検査 | **JoinCode と同じ型**。body はすでに `@Valid`。今足すと検査が二重＋ VO の IAE を HTTP に変換する口が要る |
 | `QuestionResponse.from(Question)` | 項目1 静的ファクトリ | **採らない。** 規約は「DTO 組み立ては Service」。`dto` が `domain.Question` に依存する |
+| `question.toResponse()`（Entity 側） | domain に寄せる | **採らない。** Entity は API 直出ししない。[java.md](java.md) |
 | Service はオーケストレーション | 公開面最小化 | 今の `create` で足りる。`toQuestionResponse` は EventService と同じ置き場 |
 
 項目1 の静的ファクトリは、すでに **Entity / 値オブジェクト** 側にある（`Question.post` / `User.hostOf` / `JoinCode.generate`）。Response の `from(Entity)` は別レイヤをまたぐ。

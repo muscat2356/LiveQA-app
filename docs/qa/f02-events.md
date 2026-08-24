@@ -210,6 +210,22 @@ DELETE /api/events/{id}
 
 到達点: 詳細の主催者URLは `/dashboard/{id}/qa`（`frontend/app/(organizer)/dashboard/[id]/page.tsx`）。`/join/1/qa` を直打ちすると、いまも `GET /api/join/1` → `JoinCode` が 8 文字でないので **400** → SSR throw。[#92](https://github.com/muscat2356/live-qa-app/issues/92) は修正済みでクローズ。
 
+## Q. `findByJoinCode` の `@Transactional(readOnly = true)` は要るか？（#94）
+
+**必須ではない。** レビュー指摘どおり、ここは参照1本（`findByJoinCodeAndStatusNot`）で、DTO は `id` / `title` / `status` だけ。`host`（LAZY）は触らない。
+
+| | 要る？ |
+|--|--------|
+| 書き込み（`save` / `updateTitle` / `delete` / `updateStatus`） | **要る**（同一 TX で変更をまとめる。`@Modifying` も TX 内） |
+| `findByJoinCode` | 無くても動く。Spring Data の `find` が短い TX を自分で持つ |
+| `findAll` / `findById` | 同じ理由で必須ではない。残しているのは参照系の揃え |
+
+`QuestionService.findByEventId` はもともと TX なし。Join だけ外すなら指摘どおりでよい。参照系を全部外すかは好み（`readOnly` は flush 抑制の印）。
+
+```text
+【EJ】公開面最小化 … 要らない注釈は足さない
+```
+
 ```text
 【EJ】enum … 開閉は canTransitionTo。DELETED は DELETE 専用
 【EJ】静的ファクトリ … Event.create / JoinCode.generate
