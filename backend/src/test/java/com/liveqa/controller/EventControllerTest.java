@@ -2,9 +2,11 @@ package com.liveqa.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.oidcLogin;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -190,6 +192,119 @@ class EventControllerTest {
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"status\":\"OPEN\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.error").value("Conflict"));
+    }
+
+    @Test
+    void updateTitle_HOSTなら200() throws Exception {
+        final Instant t = Instant.parse("2026-08-07T05:00:00Z");
+        when(eventService.updateTitle(eq(10L), eq("修正後"), any(OidcUser.class)))
+                .thenReturn(new EventDetailResponse(
+                        10L,
+                        "修正後",
+                        "Ab12Cd34",
+                        "/join/Ab12Cd34",
+                        EventStatus.DRAFT,
+                        12,
+                        t,
+                        t));
+
+        mockMvc.perform(patch("/api/events/10")
+                        .with(oidcLogin()
+                                .authorities(new SimpleGrantedAuthority("ROLE_HOST"))
+                                .idToken(id -> id.subject("sub-1")))
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"修正後\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(10))
+                .andExpect(jsonPath("$.title").value("修正後"))
+                .andExpect(jsonPath("$.joinCode").value("Ab12Cd34"))
+                .andExpect(jsonPath("$.status").value("DRAFT"));
+    }
+
+    @Test
+    void updateTitle_HOST以外なら403() throws Exception {
+        mockMvc.perform(patch("/api/events/10")
+                        .with(oidcLogin()
+                                .authorities(new SimpleGrantedAuthority("ROLE_USER"))
+                                .idToken(id -> id.subject("sub-1")))
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"修正後\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void updateTitle_CSRFなしなら403() throws Exception {
+        mockMvc.perform(patch("/api/events/10")
+                        .with(oidcLogin()
+                                .authorities(new SimpleGrantedAuthority("ROLE_HOST"))
+                                .idToken(id -> id.subject("sub-1")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"修正後\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void updateTitle_楽観ロック衝突なら409() throws Exception {
+        when(eventService.updateTitle(eq(10L), eq("修正後"), any(OidcUser.class)))
+                .thenThrow(new ObjectOptimisticLockingFailureException(Event.class, 10L));
+
+        mockMvc.perform(patch("/api/events/10")
+                        .with(oidcLogin()
+                                .authorities(new SimpleGrantedAuthority("ROLE_HOST"))
+                                .idToken(id -> id.subject("sub-1")))
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"修正後\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.error").value("Conflict"))
+                .andExpect(jsonPath("$.message").value("他の操作と衝突しました。画面を更新して再度お試しください。"));
+    }
+
+    @Test
+    void delete_HOSTなら204() throws Exception {
+        mockMvc.perform(delete("/api/events/10")
+                        .with(oidcLogin()
+                                .authorities(new SimpleGrantedAuthority("ROLE_HOST"))
+                                .idToken(id -> id.subject("sub-1")))
+                        .with(csrf()))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void delete_HOST以外なら403() throws Exception {
+        mockMvc.perform(delete("/api/events/10")
+                        .with(oidcLogin()
+                                .authorities(new SimpleGrantedAuthority("ROLE_USER"))
+                                .idToken(id -> id.subject("sub-1")))
+                        .with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void delete_CSRFなしなら403() throws Exception {
+        mockMvc.perform(delete("/api/events/10")
+                        .with(oidcLogin()
+                                .authorities(new SimpleGrantedAuthority("ROLE_HOST"))
+                                .idToken(id -> id.subject("sub-1"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void delete_楽観ロック衝突なら409() throws Exception {
+        doThrow(new ObjectOptimisticLockingFailureException(Event.class, 10L))
+                .when(eventService).delete(eq(10L), any(OidcUser.class));
+
+        mockMvc.perform(delete("/api/events/10")
+                        .with(oidcLogin()
+                                .authorities(new SimpleGrantedAuthority("ROLE_HOST"))
+                                .idToken(id -> id.subject("sub-1")))
+                        .with(csrf()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409))
                 .andExpect(jsonPath("$.error").value("Conflict"));

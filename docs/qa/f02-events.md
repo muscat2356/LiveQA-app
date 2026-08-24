@@ -11,8 +11,8 @@ scope: `POST/GET /api/events`、`GET /api/events/{id}`、`PATCH /api/events/{id}
 | `GET /api/events` | 自分の一覧。`questionCount` **なし** |
 | `GET /api/events/{id}` | 所有者のみ。他人・無しは **404**。`questionCount` あり |
 | `GET /api/join/{code}` | 公開。紹介 DTO |
-| `PATCH /api/events/{id}` | **契約済み・実装未**（名称のみ。joinCode 不変。どの status でも可。`DELETED` は 404） |
-| `DELETE /api/events/{id}` | **契約済み・実装未**（論理削除 `status=DELETED`。204。行は残す。`deleted_at` なし） |
+| `PATCH /api/events/{id}` | **実装済**（#94）。名称のみ。joinCode 不変。どの status でも可。`DELETED` は 404 |
+| `DELETE /api/events/{id}` | **実装済**（#94）。論理削除 `status=DELETED`。204。行は残す。`deleted_at` なし |
 
 ## データの流れ（作成）
 
@@ -25,8 +25,16 @@ POST /api/events + SESSION + X-XSRF-TOKEN + { "title": "..." }
   → EventCreateResponse 201
 ```
 
-一覧: `findByHost_IdOrderByCreatedAtDesc` → `EventSummaryResponse[]`。  
-Join: 形式不正 400（「参加コードが不正です。」）、無し 404（「該当するルームが見つかりません。」）。
+一覧: `findByHost_IdAndStatusNotOrderByCreatedAtDesc`（`DELETED` 除く）→ `EventSummaryResponse[]`。  
+Join: 形式不正 400（「参加コードが不正です。」）、無し・`DELETED` は 404（「該当するルームが見つかりません。」）。
+
+## テスト
+
+| 層 | 置き場 | 見るもの |
+|----|--------|----------|
+| Service | `EventServiceTest` | 名称 trim・論理削除・DELETED は 404。`PATCH /status` に DELETED は 400 |
+| Controller | `EventControllerTest` | 名称 PATCH 200 / CSRF なし 403 / 楽観ロック 409。DELETE 204 / CSRF なし 403 |
+| enum | `EventStatusTest` | `canTransitionTo` は DELETED に行かない。DELETED からは全部 false |
 
 ## questionCount
 
@@ -181,7 +189,7 @@ DELETE /api/events/{id}
 
 ## Q. 未実装の API は設計 docs から外すか？
 
-**外さない。** 契約の正は openapi / ER / constraints。到達点だけ「今コードにあるか」を書く。名称更新・削除は契約どおり実装する（#80 / #81）。
+**外さない。** 契約の正は openapi / ER / constraints。到達点だけ「今コードにあるか」を書く。名称更新・削除は #94（Closes #80）。
 
 ## Q. 一覧の日時は API で切るか？（#59）
 

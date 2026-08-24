@@ -138,6 +138,8 @@ SESSION (Redis: guestId または OIDC)
 
 GET は公開。キーが無くても 200。`votedByMe` は全部 false。いいねは未確立なら 401。ルーム非 OPEN は投稿・いいねとも 409（一覧は DRAFT/CLOSED でも返す）。
 
+**暫定:** いいねは質問行があれば `event.status != OPEN` で 409。イベントが `DELETED` でも質問行は残るので、いいねは **404 ではなく 409**。質問 GET/POST はイベントを `status <> DELETED` で探すので 404。揃えは次単位。
+
 ### 1人1票
 
 UNIQUE `(question_id, voter_key)`。同じキーで二度 INSERT → **設計上は** 409「既に投票済みです」。アプリの `exists` は先回り。本丸は制約。

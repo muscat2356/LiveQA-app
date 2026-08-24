@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -306,5 +307,101 @@ public class EventServiceTest {
                     assertThat(be.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
                     assertThat(be.getMessage()).contains("OPEN / CLOSED");
                 });
+    }
+
+    @Test
+    void updateStatus_要求がDELETEDなら400() {
+        final OidcUser oidc = mock(OidcUser.class);
+
+        assertThatThrownBy(() -> eventService.updateStatus(10L, EventStatus.DELETED, oidc))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> {
+                    final BusinessException be = (BusinessException) ex;
+                    assertThat(be.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+                    assertThat(be.getMessage()).contains("OPEN / CLOSED");
+                });
+    }
+
+    @Test
+    void updateTitle_trimして詳細DTOを返す() {
+        final User user = User.hostOf("sub-1");
+        ReflectionTestUtils.setField(user, "id", 1L);
+        final OidcUser oidc = mock(OidcUser.class);
+        when(oidc.getSubject()).thenReturn("sub-1");
+        when(userService.requireByOidcSubject("sub-1")).thenReturn(user);
+
+        final Event event = Event.create(user, "第一回", "Ab12Cd34");
+        ReflectionTestUtils.setField(event, "id", 10L);
+        ReflectionTestUtils.setField(event, "questionCount", 3);
+        when(eventRepository.findByIdAndHost_IdAndStatusNot(10L, 1L, EventStatus.DELETED))
+                .thenReturn(Optional.of(event));
+        when(eventRepository.save(any(Event.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        final EventDetailResponse response = eventService.updateTitle(10L, "  修正後  ", oidc);
+
+        assertThat(response.id()).isEqualTo(10L);
+        assertThat(response.title()).isEqualTo("修正後");
+        assertThat(response.joinCode()).isEqualTo("Ab12Cd34");
+        assertThat(response.status()).isEqualTo(EventStatus.DRAFT);
+        assertThat(event.getTitle()).isEqualTo("修正後");
+        verify(eventRepository).save(event);
+    }
+
+    @Test
+    void updateTitle_DELETEDなら404() {
+        final User user = User.hostOf("sub-1");
+        ReflectionTestUtils.setField(user, "id", 1L);
+        final OidcUser oidc = mock(OidcUser.class);
+        when(oidc.getSubject()).thenReturn("sub-1");
+        when(userService.requireByOidcSubject("sub-1")).thenReturn(user);
+        when(eventRepository.findByIdAndHost_IdAndStatusNot(10L, 1L, EventStatus.DELETED))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> eventService.updateTitle(10L, "修正後", oidc))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> {
+                    final BusinessException be = (BusinessException) ex;
+                    assertThat(be.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
+                });
+        verify(eventRepository, never()).save(any(Event.class));
+    }
+
+    @Test
+    void delete_論理削除してsave() {
+        final User user = User.hostOf("sub-1");
+        ReflectionTestUtils.setField(user, "id", 1L);
+        final OidcUser oidc = mock(OidcUser.class);
+        when(oidc.getSubject()).thenReturn("sub-1");
+        when(userService.requireByOidcSubject("sub-1")).thenReturn(user);
+
+        final Event event = Event.create(user, "第一回", "Ab12Cd34");
+        ReflectionTestUtils.setField(event, "id", 10L);
+        when(eventRepository.findByIdAndHost_IdAndStatusNot(10L, 1L, EventStatus.DELETED))
+                .thenReturn(Optional.of(event));
+        when(eventRepository.save(any(Event.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        eventService.delete(10L, oidc);
+
+        assertThat(event.getStatus()).isEqualTo(EventStatus.DELETED);
+        verify(eventRepository).save(event);
+    }
+
+    @Test
+    void delete_既にDELETEDなら404() {
+        final User user = User.hostOf("sub-1");
+        ReflectionTestUtils.setField(user, "id", 1L);
+        final OidcUser oidc = mock(OidcUser.class);
+        when(oidc.getSubject()).thenReturn("sub-1");
+        when(userService.requireByOidcSubject("sub-1")).thenReturn(user);
+        when(eventRepository.findByIdAndHost_IdAndStatusNot(10L, 1L, EventStatus.DELETED))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> eventService.delete(10L, oidc))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> {
+                    final BusinessException be = (BusinessException) ex;
+                    assertThat(be.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
+                });
+        verify(eventRepository, never()).save(any(Event.class));
     }
 }

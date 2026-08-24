@@ -101,6 +101,14 @@ public class EventController {
         return ResponseEntity.ok(eventService.updateStatus(id, request.status(), oidc));
     }
 
+    /**
+     * イベント名を更新するPATCHメソッド
+     * 桁数の検証は Request。業務判定は service
+     * @param oidc SecurityContext内のOidcUser情報
+     * @param id イベントid
+     * @param request 新しい名称
+     * @return 更新後のイベント詳細
+     */
     @PatchMapping("/events/{id}")
     @PreAuthorize("hasRole('HOST')")
     public ResponseEntity<EventDetailResponse> updateTitle(
