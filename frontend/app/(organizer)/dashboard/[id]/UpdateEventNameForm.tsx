@@ -19,21 +19,24 @@ export default function UpdateEventNameForm({
 
     const router = useRouter();
 
-    const handleSubmit = async () => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
 
         if(!name.trim()){
             setError("イベント名を入力してください")
+            return;
         }
 
         if(name === cuurentName){
             setError("変更するイベント名を入力してください")
+            return;
         }
 
         try{
             setPending(true);
             setError("");
 
-            await updateEvent(name, eventId);
+            await updateEvent(name.trim(), eventId);
 
             router.push(`/dashboard`);
 
