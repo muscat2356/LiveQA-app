@@ -1,3 +1,4 @@
+import { readCookie } from "@/components/cookie";
 import { EventDetailResponse, JoinEvent } from "@/types/event/event";
 import { notFound } from "next/navigation";
 
@@ -21,11 +22,15 @@ export async function fetchJoinEvent(joinCode: string): Promise<JoinEvent | null
 
 export async function updateEvent( title: string, eventId: number){
 
+    const xsrfToken = readCookie("XSRF-TOKEN");
+
     const res = await fetch(`/api/events/${eventId}`, {
         method: "PATCH",
         headers: {
             "Content-Type": "application/json",
+            ...(xsrfToken ? { "X-XSRF-TOKEN": xsrfToken } : {}),
         },
+        credentials: "same-origin",
         body: JSON.stringify({
             title,
         }),
@@ -42,3 +47,5 @@ export async function updateEvent( title: string, eventId: number){
     return res.json();
 
 }
+
+export async function deleteEvent()
