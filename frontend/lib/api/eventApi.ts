@@ -48,4 +48,25 @@ export async function updateEvent( title: string, eventId: number){
 
 }
 
-export async function deleteEvent()
+export async function deleteEvent(eventId: number){
+    
+    const xsrfToken = readCookie("XSRF-TOKEN");
+
+    const res = await fetch(`/api/events/${eventId}`,{
+        method: "DELETE",
+        headers: {
+            ...(xsrfToken 
+                ? {"X-XSRF-TOKEN" : xsrfToken} 
+                : {}),
+        },
+        credentials: "same-origin",
+    });
+
+    if(res.status === 404){
+        throw new Error("イベントが存在していません")
+    }
+
+    if(!res.ok){
+        throw new Error("イベント削除に失敗しました")
+    }
+}
