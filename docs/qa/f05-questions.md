@@ -53,6 +53,26 @@ HttpSession.getAttribute → Object
 
 `/api/events/**` が `authenticated()` なので、**その前**に `/api/events/*/questions` を `permitAll`。vote も同様に `/api/questions/*/vote` をその前へ。permitAll でも POST/DELETE は CSRF 必須。
 
+## Q. `incrementQuestionCount()` + `save(event)` だと版が進むのはなぜ？
+
+**`save` は Event 行の普通の UPDATE だから。** `@Version` は「この Entity を flush するたび」+1。件数加算もメモリ上の Event を dirty にして `save` するので、名称変更と同じ口になる。
+
+```text
+質問 POST
+  → Event を SELECT（version=1）
+  → questions へ INSERT
+  → event.incrementQuestionCount()  … メモリの questionCount だけ +1
+  → eventRepository.save(event)
+      UPDATE events SET question_count=?, version=2 WHERE id=? AND version=1
+```
+
+同時に2人が投稿すると、どちらも version=1 で読む。片方だけ COMMIT。もう片方は 0 件 → 409。ライブ中の投稿が落ちる。版は名称×削除用なのに、件数まで巻き込んでいる。
+
+いいねの `upvote_count` と同じく、件数は **JPQL の原子的 UPDATE**（`question_count = question_count + 1`）。バルク UPDATE は `@Version` を自動では進めない。名称 PATCH の `save(entity)` だけが版を進める。
+
+【EJ】あえて外す … Entity.incrementQuestionCount + save は版と混ざる  
+【EJ】例外 … 版の衝突は名称×削除の 409。投稿同士は件数の原子的 UPDATE で競合しない  
+
 ## Q. 質問の投稿時刻は画面に出すか？（#91）
 
 **出す。** API の `createdAt` は既にある（openapi: ISO 8601 / UTC）。切らない。表示はフロント（Asia/Tokyo、日付と時まで。#59 / イベント一覧と同じヘルパ）。参加者 `QaScreen` と主催者 `HostQaScreen` は現状未使用。Issue: [#91](https://github.com/muscat2356/live-qa-app/issues/91)。

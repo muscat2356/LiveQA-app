@@ -20,17 +20,20 @@ import org.springframework.boot.autoconfigure.security.oauth2.client.servlet.OAu
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.liveqa.domain.Event;
 import com.liveqa.dto.response.EventCreateResponse;
 import com.liveqa.dto.response.EventDetailResponse;
 import com.liveqa.dto.response.EventStatusResponse;
 import com.liveqa.dto.response.EventSummaryResponse;
 import com.liveqa.enums.EventStatus;
+import com.liveqa.exception.GlobalExceptionHandler;
 import com.liveqa.service.EventService;
 
 /**
@@ -41,7 +44,7 @@ import com.liveqa.service.EventService;
         controllers = EventController.class,
         excludeAutoConfiguration = OAuth2ClientAutoConfiguration.class
 )
-@Import(EventControllerTest.MethodSecurityTestConfig.class)
+@Import({ EventControllerTest.MethodSecurityTestConfig.class, GlobalExceptionHandler.class })
 class EventControllerTest {
 
     @Autowired
@@ -173,6 +176,23 @@ class EventControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"status\":\"OPEN\"}"))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void updateStatus_楽観ロック衝突なら409() throws Exception {
+        when(eventService.updateStatus(eq(10L), eq(EventStatus.OPEN), any(OidcUser.class)))
+                .thenThrow(new ObjectOptimisticLockingFailureException(Event.class, 10L));
+
+        mockMvc.perform(patch("/api/events/10/status")
+                        .with(oidcLogin()
+                                .authorities(new SimpleGrantedAuthority("ROLE_HOST"))
+                                .idToken(id -> id.subject("sub-1")))
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"OPEN\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.error").value("Conflict"));
     }
 
     @EnableMethodSecurity
