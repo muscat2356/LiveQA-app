@@ -24,6 +24,34 @@ Request/Response は `record`（不変）。Entity は class（可変＋静的�
 
 DTO 化は Service（推奨）。Service が `ResponseEntity` まで返すのはやりすぎ。
 
+## Q. 変換メソッドを Service から Entity（domain）へ移すか？
+
+**移さない。** 置き場の正は Service のまま。
+
+| 案 | EJ の気持ち | このリポ |
+|----|-------------|----------|
+| `event.toDetailResponse()` | Entity に寄せる | **採らない。** Entity は永続化。API 直出し禁止 |
+| `EventDetailResponse.from(event)` | 項目1 静的ファクトリ | **採らない。** `dto` が `domain` に依存する。[f05](f05-questions.md) と同じ |
+| Service の `toXxxResponse` | オーケストレーション | **正。** ユースケースが「何を返すか」を決める |
+
+変換は行の事実だけでは足りない。
+
+| DTO | Entity に無いもの |
+|-----|-------------------|
+| `QuestionResponse.votedByMe` | 今の SESSION の票 |
+| `MeResponse.displayName` / `email` | `OidcUser` クレーム（DB `users` には無い） |
+
+項目1 の静的ファクトリは **作られる型のクラス** に置く。
+
+| new するもの | 置き場 | 例 |
+|--------------|--------|-----|
+| Entity / 値オブジェクト | **domain** | `Event.create` / `User.hostOf` / `JoinCode.generate` |
+| Response record | **dto**（採らない）または Service の `toXxx` | `new EventDetailResponse(...)` |
+
+`Event.create` が domain なのは Event を作るから。`new EventDetailResponse` を Entity に書くと、内側（domain）が外側（dto）に依存する。静的ファクトリだから全部 domain、ではない。
+
+沿うなら公開面最小化だけ: `QuestionService.toQuestionResponse` はすでに `private`。`EventService` の `toXxxResponse` も同じでよい（置き場は変えない）。
+
 ## `var` と不変性は別軸
 
 | 軸 | 決めること |

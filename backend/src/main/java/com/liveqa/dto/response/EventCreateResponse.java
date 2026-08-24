@@ -14,7 +14,6 @@ public record EventCreateResponse(
         Long id,
         String title,
         String joinCode,
-        String joinUrl,
         EventStatus status,
         Instant createdAt) {
 

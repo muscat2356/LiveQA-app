@@ -59,7 +59,7 @@
 | 401 | Unauthorized | 未ログイン（HOST操作） / 匿名セッション未確立での投票 |
 | 403 | Forbidden | ROLE 不足・CSRF 失敗など（認可フィルタ） |
 | 404 | Not Found | 無効な参加コード、存在しないリソース、**他人所有のイベント等（存在を漏らさない）** |
-| 409 | Conflict | ルーム/ポールが受付状態でない、二重投票、不正な状態遷移 |
+| 409 | Conflict | ルーム/ポールが受付状態でない、二重投票、不正な状態遷移、楽観ロック衝突 |
 
 ## 認証（SSO / OIDC・担当B）
 
@@ -139,13 +139,13 @@
   "id": 10,
   "title": "第3回LT大会 Q&A",
   "joinCode": "x7K2mQ9a",
-  "joinUrl": "/join/x7K2mQ9a",
   "status": "DRAFT",
   "createdAt": "2026-07-24T05:00:00Z"
 }
 ```
 
 - 作成直後は `DRAFT`（開始前・受付前）。質問受付を始めるには `PATCH /status` で `OPEN` にする
+- 参加 URL は応答に含めない。フロントが `joinCode` から `/join/{joinCode}` を組み立てる
 - Response 400（例）:
 
 ```json
@@ -185,7 +185,6 @@
   "id": 10,
   "title": "第3回LT大会 Q&A",
   "joinCode": "x7K2mQ9a",
-  "joinUrl": "/join/x7K2mQ9a",
   "status": "OPEN",
   "questionCount": 12,
   "createdAt": "2026-07-24T05:00:00Z",
@@ -213,6 +212,11 @@
 - Response 200: 詳細と同じ形（`EventDetailResponse`）
 - Response 400: 作成と同じ `fields.title`
 - Response 404: 詳細 GET と同じ（存在しない／他人所有／`DELETED` を区別しない）
+- Response 409（名称更新と論理削除などが同時。`events.version` の楽観ロック）:
+
+```json
+{ "status": 409, "error": "Conflict", "message": "他の操作と衝突しました。画面を更新して再度お試しください。" }
+```
 
 ### DELETE /api/events/{id} （HOST, 所有者のみ）
 
@@ -221,6 +225,7 @@
 - Request: ボディなし（要 `X-XSRF-TOKEN`）
 - Response 204: ボディなし
 - Response 404: 詳細 GET と同じ（既に `DELETED` も 404）
+- Response 409: 名称 PATCH と同じ楽観ロック衝突
 - 削除後の見え方: 一覧に出ない。`GET /api/events/{id}` / `GET /api/join/{joinCode}` / 質問 API は 404。`joinCode` は行が残るので UNIQUE のまま再利用されない
 - `PATCH /api/events/{id}/status` に `DELETED` は渡せない（400。開閉は `OPEN` / `CLOSED` のみ）
 - STOMP `EVENT_DELETED` は出さない（参加者は次回 REST で 404）
@@ -270,6 +275,7 @@
 { "status": 409, "error": "Conflict", "message": "この状態遷移はできません。" }
 ```
 
+- Response 409（楽観ロック衝突）: 名称 PATCH と同じメッセージ
 - Response 404（存在しない、または自分の所有でない。詳細 GET と同じ）:
 
 ```json

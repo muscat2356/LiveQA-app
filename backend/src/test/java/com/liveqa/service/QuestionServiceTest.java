@@ -60,13 +60,13 @@ class QuestionServiceTest {
     @Test
     void create_OPENなら保存して件数を足す() {
         final Event event = openEvent(10L);
-        when(eventRepository.findById(10L)).thenReturn(Optional.of(event));
+        when(eventRepository.findByIdAndStatusNot(10L, EventStatus.DELETED)).thenReturn(Optional.of(event));
         when(questionRepository.save(any(Question.class))).thenAnswer(inv -> {
             final Question q = inv.getArgument(0);
             ReflectionTestUtils.setField(q, "id", 42L);
             return q;
         });
-        when(eventRepository.save(any(Event.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(eventRepository.incrementQuestionCount(10L)).thenReturn(1);
 
         final QuestionResponse response = questionService.create(
                 10L,
@@ -80,22 +80,22 @@ class QuestionServiceTest {
         assertThat(response.upvoteCount()).isZero();
         assertThat(response.status()).isEqualTo(QuestionStatus.OPEN);
         assertThat(response.votedByMe()).isFalse();
-        assertThat(event.getQuestionCount()).isEqualTo(1);
         verify(voterKeyResolver).require(any());
         verify(questionRepository).save(any(Question.class));
-        verify(eventRepository).save(event);
+        verify(eventRepository).incrementQuestionCount(10L);
+        verify(eventRepository, never()).save(event);
     }
 
     @Test
     void create_nicknameなしなら匿名で保存() {
         final Event event = openEvent(10L);
-        when(eventRepository.findById(10L)).thenReturn(Optional.of(event));
+        when(eventRepository.findByIdAndStatusNot(10L, EventStatus.DELETED)).thenReturn(Optional.of(event));
         when(questionRepository.save(any(Question.class))).thenAnswer(inv -> {
             final Question q = inv.getArgument(0);
             ReflectionTestUtils.setField(q, "id", 43L);
             return q;
         });
-        when(eventRepository.save(any(Event.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(eventRepository.incrementQuestionCount(10L)).thenReturn(1);
 
         final QuestionResponse response = questionService.create(
                 10L,
@@ -112,7 +112,7 @@ class QuestionServiceTest {
         ReflectionTestUtils.setField(host, "id", 1L);
         final Event event = Event.create(host, "第一回", "Ab12Cd34");
         ReflectionTestUtils.setField(event, "id", 10L);
-        when(eventRepository.findById(10L)).thenReturn(Optional.of(event));
+        when(eventRepository.findByIdAndStatusNot(10L, EventStatus.DELETED)).thenReturn(Optional.of(event));
 
         assertThatThrownBy(() -> questionService.create(
                 10L,
@@ -128,12 +128,32 @@ class QuestionServiceTest {
     }
 
     @Test
+    void create_DELETEDなら404() {
+        // SQLがDELETEDをemptyにするので、非OPENの409にはしない
+        when(eventRepository.findByIdAndStatusNot(10L, EventStatus.DELETED))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> questionService.create(
+                10L,
+                new QuestionCreateRequest("まだ？", null),
+                new VoterKeySource.Guest("abc")))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> {
+                    final BusinessException be = (BusinessException) ex;
+                    assertThat(be.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
+                    assertThat(be.getMessage()).contains("見つかりません");
+                });
+        verify(questionRepository, never()).save(any());
+        verify(eventRepository, never()).incrementQuestionCount(any());
+    }
+
+    @Test
     void findByEventId_票があればvotedByMeがtrue() {
-        when(eventRepository.existsById(10L)).thenReturn(true);
+        final Event event = openEvent(10L);
+        when(eventRepository.findByIdAndStatusNot(10L, EventStatus.DELETED)).thenReturn(Optional.of(event));
         when(voterKeyResolver.tryResolve(any()))
                 .thenReturn(Optional.of(VoterKey.guest("abc")));
 
-        final Event event = openEvent(10L);
         final Question voted = Question.post(event, "資料は？", "花子");
         final Question notVoted = Question.post(event, "場所は？", "匿名");
         ReflectionTestUtils.setField(voted, "id", 42L);
@@ -157,10 +177,10 @@ class QuestionServiceTest {
 
     @Test
     void findByEventId_キーなしなら全部false() {
-        when(eventRepository.existsById(10L)).thenReturn(true);
+        final Event event = openEvent(10L);
+        when(eventRepository.findByIdAndStatusNot(10L, EventStatus.DELETED)).thenReturn(Optional.of(event));
         when(voterKeyResolver.tryResolve(any())).thenReturn(Optional.empty());
 
-        final Event event = openEvent(10L);
         final Question question = Question.post(event, "資料は？", "花子");
         ReflectionTestUtils.setField(question, "id", 42L);
         when(questionRepository.searchByEventId(10L, QuestionSort.POPULAR))
@@ -177,7 +197,7 @@ class QuestionServiceTest {
 
     @Test
     void findByEventId_イベント無しなら404() {
-        when(eventRepository.existsById(99L)).thenReturn(false);
+        when(eventRepository.findByIdAndStatusNot(99L, EventStatus.DELETED)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> questionService.findByEventId(
                 99L,
@@ -192,8 +212,27 @@ class QuestionServiceTest {
     }
 
     @Test
+    void findByEventId_DELETEDなら404() {
+        // 論理削除済みは一覧も404（存在しないのと同じ）
+        when(eventRepository.findByIdAndStatusNot(10L, EventStatus.DELETED))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> questionService.findByEventId(
+                10L,
+                null,
+                new VoterKeySource.Missing()))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> {
+                    final BusinessException be = (BusinessException) ex;
+                    assertThat(be.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
+                });
+        verify(questionRepository, never()).searchByEventId(any(), any());
+    }
+
+    @Test
     void findByEventId_newestならNEWESTで検索() {
-        when(eventRepository.existsById(10L)).thenReturn(true);
+        when(eventRepository.findByIdAndStatusNot(10L, EventStatus.DELETED))
+                .thenReturn(Optional.of(openEvent(10L)));
         when(voterKeyResolver.tryResolve(any())).thenReturn(Optional.empty());
         when(questionRepository.searchByEventId(10L, QuestionSort.NEWEST))
                 .thenReturn(List.of());
@@ -205,7 +244,8 @@ class QuestionServiceTest {
 
     @Test
     void findByEventId_不正sortなら400() {
-        when(eventRepository.existsById(10L)).thenReturn(true);
+        when(eventRepository.findByIdAndStatusNot(10L, EventStatus.DELETED))
+                .thenReturn(Optional.of(openEvent(10L)));
 
         assertThatThrownBy(() -> questionService.findByEventId(
                 10L,

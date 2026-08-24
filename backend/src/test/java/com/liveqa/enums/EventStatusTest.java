@@ -15,4 +15,15 @@ class EventStatusTest {
         assertThat(EventStatus.CLOSED.canTransitionTo(EventStatus.OPEN)).isTrue();
         assertThat(EventStatus.CLOSED.canTransitionTo(EventStatus.DRAFT)).isFalse();
     }
+
+    @Test
+    void canTransitionTo_DELETEDは終端で開閉に使わない() {
+        assertThat(EventStatus.DRAFT.canTransitionTo(EventStatus.DELETED)).isFalse();
+        assertThat(EventStatus.OPEN.canTransitionTo(EventStatus.DELETED)).isFalse();
+        assertThat(EventStatus.CLOSED.canTransitionTo(EventStatus.DELETED)).isFalse();
+        assertThat(EventStatus.DELETED.canTransitionTo(EventStatus.DRAFT)).isFalse();
+        assertThat(EventStatus.DELETED.canTransitionTo(EventStatus.OPEN)).isFalse();
+        assertThat(EventStatus.DELETED.canTransitionTo(EventStatus.CLOSED)).isFalse();
+        assertThat(EventStatus.DELETED.canTransitionTo(EventStatus.DELETED)).isFalse();
+    }
 }
