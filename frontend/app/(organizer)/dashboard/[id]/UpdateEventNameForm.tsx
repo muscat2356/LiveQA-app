@@ -27,7 +27,7 @@ export default function UpdateEventNameForm({
             return;
         }
 
-        if(name === cuurentName){
+        if(name.trim() === cuurentName){
             setError("変更するイベント名を入力してください")
             return;
         }
