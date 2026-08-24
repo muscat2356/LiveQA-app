@@ -139,13 +139,13 @@
   "id": 10,
   "title": "第3回LT大会 Q&A",
   "joinCode": "x7K2mQ9a",
-  "joinUrl": "/join/x7K2mQ9a",
   "status": "DRAFT",
   "createdAt": "2026-07-24T05:00:00Z"
 }
 ```
 
 - 作成直後は `DRAFT`（開始前・受付前）。質問受付を始めるには `PATCH /status` で `OPEN` にする
+- 参加 URL は応答に含めない。フロントが `joinCode` から `/join/{joinCode}` を組み立てる
 - Response 400（例）:
 
 ```json
@@ -185,7 +185,6 @@
   "id": 10,
   "title": "第3回LT大会 Q&A",
   "joinCode": "x7K2mQ9a",
-  "joinUrl": "/join/x7K2mQ9a",
   "status": "OPEN",
   "questionCount": 12,
   "createdAt": "2026-07-24T05:00:00Z",

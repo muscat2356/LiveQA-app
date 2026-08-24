@@ -248,7 +248,6 @@ public class EventService {
                 event.getId(),
                 event.getTitle(),
                 event.getJoinCode(),
-                "/join/" + event.getJoinCode(),
                 event.getStatus(),
                 event.getCreatedAt());
     }
@@ -262,7 +261,6 @@ public class EventService {
                 event.getId(),
                 event.getTitle(),
                 event.getJoinCode(),
-                "/join/" + event.getJoinCode(),
                 event.getStatus(),
                 event.getQuestionCount(),
                 event.getCreatedAt(),

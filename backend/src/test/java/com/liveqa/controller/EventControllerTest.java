@@ -89,7 +89,6 @@ class EventControllerTest {
                         20L,
                         "curlテストイベント",
                         "Xy9kLm2n",
-                        "/join/Xy9kLm2n",
                         EventStatus.DRAFT,
                         createdAt));
 
@@ -104,7 +103,7 @@ class EventControllerTest {
                 .andExpect(jsonPath("$.id").value(20))
                 .andExpect(jsonPath("$.title").value("curlテストイベント"))
                 .andExpect(jsonPath("$.joinCode").value("Xy9kLm2n"))
-                .andExpect(jsonPath("$.joinUrl").value("/join/Xy9kLm2n"))
+                .andExpect(jsonPath("$.joinUrl").doesNotExist())
                 .andExpect(jsonPath("$.status").value("DRAFT"));
     }
 
@@ -128,7 +127,6 @@ class EventControllerTest {
                         10L,
                         "第一回",
                         "Ab12Cd34",
-                        "/join/Ab12Cd34",
                         EventStatus.DRAFT,
                         12,
                         t,
@@ -140,7 +138,8 @@ class EventControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(10))
                 .andExpect(jsonPath("$.questionCount").value(12))
-                .andExpect(jsonPath("$.joinUrl").value("/join/Ab12Cd34"));
+                .andExpect(jsonPath("$.joinCode").value("Ab12Cd34"))
+                .andExpect(jsonPath("$.joinUrl").doesNotExist());
     }
 
     @Test
@@ -205,7 +204,6 @@ class EventControllerTest {
                         10L,
                         "修正後",
                         "Ab12Cd34",
-                        "/join/Ab12Cd34",
                         EventStatus.DRAFT,
                         12,
                         t,

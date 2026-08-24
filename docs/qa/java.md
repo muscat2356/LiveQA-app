@@ -38,7 +38,6 @@ DTO 化は Service（推奨）。Service が `ResponseEntity` まで返すのは
 
 | DTO | Entity に無いもの |
 |-----|-------------------|
-| `EventCreateResponse.joinUrl` | API の見せ方（`"/join/" + joinCode`） |
 | `QuestionResponse.votedByMe` | 今の SESSION の票 |
 | `MeResponse.displayName` / `email` | `OidcUser` クレーム（DB `users` には無い） |
 

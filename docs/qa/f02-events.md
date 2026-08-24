@@ -7,9 +7,9 @@ scope: `POST/GET /api/events`、`GET /api/events/{id}`、`PATCH /api/events/{id}
 
 | API | 状態 |
 |-----|------|
-| `POST /api/events` | HOST。201。title 1〜100、join_code 8文字 UNIQUE |
+| `POST /api/events` | HOST。201。title 1〜100、join_code 8文字 UNIQUE。`joinUrl` **なし**（#69） |
 | `GET /api/events` | 自分の一覧。`questionCount` **なし** |
-| `GET /api/events/{id}` | 所有者のみ。他人・無しは **404**。`questionCount` あり |
+| `GET /api/events/{id}` | 所有者のみ。他人・無しは **404**。`questionCount` あり。`joinUrl` **なし**（#69） |
 | `GET /api/join/{code}` | 公開。紹介 DTO |
 | `PATCH /api/events/{id}` | **実装済**（#94）。名称のみ。joinCode 不変。どの status でも可。`DELETED` は 404 |
 | `DELETE /api/events/{id}` | **実装済**（#94）。論理削除 `status=DELETED`。204。行は残す。`deleted_at` なし |
@@ -197,7 +197,7 @@ DELETE /api/events/{id}
 
 ## Q. `joinUrl` は API に要るか？（#69）
 
-**要らない。** 値は常に `"/join/" + joinCode`。参加 URL の origin はフロントの関心。DTO から外し、画面は `joinCode` から組み立てる。
+**要らない。** 値は常に `"/join/" + joinCode`。参加 URL の origin はフロントの関心。back は DTO から外す（`back/refactor/02`）。画面は `joinCode` から組み立てる（front は #69 残り）。
 
 ## Q. `/join/1/qa` がエラーになるのはなぜか？（#92）
 
