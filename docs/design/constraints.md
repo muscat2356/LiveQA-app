@@ -58,8 +58,9 @@ flowchart LR
   - イベント詳細 / 名称更新 / 削除 / 開閉（`GET|PATCH|DELETE /api/events/{id}` …）
   - ポール作成 / 開閉（`PATCH /api/polls/{pollId}/status`）
   - 質問ステータス変更（`PATCH /api/questions/{qid}/status`）
-- 所有者判定は **SQL 条件（例: `id` + `host_id`）** で行い、0件なら **404**（存在しない／他人所有を区別しない。存在漏洩を避ける）
+- 所有者判定は **SQL 条件（例: `id` + `host_id`）** で行い、0件なら **404**（存在しない／他人所有を区別しない。存在漏洩を避ける）。`DELETED` も同じ 404（SQL `status <> DELETED`）
 - 質問投稿・いいね・ポール回答は参加者（匿名セッション）でも可
+- 名称更新と論理削除が同じ `events` 行を同時に書くときは楽観ロック（`events.version`）。衝突は **409**。質問投稿の `question_count + 1` は版を進めない
 
 ### 状態遷移
 

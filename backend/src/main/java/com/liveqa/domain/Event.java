@@ -16,6 +16,9 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
+
+import org.hibernate.annotations.DynamicUpdate;
 
 /**
  * テーブルeventsに対応するEntity
@@ -23,6 +26,7 @@ import jakarta.persistence.UniqueConstraint;
  * @author ichikura
  */
 @Entity
+@DynamicUpdate
 @Table(
     name = "events",
     uniqueConstraints = @UniqueConstraint(
@@ -59,6 +63,10 @@ public class Event {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt = Instant.now();
 
+    @Version
+    @Column(nullable = false)
+    private Long version = 0L;
+
 
     protected Event() {}
 
@@ -82,6 +90,7 @@ public class Event {
         e.questionCount = 0;
         e.createdAt = Instant.now();
         e.updatedAt = Instant.now();
+        e.version = 0L;
 
         return e;
     }
@@ -97,11 +106,22 @@ public class Event {
     }
 
     /**
-     * 質問数の加算を行うメソッド
-     * いいね数（upvote_count）は触らない
+     * イベント名の更新を行うメソッド
+     * 桁数の検証はRequest。joinCodeとstatusは触らない
+     * @param title trim済みの新しい名称
      */
-    public void incrementQuestionCount() {
-        this.questionCount++;
+    public void changeTitle(String title) {
+        this.title = title;
+        this.updatedAt = Instant.now();
+    }
+
+    /**
+     * ルーム削除（論理）のメソッド
+     * 送られてきたステータスに関わらず削除ステータスへ変更
+     * ステータスの検証はServiceにて行う
+     */
+    public void changeDeleted() {
+        this.status = EventStatus.DELETED;
         this.updatedAt = Instant.now();
     }
 

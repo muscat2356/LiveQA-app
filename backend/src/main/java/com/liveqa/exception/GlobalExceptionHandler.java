@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.security.core.AuthenticationException;
@@ -108,6 +109,23 @@ public class GlobalExceptionHandler {
                                                 403,
                                                 "Forbidden",
                                                 "権限がありません"));
+        }
+
+        /**
+         * 楽観ロック衝突の処理
+         * 名称更新と論理削除などが同時のとき
+         * @param ex 版の不一致
+         * @return エラーレスポンス
+         */
+        @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+        public ResponseEntity<ErrorResponse> optimisticLockHandler(
+                ObjectOptimisticLockingFailureException ex
+        ) {
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                                .body(ErrorResponse.of(
+                                                409,
+                                                "Conflict",
+                                                "他の操作と衝突しました。画面を更新して再度お試しください。"));
         }
 
         /**

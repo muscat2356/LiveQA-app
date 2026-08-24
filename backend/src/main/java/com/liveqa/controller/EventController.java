@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.liveqa.dto.request.EventCreateRequest;
 import com.liveqa.dto.request.EventStatusRequest;
+import com.liveqa.dto.request.EventTitleRequest;
 import com.liveqa.dto.response.EventCreateResponse;
 import com.liveqa.dto.response.EventDetailResponse;
 import com.liveqa.dto.response.EventStatusResponse;
@@ -97,6 +99,38 @@ public class EventController {
         @Valid @RequestBody EventStatusRequest request
     ) {
         return ResponseEntity.ok(eventService.updateStatus(id, request.status(), oidc));
+    }
+
+    /**
+     * イベント名を更新するPATCHメソッド
+     * 桁数の検証は Request。業務判定は service
+     * @param oidc SecurityContext内のOidcUser情報
+     * @param id イベントid
+     * @param request 新しい名称
+     * @return 更新後のイベント詳細
+     */
+    @PatchMapping("/events/{id}")
+    @PreAuthorize("hasRole('HOST')")
+    public ResponseEntity<EventDetailResponse> updateTitle(
+        @AuthenticationPrincipal OidcUser oidc,
+        @PathVariable Long id,
+        @Valid @RequestBody EventTitleRequest request
+    ) {
+        return ResponseEntity.ok(eventService.updateTitle(id, request.title(), oidc));
+    }
+
+    /**
+     * イベントを論理削除するDELETEメソッド
+     * 成功は204。業務判定はservice
+     */
+    @DeleteMapping("/events/{id}")
+    @PreAuthorize("hasRole('HOST')")
+    public ResponseEntity<Void> delete(
+            @AuthenticationPrincipal OidcUser oidc,
+            @PathVariable Long id
+    ) {
+        eventService.delete(id, oidc);
+        return ResponseEntity.noContent().build();
     }
 
 }

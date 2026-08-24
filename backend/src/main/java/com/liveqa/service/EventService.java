@@ -46,7 +46,8 @@ public class EventService {
     @Transactional(readOnly = true)
     public List<EventSummaryResponse> findAll(OidcUser oidc) {
         final User user = requiredUser(oidc);
-        return eventRepository.findByHost_IdOrderByCreatedAtDesc(user.getId())
+        return eventRepository
+                .findByHost_IdAndStatusNotOrderByCreatedAtDesc(user.getId(), EventStatus.DELETED)
                 .stream()
                 .map(e -> toEventSummaryResponse(e))
                 .toList();
@@ -73,7 +74,6 @@ public class EventService {
      * @param code 参加コード
      * @return 該当イベント情報Responseクラス
      */
-    @Transactional(readOnly = true)
     public EventJoinResponse findByJoinCode(String code) {
         final JoinCode joinCode;
         try {
@@ -84,7 +84,8 @@ public class EventService {
                     "Bad Request",
                     "参加コードが不正です。");
         }
-        final Event event = eventRepository.findByJoinCode(joinCode.code())
+        final Event event = eventRepository
+                .findByJoinCodeAndStatusNot(joinCode.code(), EventStatus.DELETED)
                 .orElseThrow(() -> new BusinessException(
                         HttpStatus.NOT_FOUND,
                         "Not Found",
@@ -121,7 +122,7 @@ public class EventService {
      */
     @Transactional
     public EventStatusResponse updateStatus(Long id, EventStatus status, OidcUser oidc) {
-        if (status == EventStatus.DRAFT) {
+        if (status == EventStatus.DELETED ||status == EventStatus.DRAFT) {
             throw new BusinessException(
                     HttpStatus.BAD_REQUEST,
                     "Bad Request",
@@ -137,6 +138,41 @@ public class EventService {
         event.changeStatus(status);
         eventRepository.save(event);
         return toEventStatusResponse(event);
+    }
+
+    /**
+     * イベント名を変更するメソッド
+     * Eventの404はrequireOwnedEventで検証
+     * ユーザーの404はUserServiceで検証
+     * 削除ステータスの検証はSQLで弾くので404
+     * @param id イベントid
+     * @param title 入力されたタイトル
+     * @param oidc SecurityContext内のOidcUser情報
+     * @return 更新されたイベント詳細情報
+     */
+    @Transactional
+    public EventDetailResponse updateTitle(Long id, String title, OidcUser oidc) {
+        final Event event = requireOwnedEvent(id, oidc);
+
+        event.changeTitle(title.trim());
+
+        eventRepository.save(event);
+
+        return toEventDetailResponse(event);
+
+    }
+
+    /**
+     * イベントを論理削除するメソッド
+     * statusをDELETEDにする。行は残す。既にDELETEDなら404
+     * @param id イベントid
+     * @param oidc SecurityContext内のOidcUser情報
+     */
+    @Transactional
+    public void delete(Long id, OidcUser oidc) {
+        final Event event = requireOwnedEvent(id, oidc);
+        event.changeDeleted();
+        eventRepository.save(event);
     }
 
     /**
@@ -181,7 +217,8 @@ public class EventService {
     @Transactional(readOnly = true)
     protected Event requireOwnedEvent(Long id, OidcUser oidc) {
         final User user = requiredUser(oidc);
-        return eventRepository.findByIdAndHost_Id(id, user.getId())
+        return eventRepository
+                .findByIdAndHost_IdAndStatusNot(id, user.getId(), EventStatus.DELETED)
                 .orElseThrow(() -> new BusinessException(
                         HttpStatus.NOT_FOUND,
                         "Not Found",
