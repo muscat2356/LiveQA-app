@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { updateEvent } from "@/lib/api/eventApi";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { FormEvent, useState } from "react";
 
 export default function UpdateEventNameForm({
     eventId, 
@@ -19,7 +19,7 @@ export default function UpdateEventNameForm({
 
     const router = useRouter();
 
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
         if(!name.trim()){
