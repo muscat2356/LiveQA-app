@@ -29,6 +29,6 @@ mvn spring-boot:run -Dspring-boot.run.arguments=--server.port=8081
 
 - ログイン開始: `http://localhost:8081/oauth2/authorization/keycloak`
 - `GET /api/me`（SESSION Cookie）
-- `POST /api/auth/guest`（CSRF ヘッダ必須）
+- `POST /api/auth/guest`（CSRF 検証なし。応答で `XSRF-TOKEN` Cookie が載る）
 
 realm の client `live-qa-app` は redirect URI に `http://localhost:8081/*` と `http://localhost:3000/*` を許可済み。`realm_access.roles` の `HOST` を `ROLE_HOST` に読み替える mapper は backend 側の実装（[docs/qa/f01-auth.md](../docs/qa/f01-auth.md) / [docs/qa/05-security-config.md](../docs/qa/05-security-config.md)）。

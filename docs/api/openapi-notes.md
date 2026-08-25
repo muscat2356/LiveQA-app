@@ -22,6 +22,7 @@
 
 - stateful（Cookieセッション）のため CSRF保護を有効化
 - 状態変更系（`POST` / `PATCH` / `DELETE`）は CSRFトークンを `X-XSRF-TOKEN` ヘッダで要求（`XSRF-TOKEN` Cookieと突合）
+- 例外: `POST /api/auth/guest` は発行専用のため CSRF 検証しない（応答で `XSRF-TOKEN` Cookie は載る）
 - 参加者（匿名セッション）にもCSRFトークンを発行する
 
 ### 共通エラーレスポンス
@@ -107,9 +108,9 @@
 
 ### POST /api/auth/guest （公開・参加者）
 
-匿名セッションを発行（または既存を再利用）。ログイン不要。CSRF 必須。
+匿名セッションを発行（または既存を再利用）。ログイン不要。CSRF 検証はしない（発行専用）。
 
-- Request: ボディなし（要 `X-XSRF-TOKEN`。先にいずれかの GET で `XSRF-TOKEN` Cookie を取得）
+- Request: ボディなし（`X-XSRF-TOKEN` は任意。無くても 200。応答の `XSRF-TOKEN` Cookie を後続の質問 POST に使う）
 - Response 200:
 
 ```json
@@ -120,7 +121,7 @@
 - 同じ `SESSION` で再 POST すると同じ `guestId` / `voterKey` を返す（Session 属性に保持）
 - 参加者は `users` 表には登録しない
 
-> メモ: 主催者向け認証エンドポイント（`/api/me` / logout）とは別。参加者は本 API で匿名 Session + CSRF を得る。
+> メモ: 主催者向け認証エンドポイント（`/api/me` / logout）とは別。参加者は本 API で匿名 Session を得る。質問投稿・いいねは CSRF 必須。
 
 ## イベント API（担当B）
 

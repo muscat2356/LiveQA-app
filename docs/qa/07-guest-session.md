@@ -10,8 +10,8 @@
 ## データの流れ
 
 ```text
-POST /api/auth/guest  +（要）X-XSRF-TOKEN
-  → 検証: CSRF
+POST /api/auth/guest  （X-XSRF-TOKEN は任意）
+  → CSRF 検証は skip（発行専用）。Cookie は Handler が載せる
   → セッションを確保（無ければ新規発行）
   → guestId（UUID）を生成
   → 格納: HttpSession 属性 "guestId" に書き込む
@@ -29,7 +29,7 @@ POST /api/auth/guest  +（要）X-XSRF-TOKEN
 ## Security 側
 
 `authorizeHttpRequests` で `/api/auth/guest` を **permitAll**（ログイン不要）。  
-POST なので CSRF は有効のまま（匿名参加者にも CSRF を発行する、という本番方針）。
+発行専用のため CSRF 検証は **ignore**。`XSRF-TOKEN` Cookie 自体は Handler が応答に載せる。質問 POST 等は CSRF 必須のまま。
 
 ## ライブラリ／型
 
@@ -41,14 +41,11 @@ POST なので CSRF は有効のまま（匿名参加者にも CSRF を発行す
 
 ## 疎通
 
-1. ブラウザで一度 `GET http://localhost:8080/`（または任意）→ `XSRF-TOKEN` 取得  
-2. Console:
+1. Console（ヘッダ無しで可）:
 
 ```js
-fetch('/api/auth/guest', {
-  method: 'POST',
-  headers: { 'X-XSRF-TOKEN': document.cookie.match(/XSRF-TOKEN=([^;]+)/)[1] }
-}).then(r => r.json()).then(console.log);
+fetch('/api/auth/guest', { method: 'POST', credentials: 'include' })
+  .then(r => r.json()).then(console.log);
 ```
 
 期待: `{ guestId: "...", voterKey: "g:..." }` かつ Cookie `SESSION` あり。
