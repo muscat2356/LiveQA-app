@@ -60,17 +60,25 @@ export default async function detailPage({
                         作成日時：{formDateTime(event.createdAt)}
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="flex items-baseline gap-2">
-                    <p className="text-sm text-muted-foreground">質問数</p>
-                    <p className="text-3xl font-bold tabular-nums">{event.questionCount}</p>
+                <CardContent className="space-y-5">
+                    <div className="flex items-baseline gap-2">
+                        <p className="text-sm text-muted-foreground">質問数</p>
+                        <p className="text-3xl font-bold tabular-nums">{event.questionCount}</p>
+                    </div>
 
-                    <UpdateEventNameForm
-                        eventId={event.id}
-                        cuurentName={event.title}
-                    />
-                    <DeleteButton 
-                        eventId={event.id}
-                    />
+                    <div className="border-t pt-5">
+                        <UpdateEventNameForm
+                            eventId={event.id}
+                            cuurentName={event.title}
+                        />
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3 border-t pt-5">
+                        <p className="text-sm text-muted-foreground">このイベントを削除します</p>
+                        <DeleteButton
+                            eventId={event.id}
+                        />
+                    </div>
                 </CardContent>
             </Card>
 
