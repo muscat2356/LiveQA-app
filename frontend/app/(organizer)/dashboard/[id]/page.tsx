@@ -1,7 +1,7 @@
+import CopyButton from "@/components/event/CopyButton";
 import { StatusBadge } from "@/components/event/statusBadge";
 import StatusChangeDialog from "@/components/event/statusChangeDialog";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import formDateTime from "@/lib/utils/date";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EventDetailResponse } from "@/types/event/event";
 import { cookies } from "next/headers";
 import Link from "next/link";
@@ -18,6 +18,13 @@ export default async function detailPage({
     const { id } = await params;
     const cookieStore = await cookies();
 
+    const baseURL = process.env.NEXT_PUBLIC_URL;
+    if(!baseURL){
+        throw new Error("URLが存在しません")
+    }
+
+    const hostUrlpath = `${baseURL}/dashboard/${id}/qa`;
+
     const res = await fetch (`${process.env.API_BASE_URL}/api/events/${id}`, {
             headers: { Cookie : cookieStore.toString() },
             cache: "no-store",
@@ -31,6 +38,8 @@ export default async function detailPage({
         throw new Error(`イベント情報の取得に失敗しました: ${res.status}`);
 
     const event: EventDetailResponse = await res.json();
+
+    const participantUrl = baseURL + "/join/" + event.joinCode;
 
     return(
         <div className="app-container max-w-3xl space-y-6 py-8 sm:py-10">
@@ -77,7 +86,10 @@ export default async function detailPage({
                         </div>
                         <div className="space-y-1.5">
                             <span className="text-xs font-medium text-muted-foreground">参加者URL:</span>
-                            <div className="break-all rounded-lg bg-muted px-3 py-2 font-mono text-primary">{`http://localhost:3000/join/${event.joinCode}`}</div>
+                            <div className="break-all rounded-lg bg-muted px-3 py-2 font-mono text-primary">{participantUrl}</div>
+                            <CopyButton
+                                text={participantUrl}
+                            />
                         </div>
                         <div className="space-y-1.5">
                             <span className="text-xs font-medium text-muted-foreground">主催者URL:</span>
@@ -85,8 +97,11 @@ export default async function detailPage({
                                 href={`/dashboard/${event.id}/qa`}
                                 className="block break-all rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 font-mono text-primary transition-colors hover:bg-primary/10 hover:underline"
                             >
-                                {`http://localhost:3000/dashboard/${event.id}/qa`}
+                                {hostUrlpath}
                             </Link>
+                            <CopyButton
+                                text={hostUrlpath}
+                            />                  
                         </div>
                     </CardContent>
                 </Card>
