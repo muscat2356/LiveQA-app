@@ -212,7 +212,7 @@
 - Response 200: 詳細と同じ形（`EventDetailResponse`）
 - Response 400: 作成と同じ `fields.title`
 - Response 404: 詳細 GET と同じ（存在しない／他人所有を区別しない）
-- Response 409（名称更新同士が同時。`events.version` の楽観ロック）:
+- Response 409（同じ行への同時書き込み。`events.version` の楽観ロック。名称同士だけでなく、名称・開閉・削除の同時も含む）:
 
 ```json
 { "status": 409, "error": "Conflict", "message": "他の操作と衝突しました。画面を更新して再度お試しください。" }

@@ -25,16 +25,16 @@ POST /api/events + SESSION + X-XSRF-TOKEN + { "title": "..." }
   → EventCreateResponse 201
 ```
 
-一覧: `findByHost_IdOrderByCreatedAtDesc`（契約。現行コードは `StatusNot DELETED`）→ `EventSummaryResponse[]`。  
+一覧: `findByHost_IdOrderByCreatedAtDesc` → `EventSummaryResponse[]`。  
 Join: 形式不正 400（「参加コードが不正です。」）、無しは 404（「該当するルームが見つかりません。」）。
 
 ## テスト
 
 | 層 | 置き場 | 見るもの |
 |----|--------|----------|
-| Service | `EventServiceTest` | 名称 trim。契約どおりなら delete 後 find 無し。現行はまだ論理 |
+| Service | `EventServiceTest` | 名称 trim。物理 DELETE 後は行が無い。楽観ロック 409 |
 | Controller | `EventControllerTest` | 名称 PATCH 200 / CSRF なし 403 / 楽観ロック 409。DELETE 204 / CSRF なし 403 |
-| enum | `EventStatusTest` | `canTransitionTo`。契約では `DELETED` を外す |
+| enum | `EventStatusTest` | `canTransitionTo`。`DELETED` は無い |
 
 ## questionCount
 
@@ -107,14 +107,14 @@ Entity は `changeTitle`（仮）で `title` と `updatedAt` を書く。同一 
 
 ## Q. 削除はソフトデリートか？ 物理 DELETE か？
 
-**正は物理 DELETE（2026-08-25 に変更）。** 旧:#94 は `status=DELETED`。コードがまだ論理なら、契約に合わせる単位を切る。
+**正は物理 DELETE。** 旧:#94 は `status=DELETED`。
 
 | | 旧（論理） | 新（物理） |
 |--|-----------|-----------|
 | 行 | 残す | `events` を消す。配下は CASCADE |
 | 404 | `status <> DELETED` | 行が無い |
 | joinCode | UNIQUE のまま再利用されない | 空く。生成時の exists 再試行で衝突を避ける |
-| 名称との同時 | `@Version` で 409（DELETED が OPEN に戻る穴） | 消えたあとの PATCH は 404。名称同士は `@Version` のまま 409 |
+| 名称との同時 | `@Version` で 409（DELETED が OPEN に戻る穴） | 両方ロード済みなら `@Version` で 409。削除が先に確定したあとの PATCH は 404 |
 
 `PATCH /api/events/{id}/status` は `OPEN`/`CLOSED` だけ。削除は `DELETE` が `repository.delete` する。
 
@@ -122,11 +122,11 @@ Entity は `changeTitle`（仮）で `title` と `updatedAt` を書く。同一 
 
 **行が無ければ 404。** `findByIdAndHost_Id` が empty。`status <> DELETED` は不要。
 
-名称 PATCH 同士は `@Version` のまま 409。削除と名称の同時は、消えた方が勝って他方は 404 でよい。
+名称 PATCH 同士、および名称・開閉・削除が同じ行をロードして同時に書いたときは `@Version` で 409。削除が先に確定したあとの PATCH は行が無く 404。
 
 ## Q. 楽観ロックはまだ要るか？
 
-**名称 PATCH 同士のため残す。** 論理削除が OPEN に戻る穴は、物理 DELETE では消える。`question_count` の加算は版を進めない。悲観は付けない。
+**同じ行をロードして書く操作のため残す。** 名称・開閉・削除が同時なら 409。削除が先に確定したあとは 404。論理削除が OPEN に戻る穴は、物理 DELETE では消える。`question_count` の加算は版を進めない。悲観は付けない。
 
 ```text
 DELETE /api/events/{id}

@@ -39,7 +39,7 @@ HOST + SESSION + CSRF
 | ER | 質問の物理 DELETE API は無い。個別の非表示は `ARCHIVED`（F-08） |
 | イベント DELETE | 物理削除。配下は CASCADE |
 
-締切で物理削除すると、再開（`CLOSED→OPEN`）で質問が消える。契約の往復と衝突する。隠したい 1 件は `PATCH /api/questions/{qid}/status` の `ARCHIVED`。イベントごと消すのは `DELETE /api/events/{id}`（質問は残したまま 404）。
+締切で物理削除すると、再開（`CLOSED→OPEN`）で質問が消える。契約の往復と衝突する。隠したい 1 件は `PATCH /api/questions/{qid}/status` の `ARCHIVED`。イベントごと消すのは `DELETE /api/events/{id}`（配下は CASCADE で一緒に消える）。
 
 ## Q. 所有者チェックを Java の if で 403 にしない理由は？
 
