@@ -332,7 +332,7 @@ live-qa:sessions:{sessionId}
 - 既定: RP-initiated → Keycloak end-session → **フロントへ 302**  
 - 代替: ローカルのみなら 204  
 
-### 3.5 `POST /api/auth/guest`（公開・CSRF）
+### 3.5 `POST /api/auth/guest`（公開・CSRF ignore）
 
 - 匿名 Session + `guestId`  
 - 応答: `{ guestId, voterKey: "g:{id}" }`  
@@ -605,7 +605,7 @@ CsrfTokenRequestAttributeHandler
 | HttpOnly | true | **false** |
 | クライアント | 自動付与 | JS が読んで `X-XSRF-TOKEN` へ |
 
-参加者 guest も CSRF 付き（permitAll でも POST は CSRF 対象）。
+参加者 guest の **発行**（`POST /api/auth/guest`）は CSRF ignore。質問 POST / いいねは CSRF 対象。
 
 ---
 
@@ -692,7 +692,7 @@ Keycloak client の Valid post logout URIs に `http://localhost:3000/*` が必�
 | HOST vs 参加者 | SSO 必須の主催者／ログイン不要の聴衆 |
 
 ```text
-POST /api/auth/guest（CSRF）
+POST /api/auth/guest（CSRF ignore）
   → HttpSession に guestId
   → { guestId, voterKey: "g:{guestId}" }
 ```
@@ -703,7 +703,7 @@ POST /api/auth/guest（CSRF）
 | Session | OIDC Authentication 入り | guestId 属性 |
 | 投票キー（将来） | `u:{userId}` 等 | `g:{guestId}` |
 
-F-04/F-05 の土台。F-01 では「匿名 Session + CSRF が付く」までが範囲。
+F-04/F-05 の土台。F-01 では「匿名 Session が付く」までが範囲。発行口は CSRF ignore、後続の変更系は CSRF 必須。
 
 ---
 

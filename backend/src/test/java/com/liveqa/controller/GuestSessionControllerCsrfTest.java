@@ -7,13 +7,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.security.oauth2.client.servlet.OAuth2ClientAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -24,7 +24,7 @@ import com.liveqa.service.GuestSessionService;
 
 /**
  * Guest POST の CSRF（Filter 層）。
- * 配線スライス（addFilters=false）とは別に、あり→200／なし→403 を見る。
+ * 発行口は ignore。あり／なしどちらも 200。他 path の CSRF は見ない。
  */
 @WebMvcTest(
         controllers = GuestSessionController.class,
@@ -39,11 +39,14 @@ class GuestSessionControllerCsrfTest {
     @MockitoBean
     GuestSessionService guestSessionService;
 
-    @Test
-    void createGuestSession_CSRFありなら200() throws Exception {
+    @BeforeEach
+    void stubIssueOrReuse() {
         when(guestSessionService.issueOrReuse(any()))
                 .thenReturn(new GuestResponse("new-id", "g:new-id"));
+    }
 
+    @Test
+    void createGuestSession_CSRFありなら200() throws Exception {
         mockMvc.perform(post("/api/auth/guest").with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.guestId").value("new-id"))
@@ -51,14 +54,16 @@ class GuestSessionControllerCsrfTest {
     }
 
     @Test
-    void createGuestSession_CSRFなしなら403() throws Exception {
+    void createGuestSession_CSRFなしでも200() throws Exception {
         mockMvc.perform(post("/api/auth/guest"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.guestId").value("new-id"))
+                .andExpect(jsonPath("$.voterKey").value("g:new-id"));
     }
 
     /**
      * 本番 SecurityConfig は Import しない（OAuth2 依存を避ける）。
-     * guest は permitAll + CSRF 有効だけ再現する。
+     * guest の ignore だけ本番と同じ matcher で再現する。
      */
     static class GuestPermitCsrfSecurityConfig {
 
@@ -66,7 +71,7 @@ class GuestSessionControllerCsrfTest {
         SecurityFilterChain guestPermitCsrfFilterChain(HttpSecurity http) throws Exception {
             http
                     .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
-                    .csrf(Customizer.withDefaults());
+                    .csrf(csrf -> csrf.ignoringRequestMatchers("/api/auth/guest"));
             return http.build();
         }
     }

@@ -109,6 +109,8 @@ public class SecurityConfig {
             .csrf(csrf -> csrf
                 .csrfTokenRepository(csrfRepo)
                 .csrfTokenRequestHandler(csrfHandler)
+                // 発行専用。状態変更を伴わないので検証しない（Cookie は Handler が載せる）
+                .ignoringRequestMatchers("/api/auth/guest")
             )
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint(authenticationEntryPoint())
