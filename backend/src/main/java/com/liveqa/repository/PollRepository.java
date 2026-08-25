@@ -8,6 +8,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import com.liveqa.domain.Poll;
 import com.liveqa.enums.PollStatus;
 
+/**
+ * pollsテーブルを操作するRepository
+ * PollRepository
+ * @author ichikura
+ */
 public interface PollRepository extends JpaRepository<Poll, Long> {
 
     /**

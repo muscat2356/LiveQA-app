@@ -8,6 +8,12 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+/**
+ * ポール作成POSTの入力DTO
+ * 重複・trimはService
+ * PollCreateRequest
+ * @author ichikura
+ */
 public record PollCreateRequest(
     @NotBlank(message = "1～200文字で入力してください")
     @Size(min = 1, max = 200, message = "1～200文字で入力してください")
@@ -24,5 +30,5 @@ public record PollCreateRequest(
         String
         > options
 ) {
-    
+
 }

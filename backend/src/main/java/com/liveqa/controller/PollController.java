@@ -22,7 +22,11 @@ import com.liveqa.service.PollService;
 
 import jakarta.validation.Valid;
 
-
+/**
+ * リソースpollsに対するAPIコントローラー
+ * PollController
+ * @author ichikura
+ */
 @RestController
 @RequestMapping("/api")
 public class PollController {
@@ -33,6 +37,14 @@ public class PollController {
         this.pollService = pollService;
     }
 
+    /**
+     * ポール作成を行うPOSTメソッド
+     * 所有者のみ。新規はDRAFT固定
+     * @param id イベントid
+     * @param oidc SecurityContext内のOidcUser情報
+     * @param request 設問文・種別・選択肢
+     * @return 作成したポール
+     */
     @PostMapping("/events/{id}/polls")
     @PreAuthorize("hasRole('HOST')")
     public ResponseEntity<PollResponse> create(

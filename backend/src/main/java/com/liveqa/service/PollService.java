@@ -17,6 +17,11 @@ import com.liveqa.exception.BusinessException;
 import com.liveqa.repository.EventRepository;
 import com.liveqa.repository.PollRepository;
 
+/**
+ * Pollsに対する業務処理を行うサービスクラス
+ * PollService
+ * @author ichikura
+ */
 @Service
 public class PollService {
 
@@ -30,7 +35,14 @@ public class PollService {
         this.userService = userService;
     }
 
-
+    /**
+     * ポールを作成するメソッド
+     * 所有イベントでなければ404。選択肢のtrim・重複はnormalizeLabels
+     * @param eventId イベントid
+     * @param request 設問文・種別・選択肢
+     * @param oidc SecurityContext内のOidcUser情報
+     * @return 作成したポール（DRAFT、得票は0）
+     */
     @Transactional
     public PollResponse create(
         Long eventId,
@@ -48,6 +60,13 @@ public class PollService {
 
     }
 
+    /**
+     * イベント配下のポール一覧を返すメソッド
+     * 所有者は全件、それ以外はOPEN。イベントが無ければ404
+     * @param eventId イベントid
+     * @param oidc SecurityContext内のOidcUser情報（未ログインならnull）
+     * @return ポール一覧
+     */
     public List<PollResponse> findByEventId(Long eventId, OidcUser oidc) {
 
         if (oidc != null) {
@@ -77,6 +96,14 @@ public class PollService {
         
     }
 
+    /**
+     * ポールステータスを遷移するメソッド
+     * DRAFT送りは400。遷移不可は409。所有でなければ404
+     * @param pollId ポールid
+     * @param status 遷移先（OPEN / CLOSED）
+     * @param oidc SecurityContext内のOidcUser情報
+     * @return 更新したポール
+     */
     @Transactional
     public PollResponse updateStatus(
         Long pollId,
@@ -112,7 +139,13 @@ public class PollService {
                 ));
     }
 
-
+    /**
+     * 所有イベントを復元するメソッド
+     * 無い／他人所有は404
+     * @param id イベントid
+     * @param oidc SecurityContext内のOidcUser情報
+     * @return 所有イベント
+     */
     protected Event requireOwnedEvent(Long id, OidcUser oidc) {
         final User user = userService.requireByOidcSubject(oidc.getSubject());
         return eventRepository
@@ -126,6 +159,9 @@ public class PollService {
     /**
      * 所有ポールを復元するメソッド
      * 無い／他人所有のイベント配下は 404
+     * @param pollId ポールid
+     * @param oidc SecurityContext内のOidcUser情報
+     * @return 所有ポール
      */
     private Poll requireOwnedPoll(Long pollId, OidcUser oidc) {
         final User user = userService.requireByOidcSubject(oidc.getSubject());

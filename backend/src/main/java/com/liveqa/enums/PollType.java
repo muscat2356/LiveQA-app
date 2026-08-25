@@ -1,5 +1,10 @@
 package com.liveqa.enums;
 
+/**
+ * ポールの選択方式（polls.type）
+ * PollType
+ * @author ichikura
+ */
 public enum PollType {
 
     /** 単一選択。1ポール1票。 */
