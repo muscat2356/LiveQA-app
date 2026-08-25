@@ -8,6 +8,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import UpdateEventNameForm from "./UpdateEventNameForm";
 import DeleteButton from "./DeleteButton";
+import formDateTime from "@/lib/utils/date";
 
 export default async function detailPage({
     params,
