@@ -47,7 +47,7 @@ public class EventService {
     public List<EventSummaryResponse> findAll(OidcUser oidc) {
         final User user = requiredUser(oidc);
         return eventRepository
-                .findByHost_IdAndStatusNotOrderByCreatedAtDesc(user.getId(), EventStatus.DELETED)
+                .findByHost_IdOrderByCreatedAtDesc(user.getId())
                 .stream()
                 .map(e -> toEventSummaryResponse(e))
                 .toList();
@@ -85,7 +85,7 @@ public class EventService {
                     "参加コードが不正です。");
         }
         final Event event = eventRepository
-                .findByJoinCodeAndStatusNot(joinCode.code(), EventStatus.DELETED)
+                .findByJoinCode(joinCode.code())
                 .orElseThrow(() -> new BusinessException(
                         HttpStatus.NOT_FOUND,
                         "Not Found",
@@ -122,7 +122,7 @@ public class EventService {
      */
     @Transactional
     public EventStatusResponse updateStatus(Long id, EventStatus status, OidcUser oidc) {
-        if (status == EventStatus.DELETED ||status == EventStatus.DRAFT) {
+        if (status == EventStatus.DRAFT) {
             throw new BusinessException(
                     HttpStatus.BAD_REQUEST,
                     "Bad Request",
@@ -144,7 +144,7 @@ public class EventService {
      * イベント名を変更するメソッド
      * Eventの404はrequireOwnedEventで検証
      * ユーザーの404はUserServiceで検証
-     * 削除ステータスの検証はSQLで弾くので404
+     * 無い行は404
      * @param id イベントid
      * @param title 入力されたタイトル
      * @param oidc SecurityContext内のOidcUser情報
@@ -163,16 +163,15 @@ public class EventService {
     }
 
     /**
-     * イベントを論理削除するメソッド
-     * statusをDELETEDにする。行は残す。既にDELETEDなら404
+     * イベントを物理削除するメソッド
+     * 配下はFK CASCADE。無ければ404
      * @param id イベントid
      * @param oidc SecurityContext内のOidcUser情報
      */
     @Transactional
     public void delete(Long id, OidcUser oidc) {
         final Event event = requireOwnedEvent(id, oidc);
-        event.changeDeleted();
-        eventRepository.save(event);
+        eventRepository.delete(event);
     }
 
     /**
@@ -218,7 +217,7 @@ public class EventService {
     protected Event requireOwnedEvent(Long id, OidcUser oidc) {
         final User user = requiredUser(oidc);
         return eventRepository
-                .findByIdAndHost_IdAndStatusNot(id, user.getId(), EventStatus.DELETED)
+                .findByIdAndHost_Id(id, user.getId())
                 .orElseThrow(() -> new BusinessException(
                         HttpStatus.NOT_FOUND,
                         "Not Found",

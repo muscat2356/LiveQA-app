@@ -115,16 +115,6 @@ public class Event {
         this.updatedAt = Instant.now();
     }
 
-    /**
-     * ルーム削除（論理）のメソッド
-     * 送られてきたステータスに関わらず削除ステータスへ変更
-     * ステータスの検証はServiceにて行う
-     */
-    public void changeDeleted() {
-        this.status = EventStatus.DELETED;
-        this.updatedAt = Instant.now();
-    }
-
     public Long getId() {
         return id;
     }

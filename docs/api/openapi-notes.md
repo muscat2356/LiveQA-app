@@ -172,7 +172,7 @@
 ```
 
 - 一覧には `questionCount` を含めない（画面でも不要）。件数は詳細のみ
-- `status = DELETED` の行は載せない（論理削除済み）
+- 削除済みは行が無いので載らない
 
 ### GET /api/events/{id} （HOST, 所有者のみ）
 
@@ -193,7 +193,7 @@
 ```
 
 - `questionCount` は `events.question_count`（非正規化スナップショット）。質問投稿時に原子的 +1（`UPDATE ... SET question_count = question_count + 1`）。一覧には出さない
-- Response 404（存在しない、自分の所有でない、または `DELETED`。区別しない）:
+- Response 404（存在しない、自分の所有でない。区別しない）:
 
 ```json
 { "status": 404, "error": "Not Found", "message": "イベントが見つかりません。" }
@@ -211,8 +211,8 @@
 
 - Response 200: 詳細と同じ形（`EventDetailResponse`）
 - Response 400: 作成と同じ `fields.title`
-- Response 404: 詳細 GET と同じ（存在しない／他人所有／`DELETED` を区別しない）
-- Response 409（名称更新と論理削除などが同時。`events.version` の楽観ロック）:
+- Response 404: 詳細 GET と同じ（存在しない／他人所有を区別しない）
+- Response 409（名称更新同士が同時。`events.version` の楽観ロック）:
 
 ```json
 { "status": 409, "error": "Conflict", "message": "他の操作と衝突しました。画面を更新して再度お試しください。" }
@@ -220,14 +220,12 @@
 
 ### DELETE /api/events/{id} （HOST, 所有者のみ）
 
-イベントの論理削除。`status` を `DELETED` にする（行は残す。配下の質問・いいねも残す）。ソフトデリート列（`deleted_at`）は持たない。どのルーム状態（`DRAFT` / `OPEN` / `CLOSED`）からでも可。`DELETED` は終端で復元しない（MVP）。
+イベントの物理削除。`events` 行を消す。配下の質問・いいね・ポールは FK `ON DELETE CASCADE`。どのルーム状態（`DRAFT` / `OPEN` / `CLOSED`）からでも可。復元しない（MVP）。
 
 - Request: ボディなし（要 `X-XSRF-TOKEN`）
 - Response 204: ボディなし
-- Response 404: 詳細 GET と同じ（既に `DELETED` も 404）
-- Response 409: 名称 PATCH と同じ楽観ロック衝突
-- 削除後の見え方: 一覧に出ない。`GET /api/events/{id}` / `GET /api/join/{joinCode}` / 質問 API は 404。`joinCode` は行が残るので UNIQUE のまま再利用されない
-- `PATCH /api/events/{id}/status` に `DELETED` は渡せない（400。開閉は `OPEN` / `CLOSED` のみ）
+- Response 404: 詳細 GET と同じ（既に消えていれば 404）
+- 削除後の見え方: 一覧に出ない。`GET /api/events/{id}` / `GET /api/join/{joinCode}` / 質問・ポール API は 404。`join_code` は空く（生成時の UNIQUE 再試行で衝突を避ける）
 - STOMP `EVENT_DELETED` は出さない（参加者は次回 REST で 404）
 
 ### GET /api/join/{joinCode} （公開）
@@ -241,7 +239,7 @@
 ```
 
 - `status` は `DRAFT`（受付前） / `OPEN`（受付中） / `CLOSED`（締切）。フロントは `DRAFT` / `CLOSED` のとき投稿UIを無効化する
-- Response 404（存在しない、または `DELETED`）:
+- Response 404（存在しない）:
 
 ```json
 { "status": 404, "error": "Not Found", "message": "該当するルームが見つかりません。" }
@@ -286,7 +284,7 @@
 
 ### GET /api/events/{id}/questions （公開）
 
-質問一覧。QueryDSLで動的に並び替え/フィルタを組み立てる。イベントが無ければ 404（`DELETED` も含む）。キー未確立でも 200（`votedByMe` は全部 false）。DRAFT/CLOSED でも返す。
+質問一覧。QueryDSLで動的に並び替え/フィルタを組み立てる。イベントが無ければ 404。キー未確立でも 200（`votedByMe` は全部 false）。DRAFT/CLOSED でも返す。
 
 - Query:
   - `sort` = `popular`（既定, `upvote_count DESC, created_at DESC`） / `newest`（`created_at DESC`）。不正は 400。**F-06 実装済**
@@ -416,7 +414,7 @@
 主催者が設問と選択肢を作り、参加者が選択肢から回答する「アンケート型」ポール（正解なし）。Q&Aと同一ルームで共存する。  
 **F-10** = 作成・一覧・開閉。**F-11** = 回答・集計。STOMP 配信は Member C（口だけ F-10/F-11 で残す）。
 
-イベントが `DELETED` なら作成・一覧・開閉・回答・結果はすべて **404**（質問 API と同じ。存在しないと区別しない）。ルームが `DRAFT` / `CLOSED` でも **作成と開閉は可**（下書きのうちに設問を用意する）。**回答だけ** ルーム `OPEN` かつポール `OPEN`。
+イベントが無ければ作成・一覧・開閉・回答・結果はすべて **404**（質問 API と同じ。存在しないと区別しない）。ルームが `DRAFT` / `CLOSED` でも **作成と開閉は可**（下書きのうちに設問を用意する）。**回答だけ** ルーム `OPEN` かつポール `OPEN`。
 
 変更系（POST / PATCH）は要 `X-XSRF-TOKEN`。
 
@@ -463,14 +461,14 @@ JSON の形は **PollDTO 一つ**（作成・一覧・開閉・結果で同じ�
 { "status": 400, "error": "Bad Request", "message": "選択肢は2〜10個にしてください" }
 ```
 
-- Response 404: イベントが無い／他人所有／`DELETED`
+- Response 404: イベントが無い／他人所有
 
 #### GET /api/events/{id}/polls （HOST=全件 / 参加者=OPENのみ）
 
 - HOST（所有者）: `DRAFT` / `OPEN` / `CLOSED` を返す
 - 参加者・未ログイン: `OPEN` のみ
 - Response 200: `PollDTO[]`
-- Response 404: イベントが無い／`DELETED`（HOST の他人所有も 404）
+- Response 404: イベントが無い（HOST の他人所有も 404）
 
 ```json
 [
@@ -511,7 +509,7 @@ JSON の形は **PollDTO 一つ**（作成・一覧・開閉・結果で同じ�
 { "status": 409, "error": "Conflict", "message": "この状態遷移はできません。" }
 ```
 
-- Response 404: ポールが無い／イベント他人所有／イベント `DELETED`
+- Response 404: ポールが無い／イベント他人所有／イベントが無い
 - 副作用（C）: `OPEN`→`POLL_OPENED` / `CLOSED`→`POLL_CLOSED`。REST 実装は配信口を残し、中身は F-07 と同様に後続
 
 ### F-11 回答・集計
@@ -546,7 +544,7 @@ JSON の形は **PollDTO 一つ**（作成・一覧・開閉・結果で同じ�
 #### GET /api/polls/{pollId}/results （公開）
 
 - Response 200: PollDTO（上記と同形）
-- Response 404: ポールが無い／イベント `DELETED`
+- Response 404: ポールが無い／イベントが無い
 - HOST 以外は `DRAFT` の結果を 404（一覧と同じ見え方。下書きの得票は見せない）
 
 ## DTOスキーマ

@@ -113,7 +113,7 @@ public class GlobalExceptionHandler {
 
         /**
          * 楽観ロック衝突の処理
-         * 名称更新と論理削除などが同時のとき
+         * 名称更新同士が同時のとき
          * @param ex 版の不一致
          * @return エラーレスポンス
          */

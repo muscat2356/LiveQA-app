@@ -120,7 +120,7 @@ public class EventController {
     }
 
     /**
-     * イベントを論理削除するDELETEメソッド
+     * イベントを物理削除するDELETEメソッド
      * 成功は204。業務判定はservice
      */
     @DeleteMapping("/events/{id}")

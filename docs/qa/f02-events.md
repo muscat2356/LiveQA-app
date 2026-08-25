@@ -11,8 +11,8 @@ scope: `POST/GET /api/events`、`GET /api/events/{id}`、`PATCH /api/events/{id}
 | `GET /api/events` | 自分の一覧。`questionCount` **なし** |
 | `GET /api/events/{id}` | 所有者のみ。他人・無しは **404**。`questionCount` あり。`joinUrl` **なし**（#69） |
 | `GET /api/join/{code}` | 公開。紹介 DTO |
-| `PATCH /api/events/{id}` | **実装済**（#94）。名称のみ。joinCode 不変。どの status でも可。`DELETED` は 404 |
-| `DELETE /api/events/{id}` | **実装済**（#94）。論理削除 `status=DELETED`。204。行は残す。`deleted_at` なし |
+| `PATCH /api/events/{id}` | **実装済**（#94）。名称のみ。joinCode 不変。無い／他人所有は 404 |
+| `DELETE /api/events/{id}` | **物理 DELETE**（CASCADE）。Issue: [#99](https://github.com/muscat2356/live-qa-app/issues/99) |
 
 ## データの流れ（作成）
 
@@ -25,16 +25,16 @@ POST /api/events + SESSION + X-XSRF-TOKEN + { "title": "..." }
   → EventCreateResponse 201
 ```
 
-一覧: `findByHost_IdAndStatusNotOrderByCreatedAtDesc`（`DELETED` 除く）→ `EventSummaryResponse[]`。  
-Join: 形式不正 400（「参加コードが不正です。」）、無し・`DELETED` は 404（「該当するルームが見つかりません。」）。
+一覧: `findByHost_IdOrderByCreatedAtDesc`（契約。現行コードは `StatusNot DELETED`）→ `EventSummaryResponse[]`。  
+Join: 形式不正 400（「参加コードが不正です。」）、無しは 404（「該当するルームが見つかりません。」）。
 
 ## テスト
 
 | 層 | 置き場 | 見るもの |
 |----|--------|----------|
-| Service | `EventServiceTest` | 名称 trim・論理削除・DELETED は 404。`PATCH /status` に DELETED は 400 |
+| Service | `EventServiceTest` | 名称 trim。契約どおりなら delete 後 find 無し。現行はまだ論理 |
 | Controller | `EventControllerTest` | 名称 PATCH 200 / CSRF なし 403 / 楽観ロック 409。DELETE 204 / CSRF なし 403 |
-| enum | `EventStatusTest` | `canTransitionTo` は DELETED に行かない。DELETED からは全部 false |
+| enum | `EventStatusTest` | `canTransitionTo`。契約では `DELETED` を外す |
 
 ## questionCount
 
@@ -55,7 +55,7 @@ Join: 形式不正 400（「参加コードが不正です。」）、無し・`
 | Request record | Bean Validation。compact ctor で `BusinessException` を投げない。値オブジェクト（JoinCode）は別 |
 | `save` 失敗 | 予防できる UNIQUE は先に exists。業務の競合（いいね）は制約名で 409。想定外は 500 |
 | 名称更新 | `PATCH /api/events/{id}`。status 用パスと混ぜない。joinCode は不変 |
-| イベント削除 | `status=DELETED`（論理・終端）。`PATCH /status` には載せない。`deleted_at` は足さない。OPEN 中も可（UI で確認）。STOMP 削除配信は出さない |
+| イベント削除 | **物理 DELETE**（配下 CASCADE）。`status=DELETED` は持たない。OPEN 中も可（UI で確認）。STOMP 削除配信は出さない。`join_code` は空く |
 
 ## POST が通らないとき
 
@@ -105,87 +105,37 @@ Entity は `changeTitle`（仮）で `title` と `updatedAt` を書く。同一 
 | Service | `String title`（`request.title()`） |
 | Entity | trim 済みの `String` |
 
-## Q. 削除はソフトデリートか？ `DELETED` を status に足すか？
+## Q. 削除はソフトデリートか？ 物理 DELETE か？
 
-**status に `DELETED` を足す。`deleted_at` は足さない。** 質問の `ARCHIVED` と同じ「列を増やさず状態で隠す」。物理 DELETE だと joinCode が空いて偶然再利用されうるし、配下 CASCADE は重い。
+**正は物理 DELETE（2026-08-25 に変更）。** 旧:#94 は `status=DELETED`。コードがまだ論理なら、契約に合わせる単位を切る。
 
-| | `deleted_at` | `status=DELETED` |
-|--|--------------|------------------|
-| 列 | 追加（Flyway） | 既存 `status` |
-| 削除前の OPEN/CLOSED | 残る | **上書きされる**（MVP は復元しないので可） |
-| このリポとの揃い | 母体ハブ用に先送り | 質問 ARCHIVED / 「status で閉じる」 |
+| | 旧（論理） | 新（物理） |
+|--|-----------|-----------|
+| 行 | 残す | `events` を消す。配下は CASCADE |
+| 404 | `status <> DELETED` | 行が無い |
+| joinCode | UNIQUE のまま再利用されない | 空く。生成時の exists 再試行で衝突を避ける |
+| 名称との同時 | `@Version` で 409（DELETED が OPEN に戻る穴） | 消えたあとの PATCH は 404。名称同士は `@Version` のまま 409 |
 
-`PATCH /api/events/{id}/status` には `DELETED` を渡さない（400）。開閉は `OPEN`/`CLOSED` だけ。削除は `DELETE` が `changeDeleted` する。
+`PATCH /api/events/{id}/status` は `OPEN`/`CLOSED` だけ。削除は `DELETE` が `repository.delete` する。
 
-## Q. 名称更新の前に DELETED を見るか？ 同時リクエストは行ロックで平気か？
+## Q. 名称更新の前に「削除済み」を見るか？
 
-**見る。ただし SELECT 時点の確認。** `requireOwnedEvent` の `status <> DELETED` がそれ。Java の if をもう一段足す必要はない（同じ TX のメモリを見るだけになる）。
+**行が無ければ 404。** `findByIdAndHost_Id` が empty。`status <> DELETED` は不要。
 
-**`@Transactional` では行ロックにならない。** 既定の `find` は SELECT だけ。PostgreSQL の行ロックは UPDATE のとき。2本が両方 SELECT できたあと、後から COMMIT した UPDATE が勝つ。
+名称 PATCH 同士は `@Version` のまま 409。削除と名称の同時は、消えた方が勝って他方は 404 でよい。
 
-Hibernate 既定は `@DynamicUpdate` なしなので、名称更新の UPDATE に **status も載る**。メモリ上はまだ OPEN のまま。削除のあと名称がコミットすると **DELETED が OPEN に戻る**ことがある。これが「同時に来るとおかしい」の本体。
+## Q. 楽観ロックはまだ要るか？
 
-| やり方 | この機能 |
-|--------|----------|
-| SQL で DELETED を empty | 直列なら足りる。同時だけ穴。**それだけは不足** |
-| `@Version`（楽観） | **付ける。** 後勝ちを 409 |
-| `PESSIMISTIC_WRITE` | 待たせる。名称×削除には重い |
-
-名称 PATCH と論理 DELETE は同じ `events` 行を書く。Hibernate 既定の全列 UPDATE だと DELETED が OPEN に戻る。**この機能は楽観ロックを付ける。** `changeTitle` の直前 if はロック無しなら同じ穴。質問の `question_count` は原子的 UPDATE（版を触らない）。悲観は付けない。
-
-1つの PATCH に title と DELETED を混ぜない（パスが分かれている）。フロントは JSON `{ "title" }` だけ。
-
-## Q. 楽観ロックと悲観ロックの違いは？
-
-**衝突の扱い方が違う。** 楽観は「たぶん被らない。書いたときに検証する」。悲観は「書くまで他を待たせる」。
-
-```text
-楽観（@Version）
-  両方 SELECT（version=1）
-  削除 COMMIT → version=2
-  名称 UPDATE ... WHERE version=1 → 0件 → 例外
-
-悲観（PESSIMISTIC_WRITE / SELECT FOR UPDATE）
-  名称が行を掴む
-  削除の SELECT は待つ
-  名称 COMMIT → 削除が再開 → もう DELETED なら 404
-```
-
-| | 楽観 | 悲観 |
-|--|------|------|
-| いつ争うか | UPDATE 時 | SELECT 時 |
-| 他 TX | 読める・書ける | その行の書き込みは待つ |
-| 失敗 | 後勝ちが例外 | 待ち（デッドロックもあり） |
-| 向く仕事 | 名称変更のように稀な同時 | 在庫のように必ず直列したい |
-
-JPA の型: `@Version` はメタデータ（列が版）。`LockModeType.PESSIMISTIC_WRITE` は enum（ロックの指定）。どちらも今の Entity には無い。
-
-【EJ】あえて外す … 悲観は付けない。質問件数は原子的 UPDATE  
-【EJ】例外 … 楽観の失敗は 409 Conflict  
-
-## Q. 悲観のほうが堅牢では？
-
-**書き込みの直列化は悲観の方が硬い。** 同じ行を2本が同時に書けない。名称が DELETED を OPEN に戻す穴は、待たせるので潰れる。
-
-堅牢さはそれだけではない。
-
-| | 悲観 | 楽観 |
-|--|------|------|
-| 同時書き込み | 待たせる。後勝ちの上書きは起きない | 後勝ちは例外。リトライか 409 |
-| 待ち | ロック中は他 TX が止まる | 待たない |
-| 失敗モード | デッドロック、コネクション占有 | 衝突時だけ例外 |
-| 読み取りが多い画面 | ロックが長いと遅い | 向いている |
-
-主催者1人が名称と削除を同時に叩くのは稀でも、穴は「削除が復活する」なのでロックは付ける。待たせる悲観までは不要。衝突は 409。件数加算は版と混ぜない。
+**名称 PATCH 同士のため残す。** 論理削除が OPEN に戻る穴は、物理 DELETE では消える。`question_count` の加算は版を進めない。悲観は付けない。
 
 ```text
 DELETE /api/events/{id}
-  → findByIdAndHost_Id（DELETED は empty）→ 404
-  → status を DELETED（同一 TX の managed なら save 省略可）
+  → findByIdAndHost_Id → empty なら 404
+  → eventRepository.delete(event)  （配下 CASCADE）
   → 204
 ```
 
-一覧・Join・詳細・質問 API は `DELETED` を「無い」とみなす。OPEN 中の削除は UI で確認ダイアログ必須。STOMP `EVENT_DELETED` は F-07 にしない。
+OPEN 中の削除は UI で確認ダイアログ必須。STOMP `EVENT_DELETED` は出さない。
 
 ## Q. 未実装の API は設計 docs から外すか？
 
@@ -227,7 +177,7 @@ DELETE /api/events/{id}
 ```
 
 ```text
-【EJ】enum … 開閉は canTransitionTo。DELETED は DELETE 専用
+【EJ】enum … 開閉は canTransitionTo。削除は物理 DELETE（enum に載せない）
 【EJ】静的ファクトリ … Event.create / JoinCode.generate
 【EJ】不変性 … Request/Response は record
 【EJ】依存性注入 … EventService コンストラクタ

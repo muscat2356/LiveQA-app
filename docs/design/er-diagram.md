@@ -95,16 +95,16 @@ erDiagram
 | host_id | bigint | FK→users(id), NOT NULL | 主催者 |
 | title | varchar(200) | NOT NULL | イベント名 |
 | join_code | varchar(12) | UNIQUE, NOT NULL | 参加コード（推測困難なランダム文字列） |
-| status | varchar(20) | NOT NULL DEFAULT 'DRAFT' | `DRAFT`（開始前・受付前） / `OPEN`（受付中） / `CLOSED`（締切） / `DELETED`（論理削除・非表示） |
+| status | varchar(20) | NOT NULL DEFAULT 'DRAFT' | `DRAFT`（開始前・受付前） / `OPEN`（受付中） / `CLOSED`（締切） |
 | question_count | int | NOT NULL DEFAULT 0 | 質問数の非正規化スナップショット（API 詳細の `questionCount`） |
-| version | bigint | NOT NULL DEFAULT 0 | 楽観ロック（JPA `@Version`）。名称更新と論理削除の衝突検知 |
+| version | bigint | NOT NULL DEFAULT 0 | 楽観ロック（JPA `@Version`）。名称更新同士の衝突検知 |
 | created_at | timestamptz | NOT NULL DEFAULT now() | 作成日時 |
 | updated_at | timestamptz | NOT NULL DEFAULT now() | 更新日時 |
 
 - 作成直後は `DRAFT`（部屋はあるが質問受付前）。主催者が開始で `OPEN`、締切で `CLOSED`
 - `updated_at` は `status`（`DRAFT`→`OPEN`⇔`CLOSED`）やタイトル編集で変化するため保持する
 - `question_count` は `questions` 件数のキャッシュ。質問投稿時に `UPDATE ... SET question_count = question_count + 1` で足す（同一 TX）。この原子的 UPDATE は `version` を進めない（質問投稿で名称 PATCH が 409 にならないようにする）。質問の物理 DELETE API は無い
-- `version` は名称 `PATCH` と論理 `DELETE` の同時書き込み用。衝突は 409。`@DynamicUpdate` とセット（全列 UPDATE で `DELETED` が OPEN に戻る穴を防ぐ）
+- `version` は名称 `PATCH` 同士の同時書き込み用。衝突は 409。削除は行を消すので、消えたあとの PATCH は 404
 
 ### questions（質問）
 
@@ -182,15 +182,15 @@ erDiagram
 - **いいねの二重投票防止**: `votes` の UNIQUE `(question_id, voter_key)` で担保。INSERT時に制約違反なら409を返す
 - **upvote_count の整合**: いいね追加/取消時に `questions.upvote_count` を原子的インクリメント（`UPDATE ... SET upvote_count = upvote_count + 1`）で更新。read-modify-writeにしないため楽観ロック（`version`）は不要
 - **question_count の整合**: 質問投稿時に `events.question_count` を原子的インクリメント（`UPDATE ... SET question_count = question_count + 1`）。一覧 API には載せない（詳細のみ）。この UPDATE は `events.version` を進めない
-- **events.version の楽観ロック**: 名称更新と論理削除が同じ行を書くときの衝突検知。JPA `@Version`。衝突は 409。質問件数の加算とは混ぜない
+- **events.version の楽観ロック**: 名称更新同士が同じ行を書くときの衝突検知。JPA `@Version`。衝突は 409。質問件数の加算とは混ぜない。削除は物理 DELETE（行が無ければ 404）
 - **ポールの1票判定**: `SINGLE` は同一 `poll_id` に既存があれば 409（置換しない）。`MULTI` は `UNIQUE(poll_option_id, voter_key)` で同一選択肢の重複のみ防止
 - **得票分布**: `poll_responses` を `poll_option_id` で `GROUP BY COUNT`。件数が多くなれば `poll_options.response_count` の非正規化を追加（`upvote_count` と同じ発想）
-- **ステータス遷移**: 質問は `OPEN → ANSWERED → ARCHIVED`（`OPEN → ARCHIVED` も可）。ルームは `DRAFT → OPEN ⇔ CLOSED`（`DRAFT` へは戻さない）。論理削除は `→ DELETED`（終端）。ポールは `DRAFT → OPEN → CLOSED`
+- **ステータス遷移**: 質問は `OPEN → ANSWERED → ARCHIVED`（`OPEN → ARCHIVED` も可）。ルームは `DRAFT → OPEN ⇔ CLOSED`（`DRAFT` へは戻さない）。削除は物理 DELETE（状態ではない）。ポールは `DRAFT → OPEN → CLOSED`
 
 ## データ保持方針
 
 - **票・ポール明細**: MVP-A/B では個別に消さない（`votes`/`poll_responses` の行数は小さくDB負担は無視できる）。質問の物理 DELETE API も無い
-- **イベント削除（F-02）**: `DELETE /api/events/{id}` は論理削除。`status = DELETED`（終端）。行も配下も残す。ソフトデリート列（`deleted_at`）は持たない。一覧・Join・詳細からは 404 / 非表示。FK `ON DELETE CASCADE` は「ホストやイベント行を本当に消すとき」の砦（この API では使わない）
+- **イベント削除（F-02）**: `DELETE /api/events/{id}` は物理削除。`events` 行を消す。配下の質問・いいね・ポールは FK `ON DELETE CASCADE`。ソフトデリート列も `status=DELETED` も持たない。消えたあとの詳細・Join・質問・ポールは 404（無い／他人所有と区別しない）。`join_code` は空く（生成時の UNIQUE 再試行で衝突を避ける）
 - **将来（負担が問題化したら）**: イベント終了（終端状態）時に選択肢ごとの最終集計を確定保存し、明細（`poll_responses`）のみを定期バッチ（Spring Batch）で削除。即時同期削除にはせず、`OPEN⇔CLOSED` の往復とも衝突させない
 
 ## Flyway（現行）
@@ -202,7 +202,7 @@ erDiagram
 | `V1__init.sql` | users / events / questions / votes。events に `question_count` はまだ無い |
 | `V2__name_unique_constraints.sql` | UNIQUE 名を Entity に揃える |
 | `V3__events_question_count.sql` | `events.question_count` ＋ `ck_events_question_count` |
-| `V4__events_version.sql` | `events.version`（楽観ロック。名称更新×論理削除） |
+| `V4__events_version.sql` | `events.version`（楽観ロック。名称更新同士） |
 | `V5__polls.sql` | `polls` / `poll_options` / `poll_responses`（F-10。CHECK 込み） |
 
 ポール用 DDL は下の案。現行 V4 は `events.version` 済みのため、ポールは V5 以降。

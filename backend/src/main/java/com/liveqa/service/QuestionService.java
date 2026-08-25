@@ -60,7 +60,7 @@ public class QuestionService {
      * イベントが無ければ404、ルームがOPENでなければ409
      * 空ニックネームは「匿名」、投稿後にquestion_countを加算
      * votedByMeは投稿直後なのでfalse
-     * DELETEDのイベントは404（非OPENの409と区別する）
+     * イベントが無ければ404（非OPENの409と区別する）
      * @param eventId イベントid
      * @param request 質問本文と任意ニックネーム
      * @param source 投票キーの取得元
@@ -75,7 +75,7 @@ public class QuestionService {
 
         voterKeyResolver.require(source);
 
-        // DELETEDはempty。先に404にして非OPENの409と混ぜない
+        // 行が無ければempty。先に404にして非OPENの409と混ぜない
         final Event event = requireVisibleEvent(eventId);
         if (event.getStatus() != EventStatus.OPEN) {
             throw new BusinessException(
@@ -97,7 +97,7 @@ public class QuestionService {
 
     /**
      * イベント配下の質問一覧を返すメソッド
-     * イベントが無ければ404（DELETEDも含む）
+     * イベントが無ければ404
      * キー未確立でも200、votedByMeは全部false
      * 並びはsort（未指定はpopular、不正は400）。検索はQueryDSL
      * @param eventId イベントid
@@ -109,7 +109,7 @@ public class QuestionService {
         Long eventId,
         String sort,
         VoterKeySource source) {
-        // 一覧もDELETEDは「無い」とみなす（existsByIdだと削除済みが200になる）
+        // 一覧も行が無ければ404（existsByIdでも同じだが、詳細と口を揃える）
         requireVisibleEvent(eventId);
 
         final QuestionSort questionSort;
@@ -178,13 +178,13 @@ public class QuestionService {
 
     /**
      * 公開してよいイベントを復元するメソッド
-     * 無い行と論理削除はどちらも404（存在漏洩しない）
+     * 無い行は404（存在漏洩しない）
      * @param eventId イベントid
-     * @return DELETED以外のEvent
+     * @return Event
      */
     private Event requireVisibleEvent(Long eventId) {
         return eventRepository
-                .findByIdAndStatusNot(eventId, EventStatus.DELETED)
+                .findById(eventId)
                 .orElseThrow(() -> new BusinessException(
                         HttpStatus.NOT_FOUND,
                         "Not Found",

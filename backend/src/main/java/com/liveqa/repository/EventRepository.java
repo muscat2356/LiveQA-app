@@ -9,7 +9,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.liveqa.domain.Event;
-import com.liveqa.enums.EventStatus;
 
 /**
  * Eventsテーブルを操作するRepository
@@ -27,44 +26,29 @@ public interface EventRepository extends JpaRepository<Event, Long> {
 
     /**
      * ログイン中の主催者のイベント一覧を返すメソッド
-     * DELETEDは載せない
      * @param hostId ログイン中の主催者のid
-     * @param status 除外するステータス（DELETED）
      * @return イベント一覧
      */
-    List<Event> findByHost_IdAndStatusNotOrderByCreatedAtDesc(Long hostId, EventStatus status);
+    List<Event> findByHost_IdOrderByCreatedAtDesc(Long hostId);
 
     /**
      * 参加コードでイベントを検索するメソッド
-     * DELETEDはempty
      * @param joinCode 参加コード
-     * @param status 除外するステータス（DELETED）
      * @return Optional（無い可能性があるため）
      */
-    Optional<Event> findByJoinCodeAndStatusNot(String joinCode, EventStatus status);
+    Optional<Event> findByJoinCode(String joinCode);
 
     /**
      * ログイン中の主催者が選択した特定のイベント情報を返すメソッド
-     * DELETEDはempty
      * @param id イベントid
      * @param hostId ログイン中の主催者id
-     * @param status 除外するステータス（DELETED）
      * @return Optional（無い可能性があるため）
      */
-    Optional<Event> findByIdAndHost_IdAndStatusNot(Long id, Long hostId, EventStatus status);
-
-    /**
-     * idでイベントを検索するメソッド
-     * DELETEDはempty（質問API用）
-     * @param id イベントid
-     * @param status 除外するステータス（DELETED）
-     * @return Optional（無い可能性があるため）
-     */
-    Optional<Event> findByIdAndStatusNot(Long id, EventStatus status);
+    Optional<Event> findByIdAndHost_Id(Long id, Long hostId);
 
     /**
      * 質問数の加算を行うメソッド（原子的）
-     * versionは触らない（名称・削除の楽観ロックと混ぜない）
+     * versionは触らない（名称の楽観ロックと混ぜない）
      * @param id イベントid
      * @return 更新行数
      */

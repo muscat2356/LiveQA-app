@@ -13,7 +13,7 @@
 ### F-02 / F-03 ルーム（担当B主 / A=UI）
 
 - イベント作成（主催者）・参加コード / URL発行
-- イベント名の更新・イベント削除（所有者のみ。削除は `status=DELETED` の論理削除。行は残す）
+- イベント名の更新・イベント削除（所有者のみ。削除は物理 DELETE。配下は FK CASCADE）
 - ルーム状態遷移 `DRAFT → OPEN ⇔ CLOSED`（作成直後は `DRAFT`）
 
 ### F-04 参加（担当A主 / B=匿名セッション）
@@ -50,7 +50,7 @@ MVP-A が E2E で通ってから着手。API の正は [api/openapi-notes.md](ap
 | **F-12** | 質問一覧の status フィルタ（QueryDSL 拡充） | `GET /api/events/{id}/questions?status=` | [#22](https://github.com/muscat2356/live-qa-app/issues/22) |
 | **F-13** | 簡易モデレーション。**新パスは作らない。** F-08 の `ARCHIVED` ＋ F-12 で参加者から隠す | `PATCH /api/questions/{qid}/status` `{ "status": "ARCHIVED" }` | [#23](https://github.com/muscat2356/live-qa-app/issues/23) |
 
-アンケート型（正解なし）。`SINGLE` / `MULTI`。明細の個別 DELETE は持たない。イベント削除は `DELETED`（論理。行は残す）。
+アンケート型（正解なし）。`SINGLE` / `MULTI`。明細の個別 DELETE は持たない。イベント削除は物理 DELETE（配下 CASCADE）。
 
 ## さらなるストレッチ（余力・F-14 / F-15）
 

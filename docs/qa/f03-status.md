@@ -1,6 +1,6 @@
 # F-03 ルーム開閉
 
-scope: `PATCH /api/events/{id}/status`。`DRAFT → OPEN ⇔ CLOSED`。`DRAFT` へは戻さない。論理削除 `DELETED` は [f02-events.md](f02-events.md) の `DELETE`（この PATCH には載せない）。  
+scope: `PATCH /api/events/{id}/status`。`DRAFT → OPEN ⇔ CLOSED`。`DRAFT` へは戻さない。削除は [f02-events.md](f02-events.md) の物理 `DELETE`（この PATCH には載せない）。  
 正: [openapi-notes](../api/openapi-notes.md) / [constraints](../design/constraints.md)。
 
 ## 到達点
@@ -37,7 +37,7 @@ HOST + SESSION + CSRF
 | openapi `PATCH .../status` | `OPEN ⇔ CLOSED`（再開できる） |
 | openapi 質問 GET | **DRAFT/CLOSED でも返す** |
 | ER | 質問の物理 DELETE API は無い。個別の非表示は `ARCHIVED`（F-08） |
-| イベント DELETE | 論理削除。配下の質問も残す |
+| イベント DELETE | 物理削除。配下は CASCADE |
 
 締切で物理削除すると、再開（`CLOSED→OPEN`）で質問が消える。契約の往復と衝突する。隠したい 1 件は `PATCH /api/questions/{qid}/status` の `ARCHIVED`。イベントごと消すのは `DELETE /api/events/{id}`（質問は残したまま 404）。
 

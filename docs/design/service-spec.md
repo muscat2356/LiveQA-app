@@ -41,9 +41,6 @@ stateDiagram-v2
     DRAFT --> OPEN: 主催者が開始
     OPEN --> CLOSED: 主催者が締切
     CLOSED --> OPEN: 主催者が再開
-    DRAFT --> DELETED: 主催者が削除
-    OPEN --> DELETED: 主催者が削除
-    CLOSED --> DELETED: 主催者が削除
 
     state 質問 {
         [*] --> Q_OPEN: 参加者が投稿
@@ -53,7 +50,7 @@ stateDiagram-v2
     }
 ```
 
-- ルーム状態: `DRAFT`（開始前・受付前、閲覧のみ） / `OPEN`（質問受付中） / `CLOSED`（締切・閲覧のみ、投稿といいねは不可） / `DELETED`（論理削除。一覧・参加から消える。復元しない）
+- ルーム状態: `DRAFT`（開始前・受付前、閲覧のみ） / `OPEN`（質問受付中） / `CLOSED`（締切・閲覧のみ、投稿といいねは不可）。削除は物理 DELETE（状態ではない）
 - 質問状態: `OPEN`（受付中） / `ANSWERED`（回答済み） / `ARCHIVED`（非表示）
 
 ## 画面一覧
@@ -85,7 +82,7 @@ stateDiagram-v2
 | イベント | `GET /api/events` | 自分のイベント一覧 | HOST |
 | イベント | `GET /api/events/{id}` | イベント詳細（運営用） | HOST |
 | イベント | `PATCH /api/events/{id}` | イベント名の更新（joinCode は不変） | HOST |
-| イベント | `DELETE /api/events/{id}` | イベント論理削除（`status=DELETED`。配下は残す） | HOST |
+| イベント | `DELETE /api/events/{id}` | イベント物理削除（配下は CASCADE） | HOST |
 | イベント | `GET /api/join/{joinCode}` | 参加用イベント情報取得（参加コードの有効性検証にも使用） | 公開 |
 | イベント | `PATCH /api/events/{id}/status` | ルーム開始/締切/再開（DRAFT→OPEN⇔CLOSED） | HOST |
 | 質問 | `GET /api/events/{id}/questions` | 質問一覧（`sort`＝F-06、`status`＝F-12） | 公開 |
@@ -118,7 +115,7 @@ Q&A（参加者が質問→いいね）に加え、主催者が設問を作り�
 - **フロー**: 主催者が設問＋選択肢を作成（`DRAFT`）→ 開始（`OPEN`）で参加者画面に回答UIがライブ表示 → 参加者が選択して投票 → 得票分布がライブ更新 → 主催者が締切（`CLOSED`）
 - **1票の担保**: 単一選択（`SINGLE`）は1ポール1票（既存があれば 409。置換しない）。複数選択（`MULTI`）は選択肢ごと重複不可。回答者は参加者と同じ匿名セッション（`voter_key`）
 - **画面**: 主催者=運営画面にポール作成/開始/締切/結果分布。参加者=Q&A画面に OPEN なポールの回答UIと結果分布。詳細は [screen-transition.md](screen-transition.md)
-- **データ保持**: 票・ポール明細の個別 DELETE は持たない。イベント削除は `DELETED`（論理。行は残す）。将来は終了時に集計確定＋明細のみバッチ削除
+- **データ保持**: 票・ポール明細の個別 DELETE は持たない。イベント削除は物理 DELETE（配下 CASCADE）
 
 ## ドメイン補足
 
