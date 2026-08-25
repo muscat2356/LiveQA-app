@@ -1,9 +1,9 @@
 import { readCookie } from "@/components/cookie";
 import { PollDto, PollType } from "@/types/poll/poll";
 
-export default async function fetchPostPoll(id: number, questionText: string, type: PollType, options: string[]){
+export async function fetchPostPoll(id: number, questionText: string, type: PollType, options: string[]){
 
-    const xsrfToken = readCookie("XSRF-TOKEN")
+    const xsrfToken = readCookie("XSRF-TOKEN");
 
     const res = await fetch(
         `${process.env.API_BASE_URL}/api/events/${id}/polls`,{ 
@@ -20,15 +20,34 @@ export default async function fetchPostPoll(id: number, questionText: string, ty
     );
 
     if(res.status === 400){
-        throw new Error("選択肢は2〜10個にしてください")
+        throw new Error("選択肢は2〜10個にしてください");
     }
 
     if(!res.ok){
-        throw new Error("エラーが発生しました")
+        throw new Error("エラーが発生しました");
     }
 
     const pollDto: PollDto = await res.json();
 
     return pollDto;
+}
+
+export async function fetchGetPoll(id: number){
+
+    const res = await fetch(
+        `${process.env.API_BASE_URL}/api/events/${id}/polls`,
+        { cache: "no-store", headers: { Accept: "application/json" } }
+    );
+
+    if(res.status === 404){
+        throw new Error("イベントが存在しません");
+    }
+
+    if(!res.ok){
+        throw new Error("エラーが発生しました");
+    }
+
+    return res.json();
+
 }
 
