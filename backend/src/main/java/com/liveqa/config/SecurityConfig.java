@@ -88,12 +88,14 @@ public class SecurityConfig {
                 .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                 .requestMatchers("/api/auth/guest").permitAll()
                 .requestMatchers("/api/events/*/questions").permitAll()
+                .requestMatchers("/api/events/*/polls").permitAll()
                 .requestMatchers(
                         "/api/me",
                         "/api/auth/logout",
                         "/api/events",
                         "/api/events/**",
-                        "/api/questions/*/status"
+                        "/api/questions/*/status",
+                        "/api/polls/*/status"
                 ).authenticated()
                 .requestMatchers("/api/join/**").permitAll()
                 .anyRequest().permitAll()

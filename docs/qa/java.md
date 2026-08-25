@@ -26,31 +26,44 @@ DTO 化は Service（推奨）。Service が `ResponseEntity` まで返すのは
 
 ## Q. 変換メソッドを Service から Entity（domain）へ移すか？
 
-**移さない。** 置き場の正は Service のまま。
+**Entity には移さない。Response の静的ファクトリ（`form`）へ寄せるのは採る。**
 
 | 案 | EJ の気持ち | このリポ |
 |----|-------------|----------|
 | `event.toDetailResponse()` | Entity に寄せる | **採らない。** Entity は永続化。API 直出し禁止 |
-| `EventDetailResponse.from(event)` | 項目1 静的ファクトリ | **採らない。** `dto` が `domain` に依存する。[f05](f05-questions.md) と同じ |
-| Service の `toXxxResponse` | オーケストレーション | **正。** ユースケースが「何を返すか」を決める |
+| `PollResponse.form(poll)` | 項目1 静的ファクトリ。作られる型のクラス | **採る。** 形の写像（A→B）は DTO。stream の `map` が自然 |
+| Service が材料を集めて `form` を呼ぶ | オーケストレーション | **正。** 票・得票・Oidc クレームは Service |
 
-変換は行の事実だけでは足りない。
+変換は行の事実だけでは足りないことが多い。足りない分は **引数で渡す**。DTO が Repository を見ない。
 
-| DTO | Entity に無いもの |
-|-----|-------------------|
-| `QuestionResponse.votedByMe` | 今の SESSION の票 |
-| `MeResponse.displayName` / `email` | `OidcUser` クレーム（DB `users` には無い） |
+| DTO | Entity に無いもの | 誰が渡す |
+|-----|-------------------|----------|
+| `QuestionResponse.votedByMe` | 今の SESSION の票 | Service |
+| `PollResponse.totalResponses` / `myOptionIds` | `poll_responses` | Service（F-11） |
+| `MeResponse.displayName` / `email` | `OidcUser` クレーム | Service |
 
-項目1 の静的ファクトリは **作られる型のクラス** に置く。
+```text
+// F-10（得票なし）
+.polls.stream().map(PollResponse::form).toList()
+
+// F-11（材料は Service）
+PollResponse.form(poll, totalResponses, myOptionIds)
+```
+
+`dto` が `domain` を import するのは Response だけ許容（出力の写像）。Request → Entity はこれまでどおり Service / `Poll.create`。
+
+項目1 の静的ファクトリは **new する型のクラス** に置く。名前はこのリポの `form`（`JoinCode.form` / `VoterKeySources.form`）に揃える。
 
 | new するもの | 置き場 | 例 |
 |--------------|--------|-----|
-| Entity / 値オブジェクト | **domain** | `Event.create` / `User.hostOf` / `JoinCode.generate` |
-| Response record | **dto**（採らない）または Service の `toXxx` | `new EventDetailResponse(...)` |
+| Entity / 値オブジェクト | **domain** | `Event.create` / `User.hostOf` / `JoinCode.form` |
+| Response record | **dto の `form`** | `PollResponse.form` / `PollOptionResponse.form` |
 
-`Event.create` が domain なのは Event を作るから。`new EventDetailResponse` を Entity に書くと、内側（domain）が外側（dto）に依存する。静的ファクトリだから全部 domain、ではない。
+Service の `toXxxResponse` は、`form` へ移したら消す。一気にやらなくてよい。ポールで始めて、質問・イベントは触った単位で寄せる。
 
-沿うなら公開面最小化だけ: `QuestionService.toQuestionResponse` はすでに `private`。`EventService` の `toXxxResponse` も同じでよい（置き場は変えない）。
+【EJ】静的ファクトリ … `form` は Response を new する入口  
+【EJ】公開面最小化 … Entity は API を知らない  
+【EJ】あえて外す … F-10 の `form` は count=0 固定。F-11 で引数を足す
 
 ## `var` と不変性は別軸
 
