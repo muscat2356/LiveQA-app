@@ -1,13 +1,13 @@
 
 export type PollDto = {
     id: number;
-    evemtId: number;
+    eventId: number;
     questionText: string;
     type: PollType;
     status: PollStatus;
     options: option[];
     totalResponses: number;
-    myoptionIds: number[];
+    myOptionIds: number[];
 }
 
 export type PollType = "SINGLE" | "MULTI";

@@ -6,11 +6,11 @@ export async function fetchPostPoll(id: number, questionText: string, type: Poll
     const xsrfToken = readCookie("XSRF-TOKEN");
 
     const res = await fetch(
-        `${process.env.API_BASE_URL}/api/events/${id}/polls`,{ 
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/events/${id}/polls`,{ 
             method: "POST",
             headers: { 
                 "Content-Type":"application/json",
-                ...(xsrfToken ? { "X=XSRF-TOKEN" : xsrfToken} : {}),
+                ...(xsrfToken ? { "X-XSRF-TOKEN" : xsrfToken} : {}),
             },
             credentials: "same-origin",
             body: JSON.stringify({
@@ -35,7 +35,7 @@ export async function fetchPostPoll(id: number, questionText: string, type: Poll
 export async function fetchGetPoll(id: number){
 
     const res = await fetch(
-        `${process.env.API_BASE_URL}/api/events/${id}/polls`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/events/${id}/polls`,
         { cache: "no-store", headers: { Accept: "application/json" } }
     );
 
@@ -53,14 +53,14 @@ export async function fetchGetPoll(id: number){
 
 export async function fetchPatchPoll(pollId: number, status: PollStatus){
 
-    const xsrfToken = readCookie("X-XSRF-TOKEN");
+    const xsrfToken = readCookie("XSRF-TOKEN");
 
     const res = await fetch(
-        `${process.env.API_BASE_URL}/api/polls/${pollId}/polls`,{ 
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/polls/${pollId}/status`,{ 
             method: "PATCH",
             headers: { 
                 "Content-Type":"application/json",
-                ...(xsrfToken ? { "X=XSRF-TOKEN" : xsrfToken} : {}),
+                ...(xsrfToken ? { "X-XSRF-TOKEN" : xsrfToken} : {}),
             },
             credentials: "same-origin",
             body: JSON.stringify({ status }),
