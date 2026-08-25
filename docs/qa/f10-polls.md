@@ -17,7 +17,7 @@ scope: `POST/GET /api/events/{id}/polls`、`PATCH /api/polls/{pollId}/status`。
 | `POST /api/events/{id}/polls` | **済み**（HOST / `@Valid` / 201） |
 | `PollResponse.form` | **済み**（count / myOptionIds は F-11 まで 0） |
 | Service / Controller テスト | **済み**（create / GET / PATCH / 不正 enum 400） |
-| GET 一覧 | **済み**（所有者=全件、未ログイン=OPEN、404。permitAll） |
+| GET 一覧 | **済み**（所有者=全件、未ログイン=OPEN。`@Transactional(readOnly = true)` で `form` まで同一 TX） |
 | PATCH 開閉 | **済み**（DRAFT→OPEN / DRAFT送り400 / CLOSED→OPEN 409 / 404。HOST・CSRF）
 | STOMP `POLL_*` | 口だけ残す。配信は C |
 
@@ -81,3 +81,12 @@ V5 は未マージなので **V5 を直す**（V6 は足さない）。`poll_opt
 ```
 
 ローカルで V5 を既に当てているなら、マイグレーション履歴が食い違う。開発 DB は `docker compose down -v` で作り直す。
+
+## Q. GET 一覧は本番で 500 にならないか？（2026-08-25 バグチェック）
+
+**当時はなる可能性が高かった。`findByEventId` に `@Transactional(readOnly = true)` を付けて直した。** `open-in-view: false`。Repository の `find` が終わると Session が閉じる。`PollResponse.form` が `poll.getOptions()`（LAZY）を読む。質問一覧は `eventId` を引数で渡すので LAZY を触らない。
+
+```text
+【EJ】例外 … OSIV を切っているので、LAZY を読む参照は TX 内
+【EJ】あえて外す … 質問一覧は TX なしでよい（関連を触らない）
+```

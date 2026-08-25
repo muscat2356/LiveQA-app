@@ -63,10 +63,14 @@ public class PollService {
     /**
      * イベント配下のポール一覧を返すメソッド
      * 所有者は全件、それ以外はOPEN。イベントが無ければ404
+     * PollResponse.form が LAZY の options を読む。
+     * open-in-view: false のため Repository の find 後に Session が閉じると 500 になる。
+     * 同一 TX で form まで終わらせる
      * @param eventId イベントid
      * @param oidc SecurityContext内のOidcUser情報（未ログインならnull）
      * @return ポール一覧
      */
+    @Transactional(readOnly = true)
     public List<PollResponse> findByEventId(Long eventId, OidcUser oidc) {
 
         if (oidc != null) {
