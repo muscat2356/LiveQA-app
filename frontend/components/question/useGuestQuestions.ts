@@ -1,6 +1,7 @@
 "use client"
 
 import { getGuestSession } from "@/lib/api/guestSession";
+import { fetchGetQuestion } from "@/lib/api/questionApi";
 import { QuestionResponse, Sort } from "@/types/question/question";
 import { useEffect, useState } from "react";
 
@@ -34,7 +35,7 @@ export default function useGuestQuestions(eventId: number, sort: Sort){
                 throw new Error(problem?.message ?? "エラーが発生しました");
             }
 
-            const data: QuestionResponse[] = await res.json();
+            const data = await fetchGetQuestion(eventId, sort);
             setQuestions(data);
         }catch (e){
             setError(e instanceof Error ? e.message : "エラーが発生しました");
