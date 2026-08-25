@@ -60,7 +60,7 @@ class QuestionServiceTest {
     @Test
     void create_OPENなら保存して件数を足す() {
         final Event event = openEvent(10L);
-        when(eventRepository.findByIdAndStatusNot(10L, EventStatus.DELETED)).thenReturn(Optional.of(event));
+        when(eventRepository.findById(10L)).thenReturn(Optional.of(event));
         when(questionRepository.save(any(Question.class))).thenAnswer(inv -> {
             final Question q = inv.getArgument(0);
             ReflectionTestUtils.setField(q, "id", 42L);
@@ -89,7 +89,7 @@ class QuestionServiceTest {
     @Test
     void create_nicknameなしなら匿名で保存() {
         final Event event = openEvent(10L);
-        when(eventRepository.findByIdAndStatusNot(10L, EventStatus.DELETED)).thenReturn(Optional.of(event));
+        when(eventRepository.findById(10L)).thenReturn(Optional.of(event));
         when(questionRepository.save(any(Question.class))).thenAnswer(inv -> {
             final Question q = inv.getArgument(0);
             ReflectionTestUtils.setField(q, "id", 43L);
@@ -112,7 +112,7 @@ class QuestionServiceTest {
         ReflectionTestUtils.setField(host, "id", 1L);
         final Event event = Event.create(host, "第一回", "Ab12Cd34");
         ReflectionTestUtils.setField(event, "id", 10L);
-        when(eventRepository.findByIdAndStatusNot(10L, EventStatus.DELETED)).thenReturn(Optional.of(event));
+        when(eventRepository.findById(10L)).thenReturn(Optional.of(event));
 
         assertThatThrownBy(() -> questionService.create(
                 10L,
@@ -128,9 +128,9 @@ class QuestionServiceTest {
     }
 
     @Test
-    void create_DELETEDなら404() {
-        // SQLがDELETEDをemptyにするので、非OPENの409にはしない
-        when(eventRepository.findByIdAndStatusNot(10L, EventStatus.DELETED))
+    void create_イベントが無ければ404() {
+        // 行が無ければempty。非OPENの409にはしない
+        when(eventRepository.findById(10L))
                 .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> questionService.create(
@@ -150,7 +150,7 @@ class QuestionServiceTest {
     @Test
     void findByEventId_票があればvotedByMeがtrue() {
         final Event event = openEvent(10L);
-        when(eventRepository.findByIdAndStatusNot(10L, EventStatus.DELETED)).thenReturn(Optional.of(event));
+        when(eventRepository.findById(10L)).thenReturn(Optional.of(event));
         when(voterKeyResolver.tryResolve(any()))
                 .thenReturn(Optional.of(VoterKey.guest("abc")));
 
@@ -178,7 +178,7 @@ class QuestionServiceTest {
     @Test
     void findByEventId_キーなしなら全部false() {
         final Event event = openEvent(10L);
-        when(eventRepository.findByIdAndStatusNot(10L, EventStatus.DELETED)).thenReturn(Optional.of(event));
+        when(eventRepository.findById(10L)).thenReturn(Optional.of(event));
         when(voterKeyResolver.tryResolve(any())).thenReturn(Optional.empty());
 
         final Question question = Question.post(event, "資料は？", "花子");
@@ -197,7 +197,7 @@ class QuestionServiceTest {
 
     @Test
     void findByEventId_イベント無しなら404() {
-        when(eventRepository.findByIdAndStatusNot(99L, EventStatus.DELETED)).thenReturn(Optional.empty());
+        when(eventRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> questionService.findByEventId(
                 99L,
@@ -212,9 +212,9 @@ class QuestionServiceTest {
     }
 
     @Test
-    void findByEventId_DELETEDなら404() {
-        // 論理削除済みは一覧も404（存在しないのと同じ）
-        when(eventRepository.findByIdAndStatusNot(10L, EventStatus.DELETED))
+    void findByEventId_無ければ404() {
+        // 無いイベントの一覧は404
+        when(eventRepository.findById(10L))
                 .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> questionService.findByEventId(
@@ -231,7 +231,7 @@ class QuestionServiceTest {
 
     @Test
     void findByEventId_newestならNEWESTで検索() {
-        when(eventRepository.findByIdAndStatusNot(10L, EventStatus.DELETED))
+        when(eventRepository.findById(10L))
                 .thenReturn(Optional.of(openEvent(10L)));
         when(voterKeyResolver.tryResolve(any())).thenReturn(Optional.empty());
         when(questionRepository.searchByEventId(10L, QuestionSort.NEWEST))
@@ -244,7 +244,7 @@ class QuestionServiceTest {
 
     @Test
     void findByEventId_不正sortなら400() {
-        when(eventRepository.findByIdAndStatusNot(10L, EventStatus.DELETED))
+        when(eventRepository.findById(10L))
                 .thenReturn(Optional.of(openEvent(10L)));
 
         assertThatThrownBy(() -> questionService.findByEventId(

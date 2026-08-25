@@ -138,7 +138,7 @@ SESSION (Redis: guestId または OIDC)
 
 GET は公開。キーが無くても 200。`votedByMe` は全部 false。いいねは未確立なら 401。ルーム非 OPEN は投稿・いいねとも 409（一覧は DRAFT/CLOSED でも返す）。
 
-**暫定:** いいねは質問行があれば `event.status != OPEN` で 409。イベントが `DELETED` でも質問行は残るので、いいねは **404 ではなく 409**。質問 GET/POST はイベントを `status <> DELETED` で探すので 404。揃えは次単位。
+**暫定解消:** イベント物理削除なら質問行も CASCADE で消える。いいね対象が無ければ 404。`event.status != OPEN` の 409 は、ルームが残っているときだけ。
 
 ### 1人1票
 

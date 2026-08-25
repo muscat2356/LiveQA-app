@@ -23,7 +23,7 @@ flowchart LR
 |------|-----------|------|------|-----------|
 | events | title | 必須 | trim後 1〜100文字、空白のみ不可 | Front + Back |
 | events | join_code | 系生成 | `[A-Za-z0-9]{8}`、UNIQUE | Back + DB |
-| events | status | 必須 | `DRAFT` / `OPEN` / `CLOSED` / `DELETED` | Back + DB(CHECK) |
+| events | status | 必須 | `DRAFT` / `OPEN` / `CLOSED` | Back + DB(CHECK) |
 | questions | body | 必須 | trim後 1〜500文字、空白のみ不可 | Front + Back |
 | questions | display_name | 任意 | 0〜50文字。**未入力は `"匿名"` を格納**（JSON も `"匿名"`。列は NULL 可だがアプリは書かない） | Front + Back |
 | questions | status | 必須 | `OPEN` / `ANSWERED` / `ARCHIVED` | Back + DB(CHECK) |
@@ -43,7 +43,7 @@ flowchart LR
 
 - ルームが `OPEN` のときのみ、**質問投稿・いいね**が可能。`DRAFT`（受付前）/ `CLOSED`（締切）は閲覧のみ（違反は 409 Conflict）
 - ポール回答は `polls.status = OPEN` **かつ** ルームが `OPEN` のときのみ可。`DRAFT` / `CLOSED`（ポールまたはルーム）は 409
-- ポールの作成・開閉はルーム状態を問わない（`DELETED` イベントは 404）
+- ポールの作成・開閉はルーム状態を問わない（イベントが無ければ 404）
 
 ### 1人1票
 
@@ -59,9 +59,9 @@ flowchart LR
   - イベント詳細 / 名称更新 / 削除 / 開閉（`GET|PATCH|DELETE /api/events/{id}` …）
   - ポール作成 / 開閉（`POST /api/events/{id}/polls`、`PATCH /api/polls/{pollId}/status`）
   - 質問ステータス変更（`PATCH /api/questions/{qid}/status`）
-- 所有者判定は **SQL 条件（例: `id` + `host_id`）** で行い、0件なら **404**（存在しない／他人所有を区別しない。存在漏洩を避ける）。`DELETED` も同じ 404（SQL `status <> DELETED`）
+- 所有者判定は **SQL 条件（例: `id` + `host_id`）** で行い、0件なら **404**（存在しない／他人所有を区別しない。存在漏洩を避ける）。削除済みは行が無いので同じ 404
 - 質問投稿・いいね・ポール回答は参加者（匿名セッション）でも可
-- 名称更新と論理削除が同じ `events` 行を同時に書くときは楽観ロック（`events.version`）。衝突は **409**。質問投稿の `question_count + 1` は版を進めない
+- 同じ `events` 行をロードして書く操作（名称更新・開閉・物理 DELETE）が同時なら楽観ロック（`events.version`）で **409**。削除が先に確定したあとの PATCH は行が無いので **404**。質問投稿の `question_count + 1` は版を進めない
 
 ### 状態遷移
 
@@ -73,9 +73,6 @@ stateDiagram-v2
         DRAFT --> OPEN
         OPEN --> CLOSED
         CLOSED --> OPEN
-        DRAFT --> DELETED
-        OPEN --> DELETED
-        CLOSED --> DELETED
     }
     state 質問 {
         [*] --> Q_OPEN
@@ -90,7 +87,7 @@ stateDiagram-v2
     }
 ```
 
-- ルーム: `DRAFT → OPEN ⇔ CLOSED`（`OPEN`/`CLOSED` は往復可、`DRAFT` へは戻さない）。論理削除は `DRAFT|OPEN|CLOSED → DELETED`（終端。`PATCH /status` では扱わない。`DELETE /api/events/{id}`）
+- ルーム: `DRAFT → OPEN ⇔ CLOSED`（`OPEN`/`CLOSED` は往復可、`DRAFT` へは戻さない）。削除は物理 DELETE（`DELETE /api/events/{id}`。状態ではない。`PATCH /status` では扱わない）
 - 質問: `OPEN → ANSWERED → ARCHIVED`（`OPEN → ARCHIVED` 可）。`ARCHIVED` からは戻さない
 - ポール: `DRAFT → OPEN → CLOSED`。`CLOSED` は終端、`DRAFT` へは戻さない（`PATCH /status` に `DRAFT` は 400。開閉は `OPEN` / `CLOSED` のみ）
 - 上記以外の遷移リクエストは 409（不正な状態遷移）
@@ -101,7 +98,7 @@ stateDiagram-v2
 
 ```sql
 ALTER TABLE users        ADD CONSTRAINT ck_users_role   CHECK (role IN ('HOST','PARTICIPANT'));
-ALTER TABLE events       ADD CONSTRAINT ck_events_status CHECK (status IN ('DRAFT','OPEN','CLOSED','DELETED'));
+ALTER TABLE events       ADD CONSTRAINT ck_events_status CHECK (status IN ('DRAFT','OPEN','CLOSED'));
 ALTER TABLE events       ADD CONSTRAINT ck_events_question_count CHECK (question_count >= 0);
 ALTER TABLE questions    ADD CONSTRAINT ck_questions_status CHECK (status IN ('OPEN','ANSWERED','ARCHIVED'));
 ALTER TABLE questions    ADD CONSTRAINT ck_questions_upvote CHECK (upvote_count >= 0);
