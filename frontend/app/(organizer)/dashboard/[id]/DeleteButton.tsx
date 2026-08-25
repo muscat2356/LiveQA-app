@@ -48,13 +48,13 @@ export default function DeleteButton({ eventId }: { eventId: number }){
                     </DialogDescription>
                 </DialogHeader>
                 {errorMessage && (
-                    <p>{errorMessage}</p>
+                    <p className="text-sm text-destructive">{errorMessage}</p>
                 )}
                 <DialogFooter>
                     <DialogClose render={<Button variant="outline" disabled={pending}/>}>
                         キャンセル
                     </DialogClose>
-                    <Button onClick={handleDelete} disabled={pending}>
+                    <Button variant="destructive" onClick={handleDelete} disabled={pending}>
                         {pending ? "削除中・・・" : "削除"}
                     </Button>
                 </DialogFooter>

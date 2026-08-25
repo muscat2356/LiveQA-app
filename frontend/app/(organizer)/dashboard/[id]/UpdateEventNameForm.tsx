@@ -1,6 +1,8 @@
 "use client"
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { updateEvent } from "@/lib/api/eventApi";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
@@ -52,24 +54,25 @@ export default function UpdateEventNameForm({
     }
 
     return(
-        <form onSubmit={handleSubmit}>
-            <div>
-                <label htmlFor="eventName">イベント名更新</label>
-                <input 
+        <form onSubmit={handleSubmit} className="w-full space-y-3">
+            <div className="space-y-1.5">
+                <Label htmlFor="eventName">イベント名更新</Label>
+                <Input
                     id="eventName"
-                    type="text" 
+                    type="text"
                     value={name}
                     placeholder="更新するイベント名を入力してください。"
                     onChange={(e) => setName(e.target.value)}
                     disabled={pending}
+                    className="h-11"
                 />
             </div>
 
             {error && (
-                <p>{error}</p>
+                <p className="text-sm text-destructive">{error}</p>
             )}
 
-            <Button type="submit" disabled={pending}>
+            <Button type="submit" disabled={pending} className="w-full sm:w-auto">
                 {pending ? "更新中" : "更新"}
             </Button>
         </form>
