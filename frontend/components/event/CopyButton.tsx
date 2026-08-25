@@ -1,6 +1,7 @@
 "use client"
 
-import { Button } from "@base-ui/react";
+import { Button } from "@/components/ui/button";
+import { RiFileCopyLine } from "@remixicon/react";
 import { toast } from "sonner";
 
 export default function CopyButton({text}: {text: string}){
@@ -15,7 +16,8 @@ export default function CopyButton({text}: {text: string}){
     };
 
     return(
-        <Button onClick={handleCopy}>
+        <Button type="button" variant="outline" size="sm" onClick={handleCopy}>
+            <RiFileCopyLine className="size-4" />
             コピー
         </Button>
 

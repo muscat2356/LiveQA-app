@@ -69,16 +69,16 @@ export default function statusChangeDialog({
                     </DialogDescription>
                 </DialogHeader>
                 {nextStatus === "CLOSED" && (
-                        <p>締め切ると質問はすべて削除されます。この操作は取り消せません。</p>
+                        <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">締め切ると質問はすべて削除されます。この操作は取り消せません。</p>
                     )}
                 {errorMessage && (
-                        <p>{errorMessage}</p>
+                        <p className="text-sm text-destructive">{errorMessage}</p>
                     )}
                 <DialogFooter>
                     <DialogClose render={<Button variant="outline" disabled={pending}/>}>
                         キャンセル
                     </DialogClose>
-                    <Button onClick={handleConfirm} disabled={pending}>
+                    <Button variant={nextStatus === "CLOSED" ? "destructive" : "default"} onClick={handleConfirm} disabled={pending}>
                         {pending ? "送信中..." : actionLabel}
                     </Button>
                 </DialogFooter>
