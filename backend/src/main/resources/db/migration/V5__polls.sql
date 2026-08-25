@@ -19,7 +19,8 @@ CREATE TABLE poll_options (
     poll_id       BIGINT       NOT NULL REFERENCES polls(id) ON DELETE CASCADE,
     label         VARCHAR(200) NOT NULL,
     display_order INT          NOT NULL DEFAULT 0,
-    CONSTRAINT ck_poll_options_order CHECK (display_order >= 0)
+    CONSTRAINT ck_poll_options_order CHECK (display_order >= 0),
+    CONSTRAINT uq_poll_options_id_poll UNIQUE (id, poll_id)
 );
 CREATE INDEX idx_poll_options_poll_id ON poll_options(poll_id);
 
@@ -29,6 +30,9 @@ CREATE TABLE poll_responses (
     poll_option_id BIGINT      NOT NULL REFERENCES poll_options(id) ON DELETE CASCADE,
     voter_key      VARCHAR(64) NOT NULL,
     created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT fk_poll_responses_option_belongs
+        FOREIGN KEY (poll_option_id, poll_id)
+        REFERENCES poll_options(id, poll_id) ON DELETE CASCADE,
     CONSTRAINT uq_poll_responses_option_voter UNIQUE (poll_option_id, voter_key)
 );
 CREATE INDEX idx_poll_responses_poll_id ON poll_responses(poll_id);

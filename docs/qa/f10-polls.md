@@ -16,7 +16,7 @@ scope: `POST/GET /api/events/{id}/polls`、`PATCH /api/polls/{pollId}/status`。
 | `PollService.create` + `requireOwnedEvent` + `normalizeLabels` | **済み**（trim 後重複は Service 400） |
 | `POST /api/events/{id}/polls` | **済み**（HOST / `@Valid` / 201） |
 | `PollResponse.form` | **済み**（count / myOptionIds は F-11 まで 0） |
-| Service / Controller テスト | **済み**（create / GET / PATCH） |
+| Service / Controller テスト | **済み**（create / GET / PATCH / 不正 enum 400） |
 | GET 一覧 | **済み**（所有者=全件、未ログイン=OPEN、404。permitAll） |
 | PATCH 開閉 | **済み**（DRAFT→OPEN / DRAFT送り400 / CLOSED→OPEN 409 / 404。HOST・CSRF）
 | STOMP `POLL_*` | 口だけ残す。配信は C |
@@ -42,7 +42,7 @@ F-11（回答 POST / 結果 GET）は混ぜない。`poll_responses` テーブ�
 
 ## Q. Request の compact で trim・重複するか？
 
-**trim の防御的コピーはよい。重複の IAE は Request に置かない。** `JoinCode` は Service が catch する。Request は Jackson が `new` するので IAE は `HttpMessageNotReadableException` → 今の Handler では **500**。要素 `null` で `String::trim` すると NPE も 500。
+**trim の防御的コピーはよい。重複の IAE は Request に置かない。** `JoinCode` は Service が catch する。Request は Jackson が `new` するので IAE は `HttpMessageNotReadableException`（ハンドラ追加後は 400）。要素 `null` で `String::trim` すると NPE も同じ。重複判定は Service のまま。
 
 `JoinCode` は Service が `form` するので IAE を catch できる。`PollCreateRequest` は Jackson が `new` するので、Service の try-catch には届かない。null 要素は `@NotBlank`（400 + fields）。compact の IAE は付けない。
 
@@ -56,3 +56,28 @@ F-11（回答 POST / 結果 GET）は混ぜない。`poll_responses` テーブ�
 【EJ】静的ファクトリ … Poll.create。DTO 変換は載せない
 【EJ】あえて外す … 配信は C。今は口だけ
 ```
+
+## Q. 存在しない enum が 500？（#107 指摘）
+
+**指摘どおり。`@Valid` より前に Jackson が落とす。** `status: "INVALID"` / `type: "INVALID"` は Bean Validation に届かず `HttpMessageNotReadableException`。`ExceptionHandler(Exception)` が未処理を **500** にする。
+
+入力不正なので **400**。ハンドラは `GlobalExceptionHandler`（ポール専用にしない。Event の PATCH も同じ穴）。壊れた JSON も同じ例外なのでまとめて 400。
+
+`PollControllerTest` は本番 Handler を Import していなかった。400 の JSON を見るなら `EventControllerTest` と同じく `@Import(GlobalExceptionHandler.class)`。
+
+```text
+【EJ】例外 … 読めない JSON はクライアント誤り。catch-all の 500 に混ぜない
+【EJ】公開面最小化 … Controller に enum 判定を書かない。Advice が箱を返す
+```
+
+## Q. poll_responses の FK が分かれている？（#107 指摘）
+
+**分かれている。別ポールの選択肢 ID を組み合わせた行も、独立 FK だけだと DB は通す。** F-11 の Service でも弾くが、不変条件は DB が最後の砦（constraints の 3層）。
+
+V5 は未マージなので **V5 を直す**（V6 は足さない）。`poll_options(id, poll_id)` の UNIQUE を複合 FK の参照先にする。
+
+```text
+【EJ】あえて外す … 回答 API は F-11。所属の不変だけ V5 で先に閉じる
+```
+
+ローカルで V5 を既に当てているなら、マイグレーション履歴が食い違う。開発 DB は `docker compose down -v` で作り直す。

@@ -9,6 +9,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 /**
  * テーブルpoll_optionsに対応するEntity
@@ -16,7 +17,13 @@ import jakarta.persistence.Table;
  * @author ichikura
  */
 @Entity
-@Table(name = "poll_options")
+@Table(
+    name = "poll_options",
+    uniqueConstraints = @UniqueConstraint(
+        name = "uq_poll_options_id_poll",
+        columnNames = { "id", "poll_id" }
+    )
+)
 public class PollOption {
 
     @Id

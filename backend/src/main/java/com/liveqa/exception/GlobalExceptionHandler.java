@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
@@ -58,6 +59,21 @@ public class GlobalExceptionHandler {
                                                 "入力内容に誤りがあります",
                                                 fields));
 
+        }
+
+        /**
+         * JSON が読めないときの処理（存在しない enum・壊れた JSON）
+         * @Valid より前の Jackson で落ちる
+         * @param ex デシリアライズ失敗
+         * @return エラーレスポンス
+         */
+        @ExceptionHandler(HttpMessageNotReadableException.class)
+        public ResponseEntity<ErrorResponse> unreadableHandler(HttpMessageNotReadableException ex) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                                .body(ErrorResponse.of(
+                                                400,
+                                                "Bad Request",
+                                                "リクエストの形式が正しくありません。"));
         }
 
         /**

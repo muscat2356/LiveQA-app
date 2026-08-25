@@ -34,6 +34,7 @@ import com.liveqa.dto.response.PollOptionResponse;
 import com.liveqa.dto.response.PollResponse;
 import com.liveqa.enums.PollStatus;
 import com.liveqa.enums.PollType;
+import com.liveqa.exception.GlobalExceptionHandler;
 import com.liveqa.service.PollService;
 
 /**
@@ -44,7 +45,7 @@ import com.liveqa.service.PollService;
         controllers = PollController.class,
         excludeAutoConfiguration = OAuth2ClientAutoConfiguration.class
 )
-@Import(PollControllerTest.MethodSecurityTestConfig.class)
+@Import({ PollControllerTest.MethodSecurityTestConfig.class, GlobalExceptionHandler.class })
 class PollControllerTest {
 
     @Autowired
@@ -190,6 +191,38 @@ class PollControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"status\":\"OPEN\"}"))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void create_typeが不正なら400() throws Exception {
+        mockMvc.perform(post("/api/events/10/polls")
+                        .with(oidcLogin()
+                                .authorities(new SimpleGrantedAuthority("ROLE_HOST"))
+                                .idToken(id -> id.subject("sub-1")))
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"questionText":"次のLTで聞きたいテーマは？","type":"INVALID","options":["AI","Web"]}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message").value("リクエストの形式が正しくありません。"));
+    }
+
+    @Test
+    void updateStatus_statusが不正なら400() throws Exception {
+        mockMvc.perform(patch("/api/polls/5/status")
+                        .with(oidcLogin()
+                                .authorities(new SimpleGrantedAuthority("ROLE_HOST"))
+                                .idToken(id -> id.subject("sub-1")))
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"INVALID\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message").value("リクエストの形式が正しくありません。"));
     }
 
     /**
