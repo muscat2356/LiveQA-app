@@ -6,6 +6,8 @@ import { EventDetailResponse } from "@/types/event/event";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import UpdateEventNameForm from "./UpdateEventNameForm";
+import DeleteButton from "./DeleteButton";
 
 export default async function detailPage({
     params,
@@ -54,12 +56,20 @@ export default async function detailPage({
                     <StatusBadge status={event.status}/>
                     <CardTitle className="text-2xl">{event.title}</CardTitle>
                     <CardDescription>
-                        作成日時：{event.createdAt}
+                        作成日時：{formDateTime(event.createdAt)}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="flex items-baseline gap-2">
                     <p className="text-sm text-muted-foreground">質問数</p>
                     <p className="text-3xl font-bold tabular-nums">{event.questionCount}</p>
+
+                    <UpdateEventNameForm
+                        eventId={event.id}
+                        cuurentName={event.title}
+                    />
+                    <DeleteButton 
+                        eventId={event.id}
+                    />
                 </CardContent>
             </Card>
 
