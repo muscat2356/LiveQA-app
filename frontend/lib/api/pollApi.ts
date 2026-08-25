@@ -1,5 +1,5 @@
 import { readCookie } from "@/components/cookie";
-import { PollDto, PollType } from "@/types/poll/poll";
+import { PollDto, PollStatus, PollType } from "@/types/poll/poll";
 
 export async function fetchPostPoll(id: number, questionText: string, type: PollType, options: string[]){
 
@@ -49,5 +49,40 @@ export async function fetchGetPoll(id: number){
 
     return res.json();
 
+}
+
+export async function fetchPatchPoll(pollId: number, status: PollStatus){
+
+    const xsrfToken = readCookie("X-XSRF-TOKEN");
+
+    const res = await fetch(
+        `${process.env.API_BASE_URL}/api/polls/${pollId}/polls`,{ 
+            method: "PATCH",
+            headers: { 
+                "Content-Type":"application/json",
+                ...(xsrfToken ? { "X=XSRF-TOKEN" : xsrfToken} : {}),
+            },
+            credentials: "same-origin",
+            body: JSON.stringify({ status }),
+    });
+
+
+    if(res.status === 400){
+        throw new Error("status は OPEN / CLOSED のいずれかです。")
+    }
+
+    if(res.status === 409){
+        throw new Error("この状態遷移はできません。")
+    }
+
+    if(res.status === 404){
+        throw new Error("ポールまたはイベントが存在しません")
+    }
+
+    if(!res.ok){
+        throw new Error("エラーが発生しました")
+    }
+
+    return res.json();
 }
 

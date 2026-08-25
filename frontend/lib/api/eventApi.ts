@@ -1,6 +1,5 @@
 import { readCookie } from "@/components/cookie";
-import { EventDetailResponse, JoinEvent } from "@/types/event/event";
-import { notFound } from "next/navigation";
+import { JoinEvent } from "@/types/event/event";
 
 export async function fetchJoinEvent(joinCode: string): Promise<JoinEvent | null>{
 
