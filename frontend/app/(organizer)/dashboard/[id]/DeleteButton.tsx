@@ -60,16 +60,5 @@ export default function DeleteButton({ eventId }: { eventId: number }){
                 </DialogFooter>
             </DialogContent>
         </Dialog>
-
-
-
-        // <div>
-        //     <Button onClick={handleDelete} disabled={pending}>
-        //         {pending ? "削除中" : "削除"}
-        //     </Button>
-        //     {errorMessage &&
-        //         <p>{errorMessage}</p>
-        //     }
-        // </div>
     );
 }
