@@ -1,7 +1,9 @@
 package com.liveqa.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.oidcLogin;
@@ -14,22 +16,26 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.security.oauth2.client.servlet.OAuth2ClientAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
-import org.springframework.security.config.Customizer;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpSession;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.liveqa.domain.VoterKeySource;
 import com.liveqa.dto.request.PollCreateRequest;
+import com.liveqa.dto.request.PollRespondRequest;
 import com.liveqa.dto.response.PollOptionResponse;
 import com.liveqa.dto.response.PollResponse;
 import com.liveqa.enums.PollStatus;
@@ -38,7 +44,7 @@ import com.liveqa.exception.GlobalExceptionHandler;
 import com.liveqa.service.PollService;
 
 /**
- * PollController の HTTP 面（作成・一覧・開閉）。
+ * PollController の HTTP 面（作成・一覧・開閉・回答）。
  * 本番 SecurityConfig は Import せず、@PreAuthorize と csrf() で HOST / CSRF を分ける。
  */
 @WebMvcTest(
@@ -223,6 +229,104 @@ class PollControllerTest {
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.error").value("Bad Request"))
                 .andExpect(jsonPath("$.message").value("リクエストの形式が正しくありません。"));
+    }
+
+    @Test
+    void respond_ゲストなら200() throws Exception {
+        when(pollService.respond(eq(5L), any(PollRespondRequest.class), any()))
+                .thenReturn(new PollResponse(
+                        5L,
+                        10L,
+                        "次のテーマは？",
+                        PollType.SINGLE,
+                        PollStatus.OPEN,
+                        List.of(
+                                new PollOptionResponse(31L, "AI", 1),
+                                new PollOptionResponse(32L, "Web", 0)
+                        ),
+                        1,
+                        List.of(31L)
+                ));
+
+        final MockHttpSession session = new MockHttpSession();
+        session.setAttribute(GuestSession.ATTR_GUEST_ID, "abc");
+
+        mockMvc.perform(post("/api/polls/5/responses")
+                        .session(session)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"optionIds\":[31]}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalResponses").value(1))
+                .andExpect(jsonPath("$.myOptionIds[0]").value(31));
+
+        final ArgumentCaptor<VoterKeySource> captor =
+                ArgumentCaptor.forClass(VoterKeySource.class);
+        verify(pollService).respond(eq(5L), any(PollRespondRequest.class), captor.capture());
+        assertThat(captor.getValue()).isEqualTo(new VoterKeySource.Guest("abc"));
+    }
+
+    @Test
+    void respond_CSRFなしなら403() throws Exception {
+        final MockHttpSession session = new MockHttpSession();
+        session.setAttribute(GuestSession.ATTR_GUEST_ID, "abc");
+
+        mockMvc.perform(post("/api/polls/5/responses")
+                        .session(session)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"optionIds\":[31]}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void findResults_未ログインなら200() throws Exception {
+        when(pollService.findResults(eq(5L), eq(null), any()))
+                .thenReturn(new PollResponse(
+                        5L,
+                        10L,
+                        "次のテーマは？",
+                        PollType.SINGLE,
+                        PollStatus.OPEN,
+                        List.of(
+                                new PollOptionResponse(31L, "AI", 2),
+                                new PollOptionResponse(32L, "Web", 1)
+                        ),
+                        3,
+                        List.of()
+                ));
+
+        mockMvc.perform(get("/api/polls/5/results"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalResponses").value(3))
+                .andExpect(jsonPath("$.options[0].count").value(2))
+                .andExpect(jsonPath("$.myOptionIds").isEmpty());
+    }
+
+    @Test
+    void findResults_ゲストのSessionをSourceに渡す() throws Exception {
+        when(pollService.findResults(eq(5L), eq(null), any()))
+                .thenReturn(new PollResponse(
+                        5L,
+                        10L,
+                        "次のテーマは？",
+                        PollType.SINGLE,
+                        PollStatus.OPEN,
+                        List.of(new PollOptionResponse(31L, "AI", 1)),
+                        1,
+                        List.of(31L)
+                ));
+
+        final MockHttpSession session = new MockHttpSession();
+        session.setAttribute(GuestSession.ATTR_GUEST_ID, "abc");
+
+        mockMvc.perform(get("/api/polls/5/results").session(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.myOptionIds[0]").value(31));
+
+        final ArgumentCaptor<VoterKeySource> captor =
+                ArgumentCaptor.forClass(VoterKeySource.class);
+        verify(pollService).findResults(eq(5L), eq(null), captor.capture());
+        assertThat(captor.getValue()).isEqualTo(new VoterKeySource.Guest("abc"));
     }
 
     /**
