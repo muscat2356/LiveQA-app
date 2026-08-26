@@ -99,21 +99,26 @@ public class QuestionService {
      * イベント配下の質問一覧を返すメソッド
      * イベントが無ければ404
      * キー未確立でも200、votedByMeは全部false
-     * 並びはsort（未指定はpopular、不正は400）。検索はQueryDSL
+     * 並びはsort（未指定はpopular、不正は400）
+     * status未指定はARCHIVED以外。不正は400。検索はQueryDSL
+     * ARCHIVED指定はイベント所有者のみ（それ以外は403）
      * @param eventId イベントid
      * @param sort 並び順
+     * @param status フィルタ（OPEN / ANSWERED / ARCHIVED）。未指定可
+     * @param oidc SecurityContext内のOidcUser情報（未ログインならnull）
      * @param source 投票キーの取得元
      * @return 一覧Responseクラス
      */
     public List<QuestionResponse> findByEventId(
         Long eventId,
         String sort,
+        String status,
+        OidcUser oidc,
         VoterKeySource source) {
         // 一覧も行が無ければ404（existsByIdでも同じだが、詳細と口を揃える）
         requireVisibleEvent(eventId);
 
         final QuestionSort questionSort;
-
         try {
             questionSort = QuestionSort.form(sort);
         } catch (IllegalArgumentException ex) {
@@ -124,9 +129,26 @@ public class QuestionService {
             );
         }
 
+        final Optional<QuestionStatus> questionStatus;
+        try {
+            questionStatus = QuestionStatus.form(status);
+        } catch (IllegalArgumentException ex) {
+            throw new BusinessException(
+                HttpStatus.BAD_REQUEST,
+                "Bad Request",
+                ex.getMessage()
+            );
+        }
+
+        if (questionStatus.isPresent()
+                && questionStatus.get() == QuestionStatus.ARCHIVED) {
+            requireOwnedEventForArchived(eventId, oidc);
+        }
+
         final Set<Long> votedQuestionIds = votedQuestionIds(eventId, source);
 
-        return questionRepository.searchByEventId(eventId, questionSort)
+        return questionRepository
+            .searchByEventId(eventId, questionSort, questionStatus)
             .stream()
             .map(question -> toQuestionResponse(
                 question,
@@ -189,6 +211,34 @@ public class QuestionService {
                         HttpStatus.NOT_FOUND,
                         "Not Found",
                         "イベントが見つかりません。"));
+    }
+
+    /**
+     * ARCHIVED一覧を見てよいかを検証するメソッド
+     * 未ログイン・users行なし・非所有者は403（公開GETのまま、隠した行だけ見せない）
+     * @param eventId イベントid
+     * @param oidc SecurityContext内のOidcUser情報（未ログインならnull）
+     */
+    private void requireOwnedEventForArchived(Long eventId, OidcUser oidc) {
+        if (oidc == null) {
+            throw archivedForbidden();
+        }
+        final User user = userService.findByOidcSubject(oidc.getSubject())
+                .orElseThrow(QuestionService::archivedForbidden);
+        eventRepository
+                .findByIdAndHost_Id(eventId, user.getId())
+                .orElseThrow(QuestionService::archivedForbidden);
+    }
+
+    /**
+     * ARCHIVED一覧の403を発行するメソッド
+     * @return Forbiddenの業務例外
+     */
+    private static BusinessException archivedForbidden() {
+        return new BusinessException(
+                HttpStatus.FORBIDDEN,
+                "Forbidden",
+                "この操作は主催者のみ可能です。");
     }
 
     /**

@@ -1,5 +1,7 @@
 package com.liveqa.service;
 
+import java.util.Optional;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
@@ -38,13 +40,24 @@ public class UserService {
     }
 
     /**
+     * oidcSubjectでusers行を探すメソッド
+     * 無いこともある（公開GETのARCHIVED判定など）
+     * @param oidcSubject Keycloakのsub
+     * @return あればUser
+     */
+    @Transactional(readOnly = true)
+    public Optional<User> findByOidcSubject(String oidcSubject) {
+        return repository.findByOidcSubject(oidcSubject);
+    }
+
+    /**
      * セッションから復元されたOidcUserのoidcSubjectで存在確認をするメソッド
      * @param oidcSubject セッションから復元されたuserが保持しているsubjectt
      * @return 検索されたユーザー情報
      */
     @Transactional
     public User requireByOidcSubject(String oidcSubject) {
-        return repository.findByOidcSubject(oidcSubject)
+        return findByOidcSubject(oidcSubject)
                 .orElseThrow(() -> new BusinessException(
                     HttpStatus.NOT_FOUND, "Not Found", "ユーザーが見つかりません。"
                 ));
