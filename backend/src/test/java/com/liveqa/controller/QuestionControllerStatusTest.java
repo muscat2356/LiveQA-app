@@ -26,6 +26,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.liveqa.dto.response.QuestionResponse;
 import com.liveqa.enums.QuestionStatus;
 import com.liveqa.service.QuestionService;
+import com.liveqa.websocket.QuestionEventPublisher;
 
 /**
  * 質問ステータス PATCH の HTTP 面（HOST / CSRF）。
@@ -43,6 +44,9 @@ class QuestionControllerStatusTest {
 
     @MockitoBean
     QuestionService questionService;
+
+    @MockitoBean
+    QuestionEventPublisher questionEventPublisher;
 
     @Test
     void updateStatus_HOSTなら200() throws Exception {
