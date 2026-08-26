@@ -11,6 +11,7 @@ import { QuestionStatusBadge } from "@/components/question/questionStatusBadge";
 import useHostQuestions from "@/components/question/useHostQuestions";
 import { OrganizerChart } from "@/components/poll/organizerChart";
 import usePoll from "@/components/poll/usePoll";
+import PollCreateForm from "@/components/poll/PollCreateForm";
 
 export default  function HostQaScreen({
      event 
@@ -85,6 +86,7 @@ export default  function HostQaScreen({
                     </li>
                 ))}
             </ul>
+            <PollCreateForm eventId={event.id} load={pollLoad} />
         </div>
     );
 }

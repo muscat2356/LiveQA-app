@@ -52,11 +52,9 @@ export default function PollOptionInputs({
                 </Button>
             }
 
-            {hasDuplicate === true &&(
-                
-            )
-            
-            }
+            {hasDuplicate&&(
+                <p>選択肢が重複しています</p>
+            )}
         </div>
     )
 }
