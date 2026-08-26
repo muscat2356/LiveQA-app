@@ -288,7 +288,7 @@ class PollServiceTest {
     void respond_SINGLEなら200でcountとmyOptionIds() {
         final Poll poll = openPoll(5L, PollType.SINGLE);
         when(voterKeyResolver.resolve(any())).thenReturn(VoterKey.guest("abc"));
-        when(pollRepository.findById(5L)).thenReturn(Optional.of(poll));
+        when(pollRepository.findByIdForUpdate(5L)).thenReturn(Optional.of(poll));
         when(pollVoteRepository.findByPoll_IdAndVoterKey(5L, "g:abc")).thenReturn(List.of());
         when(pollVoteRepository.saveAllAndFlush(any())).thenAnswer(inv -> inv.getArgument(0));
         when(pollVoteRepository.countByOptionId(5L))
@@ -303,6 +303,8 @@ class PollServiceTest {
         assertThat(response.totalResponses()).isEqualTo(1);
         assertThat(response.myOptionIds()).containsExactly(31L);
         assertThat(response.options()).extracting(o -> o.count()).containsExactly(1, 0);
+        verify(pollRepository).findByIdForUpdate(5L);
+        verify(pollRepository, never()).findById(any());
         verify(pollVoteRepository).saveAllAndFlush(any());
     }
 
@@ -310,7 +312,7 @@ class PollServiceTest {
     void respond_二重なら409() {
         final Poll poll = openPoll(5L, PollType.SINGLE);
         when(voterKeyResolver.resolve(any())).thenReturn(VoterKey.guest("abc"));
-        when(pollRepository.findById(5L)).thenReturn(Optional.of(poll));
+        when(pollRepository.findByIdForUpdate(5L)).thenReturn(Optional.of(poll));
         when(pollVoteRepository.findByPoll_IdAndVoterKey(5L, "g:abc"))
                 .thenReturn(List.of(PollVote.cast(poll.getOptions().get(0), "g:abc")));
 
@@ -345,7 +347,25 @@ class PollServiceTest {
                     final BusinessException be = (BusinessException) ex;
                     assertThat(be.getStatus()).isEqualTo(HttpStatus.UNAUTHORIZED);
                 });
-        verify(pollRepository, never()).findById(any());
+        verify(pollRepository, never()).findByIdForUpdate(any());
+        verify(pollVoteRepository, never()).saveAllAndFlush(any());
+    }
+
+    @Test
+    void respond_ポールが無ければ404() {
+        when(voterKeyResolver.resolve(any())).thenReturn(VoterKey.guest("abc"));
+        when(pollRepository.findByIdForUpdate(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> pollService.respond(
+                99L,
+                new PollRespondRequest(List.of(31L)),
+                new VoterKeySource.Guest("abc")
+        ))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> {
+                    final BusinessException be = (BusinessException) ex;
+                    assertThat(be.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
+                });
         verify(pollVoteRepository, never()).saveAllAndFlush(any());
     }
 
@@ -354,7 +374,7 @@ class PollServiceTest {
         final Poll poll = openPoll(5L, PollType.SINGLE);
         poll.changeStatus(PollStatus.CLOSED);
         when(voterKeyResolver.resolve(any())).thenReturn(VoterKey.guest("abc"));
-        when(pollRepository.findById(5L)).thenReturn(Optional.of(poll));
+        when(pollRepository.findByIdForUpdate(5L)).thenReturn(Optional.of(poll));
 
         assertThatThrownBy(() -> pollService.respond(
                 5L,
@@ -374,7 +394,7 @@ class PollServiceTest {
     void respond_UNIQUE違反なら409() {
         final Poll poll = openPoll(5L, PollType.SINGLE);
         when(voterKeyResolver.resolve(any())).thenReturn(VoterKey.guest("abc"));
-        when(pollRepository.findById(5L)).thenReturn(Optional.of(poll));
+        when(pollRepository.findByIdForUpdate(5L)).thenReturn(Optional.of(poll));
         when(pollVoteRepository.findByPoll_IdAndVoterKey(5L, "g:abc")).thenReturn(List.of());
         when(pollVoteRepository.saveAllAndFlush(any()))
                 .thenThrow(new DataIntegrityViolationException("uq_poll_responses_option_voter"));
@@ -396,7 +416,7 @@ class PollServiceTest {
     void respond_MULTIで同じ選択肢を選び直すと409() {
         final Poll poll = openPoll(5L, PollType.MULTI);
         when(voterKeyResolver.resolve(any())).thenReturn(VoterKey.guest("abc"));
-        when(pollRepository.findById(5L)).thenReturn(Optional.of(poll));
+        when(pollRepository.findByIdForUpdate(5L)).thenReturn(Optional.of(poll));
         when(pollVoteRepository.findByPoll_IdAndVoterKey(5L, "g:abc"))
                 .thenReturn(List.of(PollVote.cast(poll.getOptions().get(0), "g:abc")));
 

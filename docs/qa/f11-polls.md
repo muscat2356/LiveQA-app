@@ -12,6 +12,7 @@ scope: `POST /api/polls/{pollId}/responses`、`GET /api/polls/{pollId}/results`�
 | `PollResponse.form` に count / myOptionIds | **済み** |
 | 回答 POST | **済み**（Controller + Service + CSRF） |
 | 結果 GET | **済み**（公開。所有者以外の DRAFT は 404） |
+| SINGLE 並行二重回答 | **済み**（回答 POST でポール行 `FOR UPDATE`。#109 (a)） |
 | 一覧 GET の実集計 | **未**（0 固定のまま。次の単位） |
 | `POLL_UPDATED` | 口だけ。配信は C |
 
@@ -70,7 +71,7 @@ SecurityContext ──▶ OidcUser ─────┘         Host / Guest / Mis
 | # | 行 | 何をする | 外れると |
 |---|----|----------|----------|
 | 1 | `voterKeyResolver.resolve(source)` | 誰かを確定。Missing はここで落とす | 401 |
-| 2 | `requireVisiblePoll(pollId)` | ポールを復元 | 404 |
+| 2 | `requireLockedPoll(pollId)` | ポールを復元し行を悲観ロック（`SELECT … FOR UPDATE`） | 404 |
 | 3 | `requireAccepting(poll)` | ポール `OPEN` **かつ** イベント `OPEN` | 409 |
 | 4 | `resolveOptions(poll, optionIds)` | id → 当該ポールの `PollOption` へ変換 | 400 |
 | 5 | `myOptionIds(pollId, key)` | 既に選んだ選択肢を **1 回の SQL** で取得 | — |
@@ -106,9 +107,21 @@ MULTI  … selected に alreadyChosen と被る id があれば 409
 
 `static` にしてある。DB は呼び出し側が 5 で 1 回引くだけ。テストも `List<Long>` を渡すだけで書ける。
 
+### 2 の悲観ロック（SINGLE レース）
+
+`requireVisiblePoll`（ただの SELECT）だと、READ COMMITTED で並行 POST が両方 `alreadyChosen=[]` を見て、SINGLE なのに別 option を2票入れられる。UNIQUE は `(poll_option_id, voter_key)` なので別 option は当たらない。
+
+`findByIdForUpdate`（`PESSIMISTIC_WRITE` → `SELECT … FOR UPDATE`）で **ポール行を TX 完了まで握る**。後着は先行の COMMIT を待ち、その時点の `alreadyChosen` を見て 409 になる。結果 GET はロックしない。
+
+ポール単位の直列化なので、**違う人の回答も同じポールなら待つ**。スキーマ変更なし。部分 UNIQUE は採らなかった。
+
+```text
+【EJ】例外 … 並行の不変条件はロックか DB 制約。アプリの if だけでは足りない
+```
+
 ### 7 の二段構え
 
-アプリの 6 で弾いても、**同時リクエストはすり抜ける**。UNIQUE `uq_poll_responses_option_voter` が最後の砦で、`DataIntegrityViolationException` を制約名で見分けて 409 に翻訳する（いいねの `VoteService` と同じ口）。制約名が違えば `throw ex` で 500 のままにする。**握りつぶさない。**
+アプリの 6 で弾いても、ロックより前に来た同時リクエストはすり抜けうる。いまは 2 でポール行を直列化するので、SINGLE の別 option レースは 6 が拾う。UNIQUE `uq_poll_responses_option_voter` は **MULTI / 同一 option** の最後の砦。`DataIntegrityViolationException` を制約名で見分けて 409 に翻訳する（いいねの `VoteService` と同じ口）。制約名が違えば `throw ex` で 500 のままにする。**握りつぶさない。**
 
 ### 8 で引き直さない
 
@@ -142,7 +155,8 @@ MULTI  … selected に alreadyChosen と被る id があれば 409
 
 | メソッド | 役割 | DB |
 |----------|------|-----|
-| `requireVisiblePoll` | 存在確認（404） | SELECT 1 |
+| `requireVisiblePoll` | 存在確認（404）。結果 GET 用 | SELECT 1 |
+| `requireLockedPoll` | 存在確認＋悲観ロック（404）。回答 POST 用 | `SELECT … FOR UPDATE` |
 | `requireOwnedPoll` | 所有確認（404）。`id`+`host_id` で 0 件なら 404 | SELECT 1 + users |
 | `requireOwnedDraft` | 未ログインを 404 にしてから所有確認 | 上に同じ |
 | `requireAccepting` | 両方 OPEN（409） | なし（LAZY 読み） |
@@ -236,10 +250,56 @@ GET は CSRF 不要。POST は必須（`X-XSRF-TOKEN`）。
 
 | クラス | 何を見るか |
 |--------|-----------|
-| `PollServiceTest` | SINGLE 200（count / myOptionIds）、二重 409、MULTI 選び直し 409、未確立 401、非 OPEN 409、UNIQUE 409、結果 GET 200 / DRAFT 404 / 所有者 DRAFT 200 / 無し 404 |
+| `PollServiceTest` | SINGLE 200（count / myOptionIds / `findByIdForUpdate`）、二重 409、MULTI 選び直し 409、未確立 401、非 OPEN 409、UNIQUE 409、回答 無し 404、結果 GET 200 / DRAFT 404 / 所有者 DRAFT 200 / 無し 404 |
 | `PollControllerTest` | 回答 200（Session → `VoterKeySource.Guest`）、CSRF なし 403、結果 200（未ログイン / ゲスト Session） |
 | `PollVoteTest` | `cast` が option から poll を取る |
 
 `findResults_OPENならキー未確立でも200` は `verify(never()).findByPoll_IdAndVoterKey` を入れてある。未確立で自分の票を引きに行かないことの確認。
 
 `respond_SINGLEなら200` は `countByOptionId` が 31 番だけ返すスタブにしてある。**32 番が結果に出てこない**ので、0 埋めの動作をそのまま踏める。
+
+---
+
+# Q. PR #109 の指摘は妥当？（2026-08-26）
+
+出典: [PR #109](https://github.com/muscat2356/live-qa-app/pull/109#issuecomment-5421241188)（`muscat2356`）。インラインレビューは無し。CodeRabbit はウォークスルーのみ。
+
+| # | 指摘 | 妥当？ | 到達点 |
+|---|------|--------|--------|
+| 1 | SINGLE の並行二重回答 | **妥当** | **済み**（(a) ポール行 `FOR UPDATE`） |
+| 2 | DELETED イベント配下の見え方 | **該当なし** | 物理 DELETE。`EventStatus.DELETED` は無い |
+| 3 | UNIQUE 判定がメッセージ文字列 | **妥当（軽微）** | いいねと同じ口のまま |
+| 4 | `@NotNull` + `@NotEmpty` の重複 | **妥当（軽微・実害なし）** | 粗ガードのまま |
+
+## 1. SINGLE レース（済み・(a)）
+
+UNIQUE は `(poll_option_id, voter_key)` だけ。**同じ選択肢の二重**と **MULTI の同一選択肢レース**は DB が 409 にする。**SINGLE で別選択肢を同時 POST** すると UNIQUE は当たらない。
+
+```text
+READ COMMITTED（ロック無しのとき）
+  リクエストA: alreadyChosen=[] → INSERT (optA, voter)
+  リクエストB: alreadyChosen=[]（A は未コミットで見えない）→ INSERT (optB, voter)
+  両方成功 → SINGLE なのに 2 票
+```
+
+採ったのは **(a)**。`respond` は `requireLockedPoll` → `findByIdForUpdate`（`@Lock(PESSIMISTIC_WRITE)`）。後着は先行 TX の COMMIT を待ち、`validateNotAlreadyAnswered` が 409 にする。結果 GET は `requireVisiblePoll` のまま。
+
+| 案 | 内容 | 採否 |
+|----|------|------|
+| (a) | ポール行 `SELECT … FOR UPDATE`。同一ポールの回答を直列化 | **採った** |
+| (b) | 部分 UNIQUE `(poll_id, voter_key) WHERE is_single` | 不採（非正規化） |
+| (c) | 匿名・低価値として割り切りを docs に明記 | 不採 |
+
+## 2. DELETED（該当なし）
+
+イベント削除の正は **物理 DELETE**（配下 CASCADE）。`EventStatus` は `DRAFT` / `OPEN` / `CLOSED` だけ。行が消えたポールは `requireVisiblePoll` が **404**。
+
+`CLOSED` は契約どおり **回答 409 / 結果 200**（`requireAccepting` が両方 OPEN を見る。結果 GET は DRAFT 以外公開）。論理削除と取り違えない。
+
+## 3. UNIQUE 判定（軽微）
+
+`getMostSpecificCause().getMessage().contains("uq_poll_responses_option_voter")`。Postgres では動く。ドライバ／ロケール／別 UNIQUE 追加に脆い。`VoteService` と同じ口。直すなら SQLState `23505` ＋制約名。未着手。
+
+## 4. Request バリデーション（軽微）
+
+`@NotNull` は `@NotEmpty` に含まれる。`@Size(max=10)` は Service の精密チェック（SINGLE=1／MULTI≤選択肢数）の手前の粗ガード。実害なし。未着手。

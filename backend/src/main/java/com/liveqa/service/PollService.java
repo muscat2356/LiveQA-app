@@ -161,6 +161,7 @@ public class PollService {
     /**
      * ポールへ回答するメソッド
      * voter_keyはSession。ポールとルームが両方OPENのときだけ可。置換しない
+     * 同一ポールの回答は悲観ロックで直列化する（SINGLEの並行二重を防ぐ）
      * @param pollId ポールid
      * @param request 選んだ選択肢id
      * @param source 投票キーの取得元
@@ -173,7 +174,7 @@ public class PollService {
             VoterKeySource source
     ) {
         final VoterKey voterKey = voterKeyResolver.resolve(source);
-        final Poll poll = requireVisiblePoll(pollId);
+        final Poll poll = requireLockedPoll(pollId);
         requireAccepting(poll);
         final List<PollOption> selected = resolveOptions(poll, request.optionIds());
         final List<Long> alreadyChosen = myOptionIds(pollId, voterKey.value());
@@ -270,6 +271,21 @@ public class PollService {
      */
     private Poll requireVisiblePoll(Long pollId) {
         return pollRepository.findById(pollId)
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        "Not Found",
+                        "ポールが見つかりません。"));
+    }
+
+    /**
+     * ポール行を悲観ロックして復元するメソッド
+     * 回答POST専用。同じポールへの並行回答をTX完了まで待たせる
+     * 無い行は404（存在漏洩しない）
+     * @param pollId ポールid
+     * @return ポール
+     */
+    private Poll requireLockedPoll(Long pollId) {
+        return pollRepository.findByIdForUpdate(pollId)
                 .orElseThrow(() -> new BusinessException(
                         HttpStatus.NOT_FOUND,
                         "Not Found",
