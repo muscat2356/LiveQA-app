@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.liveqa.dto.response.MeResponse;
 import com.liveqa.service.UserService;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 /**
@@ -22,6 +23,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @RestController
 @RequestMapping("/api")
 @Tag(name = "認証", description = "GET /api/me。logout は Security の /api/auth/logout（RestController ではない）")
+@SecurityRequirement(name = "SESSION")
 public class MeController {
 
 private final UserService userService;

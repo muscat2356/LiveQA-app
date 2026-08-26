@@ -11,7 +11,6 @@ import io.swagger.v3.core.converter.ModelConverters;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
-import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 
 import jakarta.servlet.http.HttpSession;
@@ -19,6 +18,7 @@ import jakarta.servlet.http.HttpSession;
 /**
  * springdoc の表示設定。
  * 契約の正は docs/api/openapi-notes.md。ここは実装からの閲覧用。
+ * SESSION scheme は定義だけ。必須かどうかは各 operation の @SecurityRequirement。
  * OpenApiConfig
  * @author ichikura
  */
@@ -57,11 +57,12 @@ public class OpenApiConfig {
                                 状態変更（POST / PATCH / DELETE）はヘッダ `X-XSRF-TOKEN` が必要（Cookie `XSRF-TOKEN` と突合）。
                                 例外: `POST /api/auth/guest` は CSRF 検証しない（応答で `XSRF-TOKEN` が載る）。
 
+                                南京錠は Cookie が要る operation だけ（公開 GET / guest 発行には付かない）。
+
                                 Try it out はブラウザから同一オリジンで Cookie を送る。Swagger UI だけでは CSRF ヘッダは自動では付かない。
 
                                 STOMP（`/topic/events/{eventId}/questions` など）は springdoc の外。openapi-notes の STOMP 節を見る。
                                 """))
-                .components(components)
-                .addSecurityItem(new SecurityRequirement().addList("SESSION"));
+                .components(components);
     }
 }

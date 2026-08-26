@@ -13,6 +13,8 @@ import com.liveqa.dto.response.VoteResponse;
 import com.liveqa.service.VoteService;
 
 import jakarta.servlet.http.HttpSession;
+
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 /**
  * リソースvoteに対するAPIコントローラー
@@ -22,6 +24,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @RestController
 @RequestMapping("/api")
 @Tag(name = "いいね", description = "追加・取消")
+@SecurityRequirement(name = "SESSION")
 public class VoteController {
 
     private final VoteService voteService;

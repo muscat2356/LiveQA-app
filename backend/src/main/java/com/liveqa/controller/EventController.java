@@ -27,6 +27,7 @@ import com.liveqa.service.EventService;
 
 import jakarta.validation.Valid;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 /**
@@ -37,6 +38,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @RestController
 @RequestMapping("/api")
 @Tag(name = "イベント", description = "作成・一覧・詳細・名称・削除・開閉")
+@SecurityRequirement(name = "SESSION")
 public class EventController {
 
     private final EventService eventService;

@@ -24,6 +24,7 @@ import com.liveqa.service.PollService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 /**
@@ -53,6 +54,7 @@ public class PollController {
      */
     @PostMapping("/events/{id}/polls")
     @PreAuthorize("hasRole('HOST')")
+    @SecurityRequirement(name = "SESSION")
     public ResponseEntity<PollResponse> create(
         @PathVariable Long id,
         @AuthenticationPrincipal OidcUser oidc,
@@ -97,6 +99,7 @@ public class PollController {
      */
     @PatchMapping("/polls/{pollId}/status")
     @PreAuthorize("hasRole('HOST')")
+    @SecurityRequirement(name = "SESSION")
     public ResponseEntity<PollResponse> updateStatus(
             @AuthenticationPrincipal OidcUser oidc,
             @PathVariable Long pollId,
@@ -121,6 +124,7 @@ public class PollController {
      * @return 最新集計のポール
      */
     @PostMapping("/polls/{pollId}/responses")
+    @SecurityRequirement(name = "SESSION")
     public ResponseEntity<PollResponse> respond(
             @PathVariable Long pollId,
             @AuthenticationPrincipal OidcUser oidc,
