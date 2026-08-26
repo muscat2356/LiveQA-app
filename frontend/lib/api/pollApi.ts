@@ -89,7 +89,7 @@ export async function fetchPostPollResponse(pollId: number, optionIds: number[])
     const xsrfToken = readCookie("XSRF-TOKEN");
 
     const res = await fetch(
-        `/api/polls/${pollId}/response`,{ 
+        `/api/polls/${pollId}/responses`,{ 
             method: "POST",
             headers: { 
                 "Content-Type":"application/json",
