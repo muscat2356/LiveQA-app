@@ -23,9 +23,8 @@ export default function PollTypeSelect({
                     variant={value === t ? "default" : "outline"}
                     onClick={() => onChange(t)}
                 >
-                
+                {t ==="SINGLE" ? "単一選択": "複数選択"}
                 </Button>
             ))}
-
     </div>
-    )};
+    )}
