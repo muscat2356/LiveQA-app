@@ -2,6 +2,7 @@ package com.liveqa.dto.response;
 
 import java.time.Instant;
 
+import com.liveqa.domain.Question;
 import com.liveqa.enums.QuestionStatus;
 
 /**
@@ -21,4 +22,26 @@ public record QuestionResponse(
     Instant createdAt
 ) {
 
+    /**
+     * Entityから応答DTOへ変換するファクトリ
+     * votedByMeはEntityに無いのでServiceが渡す
+     * @param question 質問
+     * @param eventId イベントid
+     * @param votedByMe 今のセッションがいいね済みか
+     * @return 応答DTO
+     */
+    public static QuestionResponse form(
+            Question question,
+            Long eventId,
+            boolean votedByMe) {
+        return new QuestionResponse(
+                question.getId(),
+                eventId,
+                question.getBody(),
+                question.getDisplayName(),
+                question.getUpvoteCount(),
+                question.getStatus(),
+                votedByMe,
+                question.getCreatedAt());
+    }
 }

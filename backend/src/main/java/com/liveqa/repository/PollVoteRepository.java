@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 
 import com.liveqa.domain.PollVote;
 import com.liveqa.repository.projection.OptionVoteCount;
+import com.liveqa.repository.projection.VoterOptionId;
 
 /**
  * poll_responsesテーブルを操作するRepository
@@ -40,4 +41,38 @@ public interface PollVoteRepository extends JpaRepository<PollVote, Long> {
             GROUP BY v.pollOption.id
             """)
     List<OptionVoteCount> countByOptionId(@Param("pollId") Long pollId);
+
+    /**
+     * イベント配下の得票を選択肢ごとに1回のSQLで返すメソッド
+     * 一覧でポールごとにCOUNTするとN+1になるためイベント単位でGROUP BYする
+     * 0票の選択肢は行が出ない（呼び出し側で0埋め）
+     * @param eventId イベントid
+     * @return 選択肢ごとの得票
+     */
+    @Query("""
+            SELECT new com.liveqa.repository.projection.OptionVoteCount(
+                v.pollOption.id, COUNT(v))
+            FROM PollVote v
+            WHERE v.poll.event.id = :eventId
+            GROUP BY v.pollOption.id
+            """)
+    List<OptionVoteCount> countByOptionIdForEvent(@Param("eventId") Long eventId);
+
+    /**
+     * 今のセッションがイベント配下で選んだ選択肢を1回のSQLで返すメソッド
+     * 一覧の myOptionIds 用。ポールごとにSELECTするとN+1になる
+     * @param eventId イベントid
+     * @param voterKey g:{guestId}またはu:{userId}
+     * @return ポールidと選択肢id
+     */
+    @Query("""
+            SELECT new com.liveqa.repository.projection.VoterOptionId(
+                v.poll.id, v.pollOption.id)
+            FROM PollVote v
+            WHERE v.poll.event.id = :eventId
+              AND v.voterKey = :voterKey
+            """)
+    List<VoterOptionId> findVoterOptionIdsByEventId(
+            @Param("eventId") Long eventId,
+            @Param("voterKey") String voterKey);
 }

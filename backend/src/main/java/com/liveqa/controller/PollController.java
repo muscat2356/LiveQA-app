@@ -24,6 +24,9 @@ import com.liveqa.service.PollService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 /**
  * リソースpollsに対するAPIコントローラー
  * 作成・一覧・開閉・回答・結果
@@ -32,6 +35,7 @@ import jakarta.validation.Valid;
  */
 @RestController
 @RequestMapping("/api")
+@Tag(name = "ポール", description = "作成・一覧・開閉・回答・結果")
 public class PollController {
 
     private final PollService pollService;
@@ -50,6 +54,7 @@ public class PollController {
      */
     @PostMapping("/events/{id}/polls")
     @PreAuthorize("hasRole('HOST')")
+    @SecurityRequirement(name = "SESSION")
     public ResponseEntity<PollResponse> create(
         @PathVariable Long id,
         @AuthenticationPrincipal OidcUser oidc,
@@ -64,16 +69,23 @@ public class PollController {
     /**
      * イベント配下のポール一覧を返すGETメソッド
      * 所有者は全件、それ以外は OPEN。未ログインでも 200
+     * myOptionIdsは今のセッション視点。Sessionが無くても200
      * @param id イベントid
      * @param oidc SecurityContext内のOidcUser情報（未ログインならnull）
+     * @param session guestIdを持つHttpSession
      * @return ポール一覧
      */
     @GetMapping("/events/{id}/polls")
     public ResponseEntity<List<PollResponse>> findByEventId(
             @PathVariable Long id,
-            @AuthenticationPrincipal OidcUser oidc
+            @AuthenticationPrincipal OidcUser oidc,
+            HttpSession session
     ) {
-        return ResponseEntity.ok(pollService.findByEventId(id, oidc));
+        return ResponseEntity.ok(
+                pollService.findByEventId(
+                        id,
+                        oidc,
+                        VoterKeySources.form(oidc, session)));
     }
 
     /**
@@ -82,17 +94,24 @@ public class PollController {
      * @param oidc SecurityContext内のOidcUser情報
      * @param pollId ポールid
      * @param request OPEN または CLOSED
+     * @param session guestIdを持つHttpSession
      * @return 更新したポール
      */
     @PatchMapping("/polls/{pollId}/status")
     @PreAuthorize("hasRole('HOST')")
+    @SecurityRequirement(name = "SESSION")
     public ResponseEntity<PollResponse> updateStatus(
             @AuthenticationPrincipal OidcUser oidc,
             @PathVariable Long pollId,
-            @Valid @RequestBody PollStatusRequest request
+            @Valid @RequestBody PollStatusRequest request,
+            HttpSession session
     ) {
         return ResponseEntity.ok(
-                pollService.updateStatus(pollId, request.status(), oidc));
+                pollService.updateStatus(
+                        pollId,
+                        request.status(),
+                        oidc,
+                        VoterKeySources.form(oidc, session)));
     }
 
     /**
@@ -105,6 +124,7 @@ public class PollController {
      * @return 最新集計のポール
      */
     @PostMapping("/polls/{pollId}/responses")
+    @SecurityRequirement(name = "SESSION")
     public ResponseEntity<PollResponse> respond(
             @PathVariable Long pollId,
             @AuthenticationPrincipal OidcUser oidc,

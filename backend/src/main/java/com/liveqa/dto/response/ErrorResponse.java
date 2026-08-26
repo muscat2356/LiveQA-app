@@ -4,16 +4,23 @@ import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 /**
  * エラー応答DTO（{ status, error, message }。400は任意でfields）
  * ErrorResponse
  * @author mizumura
  */
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
+@Schema(description = "共通エラー。status / error / message。400 だけ任意で fields")
 public record ErrorResponse(
+        @Schema(description = "HTTPステータスコード", example = "409")
         int status,
+        @Schema(description = "英語の種別", example = "Conflict")
         String error,
+        @Schema(description = "説明（日本語可）", example = "既に投票済みです。")
         String message,
+        @Schema(description = "400 の項目別メッセージ。空なら JSON から省略")
         Map<String, String> fields) {
 
     /**

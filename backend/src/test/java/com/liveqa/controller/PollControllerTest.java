@@ -122,7 +122,7 @@ class PollControllerTest {
 
     @Test
     void findByEventId_HOSTなら200() throws Exception {
-        when(pollService.findByEventId(eq(10L), any(OidcUser.class)))
+        when(pollService.findByEventId(eq(10L), any(OidcUser.class), any()))
                 .thenReturn(List.of(new PollResponse(
                         5L,
                         10L,
@@ -143,8 +143,25 @@ class PollControllerTest {
     }
 
     @Test
+    void findByEventId_ゲストならsourceを渡す() throws Exception {
+        when(pollService.findByEventId(eq(10L), eq(null), any()))
+                .thenReturn(List.of());
+
+        final MockHttpSession session = new MockHttpSession();
+        session.setAttribute(GuestSession.ATTR_GUEST_ID, "abc");
+
+        mockMvc.perform(get("/api/events/10/polls").session(session))
+                .andExpect(status().isOk());
+
+        final ArgumentCaptor<VoterKeySource> captor =
+                ArgumentCaptor.forClass(VoterKeySource.class);
+        verify(pollService).findByEventId(eq(10L), eq(null), captor.capture());
+        assertThat(captor.getValue()).isEqualTo(new VoterKeySource.Guest("abc"));
+    }
+
+    @Test
     void findByEventId_未ログインなら200() throws Exception {
-        when(pollService.findByEventId(eq(10L), eq(null)))
+        when(pollService.findByEventId(eq(10L), eq(null), any()))
                 .thenReturn(List.of());
 
         mockMvc.perform(get("/api/events/10/polls"))
@@ -153,7 +170,7 @@ class PollControllerTest {
 
     @Test
     void updateStatus_HOSTなら200() throws Exception {
-        when(pollService.updateStatus(eq(5L), eq(PollStatus.OPEN), any(OidcUser.class)))
+        when(pollService.updateStatus(eq(5L), eq(PollStatus.OPEN), any(OidcUser.class), any()))
                 .thenReturn(new PollResponse(
                         5L,
                         10L,

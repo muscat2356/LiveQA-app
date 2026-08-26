@@ -13,7 +13,7 @@ scope: `POST /api/polls/{pollId}/responses`、`GET /api/polls/{pollId}/results`�
 | 回答 POST | **済み**（Controller + Service + CSRF） |
 | 結果 GET | **済み**（公開。所有者以外の DRAFT は 404） |
 | SINGLE 並行二重回答 | **済み**（回答 POST でポール行 `FOR UPDATE`。#109 (a)） |
-| 一覧 GET の実集計 | **未**（0 固定のまま。次の単位） |
+| 一覧 GET の実集計 | **済み**（イベント単位 GROUP BY。N+1 にしない） |
 | `POLL_UPDATED` | 口だけ。配信は C |
 
 ## 単位（この順）
@@ -21,7 +21,7 @@ scope: `POST /api/polls/{pollId}/responses`、`GET /api/polls/{pollId}/results`�
 1. ~~Entity `PollVote` + Repository~~
 2. ~~`form(poll, counts, myOptionIds)` ＋ 回答 POST~~
 3. ~~結果 GET（HOST 以外の DRAFT は 404）~~
-4. 一覧 GET も同じ集計へ（0 固定をやめる）
+4. ~~一覧 GET も同じ集計へ（0 固定をやめる）~~
 
 Entity 名はテーブル `poll_responses`。DTO が既に `PollResponse` なので **`PollVote`**（`Vote.cast` に揃える）。
 
@@ -151,12 +151,32 @@ MULTI  … selected に alreadyChosen と被る id があれば 409
 
 得票は公開情報。`myOptionIds`（自分が何を選んだか）だけがセッション依存で、無ければ空でよい。`resolve`（401）ではなく `tryResolve`（`Optional`）を使う。
 
+## 一覧 GET の実集計
+
+`GET /api/events/{id}/polls` も同じ PollDTO。`stream().map(PollResponse::form)`（0 固定）はやめた。
+
+ポールごとに COUNT すると N+1 になるので、イベント単位で 2 本:
+
+| SQL | 何を返す |
+|-----|----------|
+| `countByOptionIdForEvent` | 選択肢 id → 得票（GROUP BY） |
+| `findVoterOptionIdsByEventId` | 今のセッションが選んだ（pollId, optionId） |
+
+キー未確立は `tryResolve` で空（質問一覧の `votedByMe=false` と同じ）。作成 POST だけ `form(poll)` の 0 のまま（まだ票が無い）。
+
+```text
+【EJ】公開面最小化 … DTO は Repository を見ない。集計は Service が引数で渡す
+【EJ】ジェネリクス … Object[] ではなく VoterOptionId record
+```
+
 ## private の役割一覧
 
 | メソッド | 役割 | DB |
 |----------|------|-----|
 | `requireVisiblePoll` | 存在確認（404）。結果 GET 用 | SELECT 1 |
 | `requireLockedPoll` | 存在確認＋悲観ロック（404）。回答 POST 用 | `SELECT … FOR UPDATE` |
+| `formWithVotes` | 1ポールの得票＋myOptionIds。開閉と結果 GET | COUNT 1 ＋ SELECT 0〜1 |
+| `toResponses` | 一覧用。イベント単位の得票＋myOptionIds | GROUP BY 1 ＋ SELECT 0〜1 |
 | `requireOwnedPoll` | 所有確認（404）。`id`+`host_id` で 0 件なら 404 | SELECT 1 + users |
 | `requireOwnedDraft` | 未ログインを 404 にしてから所有確認 | 上に同じ |
 | `requireAccepting` | 両方 OPEN（409） | なし（LAZY 読み） |

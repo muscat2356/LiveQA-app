@@ -10,14 +10,17 @@ import com.liveqa.service.GuestSessionService;
 
 import jakarta.servlet.http.HttpSession;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 /**
  * リソースguestに対するAPIコントローラー（匿名セッション発行）
- * CSRF必須（permitAllでもPOST）
+ * CSRF検証はしない（発行専用。応答で XSRF-TOKEN が載る）
  * GuestSessionController
  * @author ichikura
  */
 @RestController
 @RequestMapping("/api/auth")
+@Tag(name = "認証", description = "匿名セッション POST /api/auth/guest")
 public class GuestSessionController {
 
     private final GuestSessionService guestSessionService;
