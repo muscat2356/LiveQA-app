@@ -3,6 +3,7 @@ package com.liveqa.controller;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -80,7 +81,7 @@ class QuestionControllerTest {
 
     @Test
     void findByEventId_200でGuestを渡す() throws Exception {
-        when(questionService.findByEventId(eq(10L), any(), any(), any()))
+        when(questionService.findByEventId(eq(10L), any(), any(), any(), any()))
                 .thenReturn(List.of(new QuestionResponse(
                         42L,
                         10L,
@@ -100,29 +101,29 @@ class QuestionControllerTest {
                 .andExpect(jsonPath("$[0].votedByMe").value(false));
 
         final ArgumentCaptor<VoterKeySource> captor = ArgumentCaptor.forClass(VoterKeySource.class);
-        verify(questionService).findByEventId(eq(10L), eq(null), eq(null), captor.capture());
+        verify(questionService).findByEventId(eq(10L), eq(null), eq(null), isNull(), captor.capture());
         assertThat(captor.getValue()).isEqualTo(new VoterKeySource.Guest("abc"));
     }
 
     @Test
     void findByEventId_sortをServiceへ渡す() throws Exception {
-        when(questionService.findByEventId(eq(10L), eq("newest"), eq(null), any()))
+        when(questionService.findByEventId(eq(10L), eq("newest"), eq(null), any(), any()))
                 .thenReturn(List.of());
 
         mockMvc.perform(get("/api/events/10/questions").param("sort", "newest"))
                 .andExpect(status().isOk());
 
-        verify(questionService).findByEventId(eq(10L), eq("newest"), eq(null), any());
+        verify(questionService).findByEventId(eq(10L), eq("newest"), eq(null), isNull(), any());
     }
 
     @Test
     void findByEventId_statusをServiceへ渡す() throws Exception {
-        when(questionService.findByEventId(eq(10L), eq(null), eq("ARCHIVED"), any()))
+        when(questionService.findByEventId(eq(10L), eq(null), eq("ARCHIVED"), any(), any()))
                 .thenReturn(List.of());
 
         mockMvc.perform(get("/api/events/10/questions").param("status", "ARCHIVED"))
                 .andExpect(status().isOk());
 
-        verify(questionService).findByEventId(eq(10L), eq(null), eq("ARCHIVED"), any());
+        verify(questionService).findByEventId(eq(10L), eq(null), eq("ARCHIVED"), isNull(), any());
     }
 }
