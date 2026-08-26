@@ -7,7 +7,7 @@ export async function fetchGetQuestion(eventId: number, sort:Sort, filter: Quest
             params.set("status", filter);
         }
 
-        const res = await fetch(`/api/events/${eventId}/questions${params}`,{
+        const res = await fetch(`/api/events/${eventId}/questions?${params}`,{
              credentials: "same-origin", 
              headers: { Accept: "application/json" }
         });
