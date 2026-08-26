@@ -22,7 +22,9 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.liveqa.dto.response.VoteResponse;
+import com.liveqa.service.QuestionService;
 import com.liveqa.service.VoteService;
+import com.liveqa.websocket.QuestionEventPublisher;
 
 /**
  * いいね POST/DELETE の CSRF（Filter 層）。
@@ -40,6 +42,12 @@ class VoteControllerCsrfTest {
 
     @MockitoBean
     VoteService voteService;
+
+    @MockitoBean
+    QuestionService questionService;
+
+    @MockitoBean
+    QuestionEventPublisher questionEventPublisher;
 
     @Test
     void add_CSRFありなら200() throws Exception {

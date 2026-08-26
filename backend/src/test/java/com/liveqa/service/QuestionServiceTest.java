@@ -482,6 +482,34 @@ class QuestionServiceTest {
         verify(questionRepository, never()).save(any());
     }
 
+    @Test
+    void findByIdForWebSocket_最新の質問情報を返す() {
+        Event event = openEvent(10L);
+
+        Question question = Question.post(
+                event,
+                "STOMPとは何ですか？",
+                "Member C"
+        );
+
+        ReflectionTestUtils.setField(question, "id", 42L);
+        ReflectionTestUtils.setField(question, "upvoteCount", 8);
+
+        when(questionRepository.findById(42L))
+                .thenReturn(Optional.of(question));
+
+        QuestionResponse response =
+                questionService.findByIdForWebSocket(42L);
+
+        assertThat(response.id()).isEqualTo(42L);
+        assertThat(response.eventId()).isEqualTo(10L);
+        assertThat(response.body()).isEqualTo("STOMPとは何ですか？");
+        assertThat(response.displayName()).isEqualTo("Member C");
+        assertThat(response.upvoteCount()).isEqualTo(8);
+        assertThat(response.status()).isEqualTo(QuestionStatus.OPEN);
+        assertThat(response.votedByMe()).isFalse();
+    }
+
     private Event openEvent(Long id) {
         final User host = User.hostOf("sub-1");
         ReflectionTestUtils.setField(host, "id", 1L);

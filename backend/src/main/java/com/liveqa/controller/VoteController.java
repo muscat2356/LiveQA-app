@@ -9,8 +9,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.liveqa.dto.response.QuestionResponse;
 import com.liveqa.dto.response.VoteResponse;
+import com.liveqa.service.QuestionService;
 import com.liveqa.service.VoteService;
+import com.liveqa.websocket.QuestionEventPublisher;
+import com.liveqa.websocket.QuestionEventType;
 
 import jakarta.servlet.http.HttpSession;
 /**
@@ -24,8 +28,17 @@ public class VoteController {
 
     private final VoteService voteService;
 
-    public VoteController(VoteService voteService) {
+    private final QuestionService questionService;
+
+    private final QuestionEventPublisher questionEventPublisher;
+
+    public VoteController(
+            VoteService voteService,
+            QuestionService questionService,
+            QuestionEventPublisher questionEventPublisher) {
         this.voteService = voteService;
+        this.questionService = questionService;
+        this.questionEventPublisher = questionEventPublisher;
     }
 
     /**
@@ -42,11 +55,20 @@ public class VoteController {
         @AuthenticationPrincipal OidcUser oidc,
         HttpSession session
     ) {
-        return ResponseEntity
-            .ok(voteService.add(
-                qid,
-                VoterKeySources.form(oidc, session)
-            ));
+        VoteResponse response = voteService.add(
+            qid,
+            VoterKeySources.form(oidc, session)
+        );
+
+        QuestionResponse question =
+                questionService.findByIdForWebSocket(qid);
+
+        questionEventPublisher.publish(
+            QuestionEventType.QUESTION_UPVOTED,
+            question
+        );
+
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -63,11 +85,20 @@ public class VoteController {
         @AuthenticationPrincipal OidcUser oidc,
         HttpSession session
     ) {
-        return ResponseEntity
-            .ok(voteService.remove(
-                qid,
-                VoterKeySources.form(oidc, session)
-            ));
+        VoteResponse response = voteService.remove(
+            qid,
+            VoterKeySources.form(oidc, session)
+        );
+
+        QuestionResponse question =
+                questionService.findByIdForWebSocket(qid);
+
+        questionEventPublisher.publish(
+                QuestionEventType.QUESTION_UPVOTED,
+                question
+        );
+
+        return ResponseEntity.ok(response);
     }
 
 }
