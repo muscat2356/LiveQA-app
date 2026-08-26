@@ -86,6 +86,14 @@ class UserServiceTest {
     }
 
     @Test
+    void findByOidcSubject_無ければempty() {
+        when(repository.findByOidcSubject("missing"))
+                .thenReturn(Optional.empty());
+
+        assertThat(userService.findByOidcSubject("missing")).isEmpty();
+    }
+
+    @Test
     void toMeResponse_fullNameがあれば優先() {
         final User local = User.hostOf("sub-1");
         ReflectionTestUtils.setField(local, "id", 1L);

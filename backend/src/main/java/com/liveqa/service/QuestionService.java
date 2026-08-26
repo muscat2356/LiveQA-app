@@ -215,7 +215,7 @@ public class QuestionService {
 
     /**
      * ARCHIVED一覧を見てよいかを検証するメソッド
-     * 未ログイン・非所有者は403（公開GETのまま、隠した行だけ見せない）
+     * 未ログイン・users行なし・非所有者は403（公開GETのまま、隠した行だけ見せない）
      * @param eventId イベントid
      * @param oidc SecurityContext内のOidcUser情報（未ログインならnull）
      */
@@ -223,7 +223,8 @@ public class QuestionService {
         if (oidc == null) {
             throw archivedForbidden();
         }
-        final User user = userService.requireByOidcSubject(oidc.getSubject());
+        final User user = userService.findByOidcSubject(oidc.getSubject())
+                .orElseThrow(QuestionService::archivedForbidden);
         eventRepository
                 .findByIdAndHost_Id(eventId, user.getId())
                 .orElseThrow(QuestionService::archivedForbidden);

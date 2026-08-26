@@ -322,7 +322,7 @@ class QuestionServiceTest {
                     assertThat(be.getMessage()).contains("主催者のみ");
                 });
         verify(questionRepository, never()).searchByEventId(any(), any(), any());
-        verify(userService, never()).requireByOidcSubject(any());
+        verify(userService, never()).findByOidcSubject(any());
         verify(eventRepository, never()).findByIdAndHost_Id(any(), any());
     }
 
@@ -333,7 +333,7 @@ class QuestionServiceTest {
         final OidcUser oidc = mock(OidcUser.class);
         when(oidc.getSubject()).thenReturn("sub-1");
         when(eventRepository.findById(10L)).thenReturn(Optional.of(event));
-        when(userService.requireByOidcSubject("sub-1")).thenReturn(host);
+        when(userService.findByOidcSubject("sub-1")).thenReturn(Optional.of(host));
         when(eventRepository.findByIdAndHost_Id(10L, 1L)).thenReturn(Optional.of(event));
         when(voterKeyResolver.tryResolve(any())).thenReturn(Optional.empty());
         when(questionRepository.searchByEventId(
@@ -355,7 +355,7 @@ class QuestionServiceTest {
         final OidcUser oidc = mock(OidcUser.class);
         when(oidc.getSubject()).thenReturn("sub-2");
         when(eventRepository.findById(10L)).thenReturn(Optional.of(event));
-        when(userService.requireByOidcSubject("sub-2")).thenReturn(other);
+        when(userService.findByOidcSubject("sub-2")).thenReturn(Optional.of(other));
         when(eventRepository.findByIdAndHost_Id(10L, 2L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> questionService.findByEventId(
@@ -370,6 +370,26 @@ class QuestionServiceTest {
     }
 
     @Test
+    void findByEventId_ARCHIVEDでusers行が無ければ403() {
+        when(eventRepository.findById(10L))
+                .thenReturn(Optional.of(openEvent(10L)));
+        final OidcUser oidc = mock(OidcUser.class);
+        when(oidc.getSubject()).thenReturn("sub-ghost");
+        when(userService.findByOidcSubject("sub-ghost")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> questionService.findByEventId(
+                10L, null, "ARCHIVED", oidc, new VoterKeySource.Missing()))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> {
+                    final BusinessException be = (BusinessException) ex;
+                    assertThat(be.getStatus()).isEqualTo(HttpStatus.FORBIDDEN);
+                    assertThat(be.getMessage()).contains("主催者のみ");
+                });
+        verify(eventRepository, never()).findByIdAndHost_Id(any(), any());
+        verify(questionRepository, never()).searchByEventId(any(), any(), any());
+    }
+
+    @Test
     void findByEventId_ARCHIVEDでもイベント無しは404() {
         when(eventRepository.findById(99L)).thenReturn(Optional.empty());
 
@@ -380,7 +400,7 @@ class QuestionServiceTest {
                     final BusinessException be = (BusinessException) ex;
                     assertThat(be.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
                 });
-        verify(userService, never()).requireByOidcSubject(any());
+        verify(userService, never()).findByOidcSubject(any());
         verify(questionRepository, never()).searchByEventId(any(), any(), any());
     }
 

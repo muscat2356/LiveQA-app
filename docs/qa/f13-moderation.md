@@ -29,6 +29,7 @@ scope: 不適切質問を隠す。**新 API は作らない。**
 | 所有者 HOST | 200 | 200 |
 
 - 403 の本文はゲストも他 HOST も同じ: `"この操作は主催者のみ可能です。"`
+- OIDC はあるが `users` 行が無いときも **403**（`requireByOidcSubject` の 404 は使わない。公開 GET の特権クエリをユーザー存在で漏らさない）
 - 401 にはしない。一覧は公開 GET。ゲストは Security を通る。Service が拒否する
 - イベントが無いときは **404**（ARCHIVED 指定でも先に `requireVisibleEvent`）
 - 一覧全体に `@PreAuthorize("hasRole('HOST')")` は付けない（公開 GET が死ぬ）
@@ -49,7 +50,7 @@ GET /api/events/10/questions?status=ARCHIVED
   → QuestionStatus.form → Optional.of(ARCHIVED)
   → requireOwnedEventForArchived
        oidc が null → 403
-       oidc.sub → users 行
+       oidc.sub → users 行（無ければ 403。require の 404 は使わない）
        findByIdAndHost_Id（0件 → 403）
   → searchByEventId（status = ARCHIVED）
   → votedByMe は今のセッション（HOST なら u:{id}）
@@ -71,7 +72,7 @@ Cookie / Redis: 一覧 GET 自体は Session が無くても通る。`status=ARC
 ```text
 【EJ】Optional … 未指定は empty。null の enum を Repository に渡さない
 【EJ】公開面最小化 … ガードは Service。一覧 GET に @PreAuthorize を付けない
-【EJ】例外 … ゲストも他 HOST も同じ 403。存在漏洩はイベント無しの 404 だけ
+【EJ】例外 … ゲスト / users行なし / 他 HOST は同じ 403。存在漏洩はイベント無しの 404 だけ
 【EJ】あえて外す … EventService.requireOwnedEvent は 404。ここは公開 GET なので 403
 【EJ】依存性注入 … 既存の UserService / EventRepository。新しい Bean は増やさない
 ```
