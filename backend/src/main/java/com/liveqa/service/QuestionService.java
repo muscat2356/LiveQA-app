@@ -213,7 +213,7 @@ public class QuestionService {
                     "質問が見つかりません。"
                 ));
 
-        return toQuestionResponse(
+        return QuestionResponse.form(
             question,
             question.getEvent().getId(),
             false

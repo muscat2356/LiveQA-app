@@ -42,6 +42,8 @@ import com.liveqa.enums.PollStatus;
 import com.liveqa.enums.PollType;
 import com.liveqa.exception.GlobalExceptionHandler;
 import com.liveqa.service.PollService;
+import com.liveqa.websocket.PollEventPublisher;
+import com.liveqa.websocket.PollEventType;
 
 /**
  * PollController の HTTP 面（作成・一覧・開閉・回答）。
@@ -59,6 +61,9 @@ class PollControllerTest {
 
     @MockitoBean
     PollService pollService;
+
+    @MockitoBean
+    PollEventPublisher pollEventPublisher;
 
     @Test
     void create_HOSTなら201() throws Exception {
@@ -250,20 +255,21 @@ class PollControllerTest {
 
     @Test
     void respond_ゲストなら200() throws Exception {
+        final PollResponse response = new PollResponse(
+                5L,
+                10L,
+                "次のテーマは？",
+                PollType.SINGLE,
+                PollStatus.OPEN,
+                List.of(
+                        new PollOptionResponse(31L, "AI", 1),
+                        new PollOptionResponse(32L, "Web", 0)
+                ),
+                1,
+                List.of(31L)
+        );
         when(pollService.respond(eq(5L), any(PollRespondRequest.class), any()))
-                .thenReturn(new PollResponse(
-                        5L,
-                        10L,
-                        "次のテーマは？",
-                        PollType.SINGLE,
-                        PollStatus.OPEN,
-                        List.of(
-                                new PollOptionResponse(31L, "AI", 1),
-                                new PollOptionResponse(32L, "Web", 0)
-                        ),
-                        1,
-                        List.of(31L)
-                ));
+                .thenReturn(response);
 
         final MockHttpSession session = new MockHttpSession();
         session.setAttribute(GuestSession.ATTR_GUEST_ID, "abc");
@@ -281,6 +287,7 @@ class PollControllerTest {
                 ArgumentCaptor.forClass(VoterKeySource.class);
         verify(pollService).respond(eq(5L), any(PollRespondRequest.class), captor.capture());
         assertThat(captor.getValue()).isEqualTo(new VoterKeySource.Guest("abc"));
+        verify(pollEventPublisher).publish(PollEventType.POLL_UPDATED, response);
     }
 
     @Test
