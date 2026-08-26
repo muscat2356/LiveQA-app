@@ -9,7 +9,7 @@ Keycloak realm 相乗り・URL 2種: [ops.md](ops.md)。
 
 | 項目 | 状態 |
 |------|------|
-| oauth2Login / mapper 差し込み / CSRF / Session+Redis | あり |
+| oauth2Login / mapper 差し込み / CSRF / Session+Redis | あり。guest POST は ignore（#104 / [f04](f04-guest.md)） |
 | JIT（`provisionHost`） | あり |
 | `GET /api/me`（ローカル PK + `currentHost` + `@PreAuthorize HOST`） | あり |
 | `POST /api/auth/logout` | あり |

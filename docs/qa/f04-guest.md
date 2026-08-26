@@ -9,7 +9,7 @@ scope: 参加ページは A 主。B は **guest + `voter_key`**。Join 照会は
 | 項目 | 状態 |
 |------|------|
 | `POST /api/auth/guest` | あり（Service + `GuestResponse`） |
-| Security `permitAll`（guest。CSRF は必須） | あり |
+| Security `permitAll`（guest。**発行は CSRF ignore**。質問 POST 等は必須） | あり（#104） |
 | `VoterKey`（`g:` / `u:`） | あり。HOST の `u:` 利用は F-05 |
 | CSRF テスト | `GuestSessionControllerCsrfTest` |
 | 質問・いいね | F-05 |
@@ -228,4 +228,23 @@ Network で `POST .../api/auth/guest` が 200 になり、続く questions に�
 ## Q. `/join/1/qa` のエラーは CSRF（#89）と同じか？
 
 **違う。** `1` は event id。Join の path は 8 文字の `joinCode`。形式不正は API 400 → SSR が throw。正しい主催者画面は `/dashboard/{id}/qa`。参加は `/join/{joinCode}/qa`。詳細は [f02-events.md](f02-events.md#q-join1qa-がエラーになるのはなぜか92)。
+
+## Q. `POST /api/auth/guest` を CSRF ignore にするのはなぜ？（#104）
+
+**発行専用で、被害者に不利益な状態変更をしないから。** #89 の 403 は Cookie 空の初回 POST が `CsrfFilter` に弾かれる穴。シード GET より、発行口だけ除外する方が backend 1 行で閉じる。
+
+```text
+CsrfFilter
+  ① Cookie が無ければトークン生成 → Set-Cookie: XSRF-TOKEN（Handler の eager）
+  ② ignoringRequestMatchers("/api/auth/guest") → 検証スキップ
+  ③ Controller へ → 200 + Set-Cookie: SESSION（guestId）
+```
+
+`setCsrfRequestAttributeName(null)` があるので、ignore しても **①は走る**。後続の質問 POST 用 Cookie は guest の応答に乗る。
+
+CSRF なしテストは Filter を通す `GuestSessionControllerCsrfTest`。本番 `SecurityConfig` は Import しないので、**テスト用 config にも同じ ignore を写す**。写さないと `CSRFなしなら403` が本番と逆の期待値のまま緑になる。
+
+ignore 後は Controller まで届くので、なし側も `issueOrReuse` の stub が要る。
+
+質問 POST / いいね / logout は対象外。front の失敗 Promise 固定と `PostForm` 直叩きは #103 側。
 

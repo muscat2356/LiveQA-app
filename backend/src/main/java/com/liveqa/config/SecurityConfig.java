@@ -88,12 +88,16 @@ public class SecurityConfig {
                 .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                 .requestMatchers("/api/auth/guest").permitAll()
                 .requestMatchers("/api/events/*/questions").permitAll()
+                .requestMatchers("/api/events/*/polls").permitAll()
+                .requestMatchers("/api/polls/*/responses").permitAll()
+                .requestMatchers("/api/polls/*/results").permitAll()
                 .requestMatchers(
                         "/api/me",
                         "/api/auth/logout",
                         "/api/events",
                         "/api/events/**",
-                        "/api/questions/*/status"
+                        "/api/questions/*/status",
+                        "/api/polls/*/status"
                 ).authenticated()
                 .requestMatchers("/api/join/**").permitAll()
                 .anyRequest().permitAll()
@@ -109,6 +113,8 @@ public class SecurityConfig {
             .csrf(csrf -> csrf
                 .csrfTokenRepository(csrfRepo)
                 .csrfTokenRequestHandler(csrfHandler)
+                // 発行専用。状態変更を伴わないので検証しない（Cookie は Handler が載せる）
+                .ignoringRequestMatchers("/api/auth/guest")
             )
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint(authenticationEntryPoint())

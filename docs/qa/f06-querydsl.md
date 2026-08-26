@@ -9,7 +9,7 @@ scope: `GET /api/events/{id}/questions` の `sort` / （F-12 で）`status`。�
 | 一覧 | **あり**（QueryDSL `searchByEventId`） |
 | QueryDSL 依存 | **あり**（`querydsl-jpa` jakarta + apt。Q クラスは `mvn compile` で生成） |
 | `sort=popular\|newest` | **あり**（未指定は popular。不正は 400） |
-| `status` フィルタ | F-12 |
+| `status` フィルタ | **F-12 済**（未指定は ARCHIVED 以外） |
 
 ## なぜ動的か
 
@@ -36,7 +36,7 @@ GET /api/events/{id}/questions?sort=popular&status=OPEN
   → Service が QuestionResponse に変換（votedByMe は別クエリ）
 ```
 
-Cookie / Redis / SecurityContext は一覧の認可には使わない（公開 GET）。`votedByMe` だけ Session の `voter_key` を読む。動的クエリ本体は **questions 行の絞りと並び**。
+Cookie / Redis / SecurityContext は未指定・`OPEN`・`ANSWERED` の認可には使わない（公開 GET）。`status=ARCHIVED` だけ F-13 で所有者を見る。`votedByMe` は Session の `voter_key` を読む。動的クエリ本体は **questions 行の絞りと並び**。
 
 ## 型の正体
 

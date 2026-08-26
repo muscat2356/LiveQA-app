@@ -175,6 +175,7 @@ erDiagram
 - `poll_options(poll_id)` に INDEX
 - `poll_responses(poll_id)` / `poll_responses(poll_option_id)` に INDEX（得票集計）
 - `poll_responses(poll_option_id, voter_key)` に UNIQUE 制約（同一選択肢への二重投票防止）
+- `poll_options(id, poll_id)` に UNIQUE 制約（複合 FK の参照先。別ポールの選択肢を拒む）
 - FKは全て `ON DELETE CASCADE`（イベント削除 → 質問/いいね・ポール/選択肢/回答 を連鎖削除）
 
 ## 整合性方針
@@ -184,6 +185,7 @@ erDiagram
 - **question_count の整合**: 質問投稿時に `events.question_count` を原子的インクリメント（`UPDATE ... SET question_count = question_count + 1`）。一覧 API には載せない（詳細のみ）。この UPDATE は `events.version` を進めない
 - **events.version の楽観ロック**: 同じ行をロードして書く操作（名称・開閉・物理 DELETE）の衝突検知。JPA `@Version`。衝突は 409。質問件数の加算とは混ぜない。削除が先に確定したあとは 404
 - **ポールの1票判定**: `SINGLE` は同一 `poll_id` に既存があれば 409（置換しない）。`MULTI` は `UNIQUE(poll_option_id, voter_key)` で同一選択肢の重複のみ防止
+- **ポール回答の所属**: `poll_options(id, poll_id)` UNIQUE を参照する複合 FK で、別ポールの選択肢を拒む
 - **得票分布**: `poll_responses` を `poll_option_id` で `GROUP BY COUNT`。件数が多くなれば `poll_options.response_count` の非正規化を追加（`upvote_count` と同じ発想）
 - **ステータス遷移**: 質問は `OPEN → ANSWERED → ARCHIVED`（`OPEN → ARCHIVED` も可）。ルームは `DRAFT → OPEN ⇔ CLOSED`（`DRAFT` へは戻さない）。削除は物理 DELETE（状態ではない）。ポールは `DRAFT → OPEN → CLOSED`
 
@@ -276,7 +278,8 @@ CREATE TABLE poll_options (
     poll_id       BIGINT       NOT NULL REFERENCES polls(id) ON DELETE CASCADE,
     label         VARCHAR(200) NOT NULL,
     display_order INT          NOT NULL DEFAULT 0,
-    CONSTRAINT ck_poll_options_order CHECK (display_order >= 0)
+    CONSTRAINT ck_poll_options_order CHECK (display_order >= 0),
+    CONSTRAINT uq_poll_options_id_poll UNIQUE (id, poll_id)
 );
 CREATE INDEX idx_poll_options_poll_id ON poll_options(poll_id);
 
@@ -286,6 +289,9 @@ CREATE TABLE poll_responses (
     poll_option_id BIGINT      NOT NULL REFERENCES poll_options(id) ON DELETE CASCADE,
     voter_key      VARCHAR(64) NOT NULL,
     created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT fk_poll_responses_option_belongs
+        FOREIGN KEY (poll_option_id, poll_id)
+        REFERENCES poll_options(id, poll_id) ON DELETE CASCADE,
     CONSTRAINT uq_poll_responses_option_voter UNIQUE (poll_option_id, voter_key)
 );
 CREATE INDEX idx_poll_responses_poll_id ON poll_responses(poll_id);

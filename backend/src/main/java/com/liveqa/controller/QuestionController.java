@@ -69,10 +69,12 @@ public class QuestionController {
     /**
      * イベント配下の質問一覧を返すGETメソッド
      * votedByMeは今のセッション視点。Sessionが無くても200
-     * sortの検証はService（未指定はpopular）
+     * sort / status の検証はService（未指定のstatusはARCHIVED以外）
+     * ARCHIVED指定は所有者HOSTのみ（Serviceで403）
      * @param id イベントid
      * @param oidc SecurityContext内のOidcUser情報（未ログインならnull）
      * @param sort 並び（popular / newest）。未指定可
+     * @param status フィルタ（OPEN / ANSWERED / ARCHIVED）。未指定可
      * @param session 匿名guestIdを持つHttpSession
      * @return 質問一覧（List）
      */
@@ -81,10 +83,16 @@ public class QuestionController {
         @PathVariable Long id,
         @AuthenticationPrincipal OidcUser oidc,
         @RequestParam(name = "sort", required = false) String sort,
+        @RequestParam(name = "status", required = false) String status,
         HttpSession session
     ) {
         return ResponseEntity.ok(
-            questionService.findByEventId(id, sort, VoterKeySources.form(oidc, session))
+            questionService.findByEventId(
+                    id,
+                    sort,
+                    status,
+                    oidc,
+                    VoterKeySources.form(oidc, session))
         );
     }
     
