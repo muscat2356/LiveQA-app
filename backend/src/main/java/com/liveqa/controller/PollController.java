@@ -16,16 +16,19 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.liveqa.dto.request.PollCreateRequest;
+import com.liveqa.dto.request.PollRespondRequest;
 import com.liveqa.dto.request.PollStatusRequest;
 import com.liveqa.dto.response.PollResponse;
 import com.liveqa.service.PollService;
 
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 /**
  * リソースpollsに対するAPIコントローラー
+ * 作成・一覧・開閉・回答・結果
  * PollController
  * @author ichikura
  */
@@ -94,5 +97,49 @@ public class PollController {
         return ResponseEntity.ok(
                 pollService.updateStatus(pollId, request.status(), oidc));
     }
-    
+
+    /**
+     * ポールへ回答するPOSTメソッド
+     * ゲスト/HOST。voter_keyはSession。CSRF必須
+     * @param pollId ポールid
+     * @param oidc SecurityContext内のOidcUser情報（未ログインならnull）
+     * @param session guestIdを持つHttpSession
+     * @param request 選んだ選択肢id
+     * @return 最新集計のポール
+     */
+    @PostMapping("/polls/{pollId}/responses")
+    public ResponseEntity<PollResponse> respond(
+            @PathVariable Long pollId,
+            @AuthenticationPrincipal OidcUser oidc,
+            HttpSession session,
+            @Valid @RequestBody PollRespondRequest request
+    ) {
+        return ResponseEntity.ok(
+                pollService.respond(
+                        pollId,
+                        request,
+                        VoterKeySources.form(oidc, session)));
+    }
+
+    /**
+     * ポールの得票を返すGETメソッド
+     * 公開。HOST以外のDRAFTは404。CSRF不要
+     * @param pollId ポールid
+     * @param oidc SecurityContext内のOidcUser情報（未ログインならnull）
+     * @param session guestIdを持つHttpSession
+     * @return 最新集計のポール
+     */
+    @GetMapping("/polls/{pollId}/results")
+    public ResponseEntity<PollResponse> findResults(
+            @PathVariable Long pollId,
+            @AuthenticationPrincipal OidcUser oidc,
+            HttpSession session
+    ) {
+        return ResponseEntity.ok(
+                pollService.findResults(
+                        pollId,
+                        oidc,
+                        VoterKeySources.form(oidc, session)));
+    }
+
 }
