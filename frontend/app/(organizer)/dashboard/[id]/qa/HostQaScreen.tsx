@@ -1,7 +1,6 @@
 "use client"
 
 import SortTab from "@/components/question/SortTab";
-import useQuestions from "@/components/question/useGuestQuestions";
 import { StatusBadge } from "@/components/event/statusBadge";
 import { Button } from "@/components/ui/button";
 import { EventDetailResponse } from "@/types/event/event";

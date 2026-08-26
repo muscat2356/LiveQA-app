@@ -1,8 +1,9 @@
 "use client"
 
 import { getGuestSession } from "@/lib/api/guestSession";
-import { QuestionResponse, Sort } from "@/types/question/question";
+import { QuestionEvent, QuestionResponse, Sort } from "@/types/question/question";
 import { useEffect, useState } from "react";
+import { Client } from "@stomp/stompjs";
 
 export default function useGuestQuestions(eventId: number, sort: Sort){
     
@@ -45,6 +46,60 @@ export default function useGuestQuestions(eventId: number, sort: Sort){
 
     useEffect(() => {
         guestLoad();
+    }, [eventId, sort]);
+
+    useEffect(() => {
+        const client = new Client({
+            brokerURL: "ws://localhost:8081/ws",
+            reconnectDelay: 5000,
+
+            onConnect: () => {
+                client.subscribe(
+                    `/topic/events/${eventId}/questions`,
+                    (message) => {
+                        const questionEvent: QuestionEvent =
+                            JSON.parse(message.body);
+
+                        setQuestions(previousQuestions => {
+                            const questionExists = previousQuestions.some(
+                                question =>
+                                    question.id === questionEvent.question.id
+                            );
+
+                            const updatedQuestions: QuestionResponse[] = questionExists
+                                ? previousQuestions.map(question =>
+                                    question.id === questionEvent.question.id
+                                        ? { ...question, ...questionEvent.question }
+                                        : question
+                                )
+                                : [
+                                    {
+                                        ...questionEvent.question,
+                                        votedByMe: false
+                                    },
+                                    ...previousQuestions
+                                ];
+
+                            return [...updatedQuestions].sort((first, second) => {
+                                if (sort === "popular") {
+                                    return second.upvoteCount - first.upvoteCount;
+                                }
+
+                                return Date.parse(second.createdAt)
+                                    - Date.parse(first.createdAt);
+                            });
+                        });
+                    }
+                );
+
+            },
+        });
+
+        client.activate();
+
+        return () => {
+            client.deactivate();
+        };
     }, [eventId, sort]);
 
     return { questions, loading, error, guestLoad, applyVote};
