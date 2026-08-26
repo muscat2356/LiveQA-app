@@ -99,21 +99,23 @@ public class QuestionService {
      * イベント配下の質問一覧を返すメソッド
      * イベントが無ければ404
      * キー未確立でも200、votedByMeは全部false
-     * 並びはsort（未指定はpopular、不正は400）。検索はQueryDSL
+     * 並びはsort（未指定はpopular、不正は400）
+     * status未指定はARCHIVED以外。不正は400。検索はQueryDSL
      * @param eventId イベントid
      * @param sort 並び順
+     * @param status フィルタ（OPEN / ANSWERED / ARCHIVED）。未指定可
      * @param source 投票キーの取得元
      * @return 一覧Responseクラス
      */
     public List<QuestionResponse> findByEventId(
         Long eventId,
         String sort,
+        String status,
         VoterKeySource source) {
         // 一覧も行が無ければ404（existsByIdでも同じだが、詳細と口を揃える）
         requireVisibleEvent(eventId);
 
         final QuestionSort questionSort;
-
         try {
             questionSort = QuestionSort.form(sort);
         } catch (IllegalArgumentException ex) {
@@ -124,9 +126,21 @@ public class QuestionService {
             );
         }
 
+        final Optional<QuestionStatus> questionStatus;
+        try {
+            questionStatus = QuestionStatus.form(status);
+        } catch (IllegalArgumentException ex) {
+            throw new BusinessException(
+                HttpStatus.BAD_REQUEST,
+                "Bad Request",
+                ex.getMessage()
+            );
+        }
+
         final Set<Long> votedQuestionIds = votedQuestionIds(eventId, source);
 
-        return questionRepository.searchByEventId(eventId, questionSort)
+        return questionRepository
+            .searchByEventId(eventId, questionSort, questionStatus)
             .stream()
             .map(question -> toQuestionResponse(
                 question,
