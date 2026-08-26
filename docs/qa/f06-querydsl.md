@@ -9,7 +9,7 @@ scope: `GET /api/events/{id}/questions` の `sort` / （F-12 で）`status`。�
 | 一覧 | **あり**（QueryDSL `searchByEventId`） |
 | QueryDSL 依存 | **あり**（`querydsl-jpa` jakarta + apt。Q クラスは `mvn compile` で生成） |
 | `sort=popular\|newest` | **あり**（未指定は popular。不正は 400） |
-| `status` フィルタ | F-12 |
+| `status` フィルタ | **F-12 済**（未指定は ARCHIVED 以外） |
 
 ## なぜ動的か
 

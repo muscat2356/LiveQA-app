@@ -158,13 +158,15 @@ class QuestionServiceTest {
         final Question notVoted = Question.post(event, "場所は？", "匿名");
         ReflectionTestUtils.setField(voted, "id", 42L);
         ReflectionTestUtils.setField(notVoted, "id", 43L);
-        when(questionRepository.searchByEventId(10L, QuestionSort.POPULAR))
+        when(questionRepository.searchByEventId(
+                10L, QuestionSort.POPULAR, Optional.empty()))
                 .thenReturn(List.of(voted, notVoted));
         when(voteRepository.findByQuestion_Event_IdAndVoterKey(10L, "g:abc"))
                 .thenReturn(List.of(Vote.cast(voted, "g:abc")));
 
         final List<QuestionResponse> responses = questionService.findByEventId(
                 10L,
+                null,
                 null,
                 new VoterKeySource.Guest("abc"));
 
@@ -183,11 +185,13 @@ class QuestionServiceTest {
 
         final Question question = Question.post(event, "資料は？", "花子");
         ReflectionTestUtils.setField(question, "id", 42L);
-        when(questionRepository.searchByEventId(10L, QuestionSort.POPULAR))
+        when(questionRepository.searchByEventId(
+                10L, QuestionSort.POPULAR, Optional.empty()))
                 .thenReturn(List.of(question));
 
         final List<QuestionResponse> responses = questionService.findByEventId(
                 10L,
+                null,
                 null,
                 new VoterKeySource.Missing());
 
@@ -202,13 +206,14 @@ class QuestionServiceTest {
         assertThatThrownBy(() -> questionService.findByEventId(
                 99L,
                 null,
+                null,
                 new VoterKeySource.Missing()))
                 .isInstanceOf(BusinessException.class)
                 .satisfies(ex -> {
                     final BusinessException be = (BusinessException) ex;
                     assertThat(be.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
                 });
-        verify(questionRepository, never()).searchByEventId(any(), any());
+        verify(questionRepository, never()).searchByEventId(any(), any(), any());
     }
 
     @Test
@@ -220,13 +225,14 @@ class QuestionServiceTest {
         assertThatThrownBy(() -> questionService.findByEventId(
                 10L,
                 null,
+                null,
                 new VoterKeySource.Missing()))
                 .isInstanceOf(BusinessException.class)
                 .satisfies(ex -> {
                     final BusinessException be = (BusinessException) ex;
                     assertThat(be.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
                 });
-        verify(questionRepository, never()).searchByEventId(any(), any());
+        verify(questionRepository, never()).searchByEventId(any(), any(), any());
     }
 
     @Test
@@ -234,12 +240,15 @@ class QuestionServiceTest {
         when(eventRepository.findById(10L))
                 .thenReturn(Optional.of(openEvent(10L)));
         when(voterKeyResolver.tryResolve(any())).thenReturn(Optional.empty());
-        when(questionRepository.searchByEventId(10L, QuestionSort.NEWEST))
+        when(questionRepository.searchByEventId(
+                10L, QuestionSort.NEWEST, Optional.empty()))
                 .thenReturn(List.of());
 
-        questionService.findByEventId(10L, "newest", new VoterKeySource.Missing());
+        questionService.findByEventId(
+                10L, "newest", null, new VoterKeySource.Missing());
 
-        verify(questionRepository).searchByEventId(10L, QuestionSort.NEWEST);
+        verify(questionRepository).searchByEventId(
+                10L, QuestionSort.NEWEST, Optional.empty());
     }
 
     @Test
@@ -250,6 +259,7 @@ class QuestionServiceTest {
         assertThatThrownBy(() -> questionService.findByEventId(
                 10L,
                 "oldest",
+                null,
                 new VoterKeySource.Missing()))
                 .isInstanceOf(BusinessException.class)
                 .satisfies(ex -> {
@@ -257,7 +267,39 @@ class QuestionServiceTest {
                     assertThat(be.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
                     assertThat(be.getMessage()).contains("popular / newest");
                 });
-        verify(questionRepository, never()).searchByEventId(any(), any());
+        verify(questionRepository, never()).searchByEventId(any(), any(), any());
+    }
+
+    @Test
+    void findByEventId_status指定ならその値で検索() {
+        when(eventRepository.findById(10L))
+                .thenReturn(Optional.of(openEvent(10L)));
+        when(voterKeyResolver.tryResolve(any())).thenReturn(Optional.empty());
+        when(questionRepository.searchByEventId(
+                10L, QuestionSort.POPULAR, Optional.of(QuestionStatus.OPEN)))
+                .thenReturn(List.of());
+
+        questionService.findByEventId(
+                10L, null, "OPEN", new VoterKeySource.Missing());
+
+        verify(questionRepository).searchByEventId(
+                10L, QuestionSort.POPULAR, Optional.of(QuestionStatus.OPEN));
+    }
+
+    @Test
+    void findByEventId_不正statusなら400() {
+        when(eventRepository.findById(10L))
+                .thenReturn(Optional.of(openEvent(10L)));
+
+        assertThatThrownBy(() -> questionService.findByEventId(
+                10L, null, "INVALID", new VoterKeySource.Missing()))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> {
+                    final BusinessException be = (BusinessException) ex;
+                    assertThat(be.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+                    assertThat(be.getMessage()).contains("OPEN / ANSWERED / ARCHIVED");
+                });
+        verify(questionRepository, never()).searchByEventId(any(), any(), any());
     }
 
     @Test

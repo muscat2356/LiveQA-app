@@ -8,7 +8,7 @@ scope: 不適切質問を隠す。**新 API は作らない。**
 | 項目 | 状態 |
 |------|------|
 | `PATCH .../questions/{qid}/status` → `ARCHIVED` | **F-08 済** |
-| 参加者一覧から既定で隠す | **F-12 未**（今は ARCHIVED も一覧に出る） |
+| 参加者一覧から既定で隠す | **F-12 済**（未指定は ARCHIVED 以外。`?status=ARCHIVED` で確認可） |
 
 ## 契約
 

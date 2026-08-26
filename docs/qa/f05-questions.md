@@ -46,7 +46,7 @@ HttpSession.getAttribute → Object
 | `GuestSession` / `VoterKeySources` | **あり**（Session の Object 開け + Host/Guest/Missing 合成） |
 | `VoteRepository` | **あり**（一覧で読む。いいね POST/DELETE でも INSERT/DELETE） |
 | POST 質問 / Security 匿名可 | **あり**（`require` + `VoterKeySources.form`。件数 +1） |
-| GET 一覧（`votedByMe`） | **本番あり**（キー無しは全部 false。`sort` は F-06、`status` は F-12） |
+| GET 一覧（`votedByMe`） | **本番あり**（キー無しは全部 false。`sort` は F-06、`status` は F-12 済） |
 | GET 一覧テスト | **あり**（票あり true / キーなし false / 404 / Controller 200） |
 | いいね POST/DELETE | **あり**（`VoteService` / `VoteController`。`upvote_count` は原子的 ±1。`add`/`remove` とも `@Transactional`。STOMP は F-07） |
 | いいねテスト | **あり**（`VoteServiceTest` 正常/409/401/404/UNIQUE 409、`VoteControllerTest` 配線、`VoteControllerCsrfTest` あり→200／なし→403） |

@@ -289,7 +289,7 @@
 
 - Query:
   - `sort` = `popular`（既定, `upvote_count DESC, created_at DESC`） / `newest`（`created_at DESC`）。不正は 400。**F-06 実装済**
-  - `status` = `OPEN` / `ANSWERED` / `ARCHIVED`（任意）。未指定は **`ARCHIVED` 以外**。不正は 400。**F-12**（未実装のあいだはクエリを無視し、ARCHIVED も含めて返す）
+  - `status` = `OPEN` / `ANSWERED` / `ARCHIVED`（任意）。未指定は **`ARCHIVED` 以外**。不正は 400。**F-12 実装済**
 - Response 200:
 
 ```json

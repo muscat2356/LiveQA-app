@@ -1,9 +1,11 @@
 package com.liveqa.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import com.liveqa.domain.Question;
 import com.liveqa.enums.QuestionSort;
+import com.liveqa.enums.QuestionStatus;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
@@ -23,16 +25,26 @@ public class QuestionQueryImpl implements QuestionQuery {
     }
 
     /**
-     * イベント配下の質問を並び指定で返すメソッド
-     * WHERE は event.id。並びは sort。status は F-12
+     * イベント配下の質問を並び・status指定で返すメソッド
+     * WHERE は event.id。未指定のstatusはARCHIVED以外。並びは sort
      * @param eventId イベントid
      * @param sort 並び
+     * @param status 指定があればその値、emptyはARCHIVED以外
      * @return 質問一覧
      */
     @Override
-    public List<Question> searchByEventId(Long eventId, QuestionSort sort) {
+    public List<Question> searchByEventId(
+            Long eventId,
+            QuestionSort sort,
+            Optional<QuestionStatus> status
+    ) {
         final BooleanBuilder where = new BooleanBuilder();
         where.and(question.event.id.eq(eventId));
+        if (status.isEmpty()) {
+            where.and(question.status.ne(QuestionStatus.ARCHIVED));
+        } else {
+            where.and(question.status.eq(status.get()));
+        }
 
         return switch (sort) {
             case POPULAR -> queryFactory
