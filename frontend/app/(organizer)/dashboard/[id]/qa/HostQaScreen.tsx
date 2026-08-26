@@ -4,7 +4,7 @@ import SortTab from "@/components/question/SortTab";
 import { StatusBadge } from "@/components/event/statusBadge";
 import { Button } from "@/components/ui/button";
 import { EventDetailResponse } from "@/types/event/event";
-import { Sort } from "@/types/question/question";
+import { QuestionFilter, Sort } from "@/types/question/question";
 import { useState } from "react";
 import QuestionStatusButton from "./QuestionStatusButton";
 import { QuestionStatusBadge } from "@/components/question/questionStatusBadge";
@@ -12,6 +12,7 @@ import useHostQuestions from "@/components/question/useHostQuestions";
 import { OrganizerChart } from "@/components/poll/organizerChart";
 import usePoll from "@/components/poll/usePoll";
 import PollCreateForm from "@/components/poll/PollCreateForm";
+import StatusTab from "@/components/question/StatusTab";
 
 export default  function HostQaScreen({
      event 
@@ -20,7 +21,8 @@ export default  function HostQaScreen({
 }){
 
     const [ sort, setSort ] = useState<Sort>("popular");
-    const { questions, loading, error, hostLoad } = useHostQuestions(event.id, sort);
+    const [ filter, setFilter ] = useState<QuestionFilter>("ALL");
+    const { questions, loading, error, hostLoad } = useHostQuestions(event.id, sort, filter);
     const { poll, pending: pollPending, error: pollError, load: pollLoad } = usePoll(event.id);
 
     return(
@@ -39,6 +41,11 @@ export default  function HostQaScreen({
                 <SortTab
                     value={sort}
                     onChange={setSort}
+                />
+                <StatusTab
+                    value={filter}
+                    onChange={setFilter}
+                    isHost={false}
                 />
             </div>
 
