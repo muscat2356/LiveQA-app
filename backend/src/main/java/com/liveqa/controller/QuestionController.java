@@ -70,6 +70,7 @@ public class QuestionController {
      * イベント配下の質問一覧を返すGETメソッド
      * votedByMeは今のセッション視点。Sessionが無くても200
      * sort / status の検証はService（未指定のstatusはARCHIVED以外）
+     * ARCHIVED指定は所有者HOSTのみ（Serviceで403）
      * @param id イベントid
      * @param oidc SecurityContext内のOidcUser情報（未ログインならnull）
      * @param sort 並び（popular / newest）。未指定可
@@ -90,6 +91,7 @@ public class QuestionController {
                     id,
                     sort,
                     status,
+                    oidc,
                     VoterKeySources.form(oidc, session))
         );
     }

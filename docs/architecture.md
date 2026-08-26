@@ -109,7 +109,7 @@ sequenceDiagram
 
 ## 動的クエリの設計方針
 
-- QueryDSLで `BooleanBuilder`（または `Predicate` 合成）を使い、null条件はスキップして動的にWHERE / ORDER BYを構築（人気順=`upvote_count DESC`、新着順=`created_at DESC`）。status フィルタは F-12（未指定は `ARCHIVED` 以外。指定があれば `eq`）
+- QueryDSLで `BooleanBuilder`（または `Predicate` 合成）を使い、null条件はスキップして動的にWHERE / ORDER BYを構築（人気順=`upvote_count DESC`、新着順=`created_at DESC`）。status フィルタは F-12（未指定は `ARCHIVED` 以外。指定があれば `eq`）。`status=ARCHIVED` はイベント所有者 HOST のみ（F-13）
 - 代替案: MyBatisの `<where>` / `<if>` 動的SQL
 
 ## セキュリティ / 整合性方針

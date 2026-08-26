@@ -48,7 +48,7 @@ MVP-A が E2E で通ってから着手。API の正は [api/openapi-notes.md](ap
 | **F-10** | ポール作成・開閉。設問＋選択肢。`DRAFT → OPEN → CLOSED`（終端）。Q&A と同一ルーム | `POST/GET /api/events/{id}/polls`、`PATCH /api/polls/{pollId}/status` | [#74](https://github.com/muscat2356/live-qa-app/issues/74) |
 | **F-11** | ポール回答・得票集計。ライブ更新は C が `POLL_UPDATED` | `POST /api/polls/{pollId}/responses`、`GET /api/polls/{pollId}/results` | [#21](https://github.com/muscat2356/live-qa-app/issues/21) |
 | **F-12** | 質問一覧の status フィルタ（QueryDSL 拡充） | `GET /api/events/{id}/questions?status=` | [#22](https://github.com/muscat2356/live-qa-app/issues/22) |
-| **F-13** | 簡易モデレーション。**新パスは作らない。** F-08 の `ARCHIVED` ＋ F-12 で参加者から隠す | `PATCH /api/questions/{qid}/status` `{ "status": "ARCHIVED" }` | [#23](https://github.com/muscat2356/live-qa-app/issues/23) |
+| **F-13** | 簡易モデレーション。**新パスは作らない。** F-08 の `ARCHIVED` ＋ F-12 で参加者から隠す。確認用 `?status=ARCHIVED` は所有者のみ | `PATCH /api/questions/{qid}/status` `{ "status": "ARCHIVED" }` | [#23](https://github.com/muscat2356/live-qa-app/issues/23) |
 
 アンケート型（正解なし）。`SINGLE` / `MULTI`。明細の個別 DELETE は持たない。イベント削除は物理 DELETE（配下 CASCADE）。
 

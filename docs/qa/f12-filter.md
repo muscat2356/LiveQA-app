@@ -9,6 +9,7 @@ scope: `GET /api/events/{id}/questions?status=`。並び `sort` は [f06-queryds
 |------|------|
 | `sort` | **F-06 済** |
 | `status` クエリ | **済み**（未指定は ARCHIVED 以外。不正は 400） |
+| `status=ARCHIVED` の認可 | **F-13**（イベント所有者 HOST のみ。他は 403） |
 
 ## 契約
 
@@ -17,14 +18,14 @@ scope: `GET /api/events/{id}/questions?status=`。並び `sort` は [f06-queryds
 | なし | `ARCHIVED` 以外（OPEN + ANSWERED） |
 | `status=OPEN` | 未回答 |
 | `status=ANSWERED` | 回答済み |
-| `status=ARCHIVED` | アーカイブ（主催者のモデレーション確認用） |
+| `status=ARCHIVED` | アーカイブ（**イベント所有者 HOST のみ**。他は 403） |
 | 不正（`open` 含む） | 400 |
 
 `sort` と併用可。QueryDSL の `BooleanBuilder` に `and` する。
 
 ## なぜ / 流れ
 
-参加者の既定一覧からアーカイブを隠す（F-13 の見え方）。主催者は `?status=ARCHIVED` で確認できる。新パスは作らない。
+参加者の既定一覧からアーカイブを隠す（F-13 の見え方）。確認は `?status=ARCHIVED`。**所有者 HOST 以外は 403**（[f13-moderation.md](f13-moderation.md)）。新パスは作らない。
 
 ```text
 GET /api/events/10/questions?sort=newest&status=OPEN

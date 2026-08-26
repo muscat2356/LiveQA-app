@@ -85,7 +85,7 @@ stateDiagram-v2
 | イベント | `DELETE /api/events/{id}` | イベント物理削除（配下は CASCADE） | HOST |
 | イベント | `GET /api/join/{joinCode}` | 参加用イベント情報取得（参加コードの有効性検証にも使用） | 公開 |
 | イベント | `PATCH /api/events/{id}/status` | ルーム開始/締切/再開（DRAFT→OPEN⇔CLOSED） | HOST |
-| 質問 | `GET /api/events/{id}/questions` | 質問一覧（`sort`＝F-06、`status`＝F-12） | 公開 |
+| 質問 | `GET /api/events/{id}/questions` | 質問一覧（`sort`＝F-06、`status`＝F-12。`ARCHIVED` は所有者のみ＝F-13） | 公開 / HOST |
 | 質問 | `POST /api/events/{id}/questions` | 質問投稿 | 参加者/HOST |
 | 質問 | `PATCH /api/questions/{qid}/status` | ステータス変更（F-08。F-13 のアーカイブもここ） | HOST |
 | いいね | `POST /api/questions/{qid}/vote` | いいね（1人1票） | 参加者/HOST |
@@ -96,7 +96,7 @@ stateDiagram-v2
 | ポール | `POST /api/polls/{pollId}/responses` | 選択肢へ回答（F-11） | 参加者/HOST |
 | ポール | `GET /api/polls/{pollId}/results` | 得票集計（F-11） | 公開 |
 
-- 質問一覧: F-06 は `sort`。F-12 で `status` を `BooleanBuilder` に足す（未指定は `ARCHIVED` 以外）
+- 質問一覧: F-06 は `sort`。F-12 で `status` を `BooleanBuilder` に足す（未指定は `ARCHIVED` 以外）。`status=ARCHIVED` はイベント所有者 HOST のみ（F-13。他は 403）
 
 ### WebSocket / STOMP（担当C）
 
