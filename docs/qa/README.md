@@ -26,6 +26,7 @@
 |----------|------|
 | [java.md](java.md) | 三層・DTO record・JPA・Javadoc 粒度・`var`・UNIQUE・削除・テスト |
 | [ops.md](ops.md) | Keycloak 相乗り・CI・Docker・Swagger UI |
+| [deploy-oci.md](deploy-oci.md) | OCI 無料枠 Compose の作業手順（たとえ・図・手でやること）。正本は [#44](https://github.com/muscat2356/live-qa-app/issues/44) |
 
 F-07 は実装が始まったら同型で `f07-*.md` を足す。
 

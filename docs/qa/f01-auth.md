@@ -77,6 +77,10 @@ Spring 標準 `OidcUserService` への**委譲**。トークン検証・クレ�
 
 `{baseUrl}` は **backend オリジン**。フロントへ戻すなら設定値で分ける。Keycloak の Valid post logout redirect URIs にもフロントを許可する。
 
+## Q. HTTPS にすると Cookie / SSO はどうなる？
+
+**通信の中身を暗号化し、Cookie に `Secure` を付ける。** 証明書は各コンテナではなく、前段のプロキシ（Caddy など）で止めるのが無料枠向き。OIDC の `{baseUrl}` と Keycloak の redirect は `https://...` に揃える。詳細・フロント本番ビルドは [ops.md](ops.md) の「HTTPS とフロント本番」。
+
 ## Q. Cookie 跨ぎと CORS は同じ？
 
 **別レイヤ。** Next BFF ならブラウザ↔Spring の CORS は避けられる。残るのは Cookie の転送（Set-Cookie をブラウザが覚えるか、次リクエストで Spring まで届くか）。ログインコールバックはブラウザが SESSION を直受けするので発行漏れは起きにくい。その後 Next サーバが `/api/me` を呼ぶなら Cookie を明示転送する。
