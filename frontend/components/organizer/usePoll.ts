@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 
 export default function usePoll(id: number) {
 
-    const [poll, setPoll] = useState<PollDto | null>(null);
+    const [poll, setPoll] = useState<PollDto[]>([]);
     const [pending, setPending] = useState(true);
     const [error, setError] = useState("");
 

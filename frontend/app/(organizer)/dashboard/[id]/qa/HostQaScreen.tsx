@@ -41,12 +41,25 @@ export default  function HostQaScreen({
                 />
             </div>
 
-            <OrganizerChart
-                pending={pollPending}
-                error={pollError}
-                poll={poll}
-            />
+            {pollPending && poll.length === 0 && (
+                <p className="py-6 text-center text-sm text-muted-foreground">読み込み中・・・</p>
+            )}
 
+            {!pollPending && pollError && (
+                <p className="mb-4 rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">{pollError}</p>
+            )}
+
+            <div className={`space-y-4 ${pollPending ? "opacity-60" : ""}`}>
+                {poll.map((p) => (
+                    <OrganizerChart
+                        key={p.id}
+                        pending={pollPending}
+                        error={pollError}
+                        poll={p}
+                    />
+                ))}
+            </div>
+            
             {loading && <p className="py-10 text-center text-sm text-muted-foreground">読み込み中・・・</p>}
             {!loading &&!error && questions.length === 0 && <p className="py-10 text-center text-sm text-muted-foreground">まだ質問がありません</p>}
             {!loading &&error && <p className="rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">再度実行してください</p>}
