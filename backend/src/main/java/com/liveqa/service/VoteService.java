@@ -133,7 +133,7 @@ public class VoteService {
                     "Not Found",
                     "質問が見つかりません。"
                 ));
-        return new VoteResponse(questionId, refreshed.getUpvoteCount(), votedByMe);
+        return VoteResponse.form(questionId, refreshed.getUpvoteCount(), votedByMe);
     }
 
     /**

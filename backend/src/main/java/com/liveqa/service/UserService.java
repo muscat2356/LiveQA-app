@@ -51,24 +51,6 @@ public class UserService {
     }
 
     /**
-     * ローカルUser + OIDCクレームからResponseを組み立てる
-     * @param local DBのローカルユーザー
-     * @param oidcUser OIDCクレーム情報
-     * @return MeResponse
-     */
-    public MeResponse toMeResponse(User local, OidcUser oidcUser) {
-        final String displayName = oidcUser.getFullName() != null
-                ? oidcUser.getFullName()
-                : oidcUser.getPreferredUsername();
-        return new MeResponse(
-            local.getId(),
-            displayName,
-            oidcUser.getEmail(),
-            local.getRole()
-        );
-    }
-
-    /**
      * DBからの復元 + 組み立てを呼び出すメソッド
      * @param oidcUser OIDCユーザー情報
      * @return レスポンス
@@ -76,6 +58,6 @@ public class UserService {
     @Transactional
     public MeResponse currentHost(OidcUser oidcUser) {
         final User local = requireByOidcSubject(oidcUser.getSubject());
-        return toMeResponse(local, oidcUser);
+        return MeResponse.form(local, oidcUser);
     }
 }

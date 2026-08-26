@@ -22,6 +22,8 @@ import com.liveqa.service.PollService;
 
 import jakarta.validation.Valid;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 /**
  * リソースpollsに対するAPIコントローラー
  * PollController
@@ -29,6 +31,7 @@ import jakarta.validation.Valid;
  */
 @RestController
 @RequestMapping("/api")
+@Tag(name = "ポール", description = "作成・一覧・開閉。回答・結果は F-11")
 public class PollController {
 
     private final PollService pollService;

@@ -13,6 +13,7 @@ import com.liveqa.dto.response.VoteResponse;
 import com.liveqa.service.VoteService;
 
 import jakarta.servlet.http.HttpSession;
+import io.swagger.v3.oas.annotations.tags.Tag;
 /**
  * リソースvoteに対するAPIコントローラー
  * VoteController
@@ -20,6 +21,7 @@ import jakarta.servlet.http.HttpSession;
  */
 @RestController
 @RequestMapping("/api")
+@Tag(name = "いいね", description = "追加・取消")
 public class VoteController {
 
     private final VoteService voteService;

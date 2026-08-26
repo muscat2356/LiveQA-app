@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.liveqa.dto.response.MeResponse;
 import com.liveqa.service.UserService;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 /**
  * リソースmeに対するAPIコントローラー（ログインユーザー情報）
  * 権限はprincipal（OidcUser）ではなくAuthenticationから読む
@@ -19,6 +21,7 @@ import com.liveqa.service.UserService;
  */
 @RestController
 @RequestMapping("/api")
+@Tag(name = "認証", description = "GET /api/me。logout は Security の /api/auth/logout（RestController ではない）")
 public class MeController {
 
 private final UserService userService;

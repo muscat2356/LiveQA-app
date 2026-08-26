@@ -86,14 +86,14 @@ class UserServiceTest {
     }
 
     @Test
-    void toMeResponse_fullNameがあれば優先() {
+    void form_fullNameがあれば優先() {
         final User local = User.hostOf("sub-1");
         ReflectionTestUtils.setField(local, "id", 1L);
         final OidcUser oidcUser = mock(OidcUser.class);
         when(oidcUser.getFullName()).thenReturn("山田太郎");
         when(oidcUser.getEmail()).thenReturn("taro@example.com");
 
-        final MeResponse response = userService.toMeResponse(local, oidcUser);
+        final MeResponse response = MeResponse.form(local, oidcUser);
 
         assertThat(response.id()).isEqualTo(1L);
         assertThat(response.displayName()).isEqualTo("山田太郎");
@@ -102,7 +102,7 @@ class UserServiceTest {
     }
 
     @Test
-    void toMeResponse_fullNameが無ければpreferredUsername() {
+    void form_fullNameが無ければpreferredUsername() {
         final User local = User.hostOf("sub-1");
         ReflectionTestUtils.setField(local, "id", 2L);
         final OidcUser oidcUser = mock(OidcUser.class);
@@ -110,7 +110,7 @@ class UserServiceTest {
         when(oidcUser.getPreferredUsername()).thenReturn("host1");
         when(oidcUser.getEmail()).thenReturn("host1@example.com");
 
-        final MeResponse response = userService.toMeResponse(local, oidcUser);
+        final MeResponse response = MeResponse.form(local, oidcUser);
 
         assertThat(response.displayName()).isEqualTo("host1");
         assertThat(response.id()).isEqualTo(2L);

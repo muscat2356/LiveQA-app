@@ -27,6 +27,8 @@ import com.liveqa.service.EventService;
 
 import jakarta.validation.Valid;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 /**
  * リソースeventsに対するAPIコントローラー
  * EventController
@@ -34,6 +36,7 @@ import jakarta.validation.Valid;
  */
 @RestController
 @RequestMapping("/api")
+@Tag(name = "イベント", description = "作成・一覧・詳細・名称・削除・開閉")
 public class EventController {
 
     private final EventService eventService;

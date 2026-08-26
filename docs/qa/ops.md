@@ -33,6 +33,21 @@ F-09 寄りの作業メモ。認証の学習は [f01-auth.md](f01-auth.md)。Com
 
 IdToken に `realm_access` が無い → Client scopes（Clients の中ではない）→ `roles` → `realm roles` → Add to ID token ON。403 の定番。
 
+## Swagger UI（#25）
+
+ホスト起動（port 8081）の例:
+
+| 何 | URL |
+|----|-----|
+| UI | `http://localhost:8081/swagger-ui.html` |
+| OpenAPI JSON | `http://localhost:8081/v3/api-docs` |
+
+- **正は** [openapi-notes.md](../api/openapi-notes.md)。生成は閲覧用
+- Cookie `SESSION`。状態変更は `X-XSRF-TOKEN`（`POST /api/auth/guest` だけ CSRF 検証しない）
+- `POST /api/auth/logout` は Security の logoutUrl で、RestController ではないので UI に出ない
+- STOMP は出ない → openapi-notes の STOMP 節
+- F-11 の `POST /api/polls/{id}/responses` と `GET .../results` は [#109](https://github.com/muscat2356/live-qa-app/pull/109) マージ後に UI へ載る
+
 ## GitHub Actions（F-09）
 
 PR / `main` / `develop` で Runner が checkout → Java 21 → `mvn test`。手元の「通った」を環境差で落とさないための門。CD（デプロイ）は MVP 必須ではない。正: `.github/workflows/ci.yml`。
