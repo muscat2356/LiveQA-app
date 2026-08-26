@@ -3,6 +3,7 @@
 import { PollDto } from "@/types/poll/poll";
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "../ui/chart";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import PollStatusButton from "./pollStatusButton";
 
 const chartConfig = {
   count:{
@@ -14,11 +15,13 @@ const chartConfig = {
 export function OrganizerChart({
     pending,
     error,
-    poll
+    poll,
+    onChanged,
 }:{
     pending: boolean;
     error: string;
     poll: PollDto | null;
+    onChanged:() => void;
 }) {
 
     if (pending && !poll) return <p className="py-6 text-center text-sm text-muted-foreground">読み込み中・・・</p>;
@@ -34,6 +37,17 @@ export function OrganizerChart({
     }));
 
     return (
+    <div>
+
+        <p>{poll.questionText}</p>
+        <p>{poll.type === "SINGLE" ? "単一選択" : "複数選択"}/回答数{total}件</p>
+
+        <PollStatusButton
+            pollId={poll.id}
+            status={poll.status}
+            load={onChanged}
+        />
+      
       <ChartContainer config={chartConfig} className="mb-4 min-h-[200px] w-full">
           <BarChart accessibilityLayer data={data} layout="vertical" margin={{ left: 0, right: 16 }}>
               <CartesianGrid horizontal={false} />
@@ -51,5 +65,6 @@ export function OrganizerChart({
               <Bar dataKey="count" fill="var(--color-count)" radius={4} />
           </BarChart>
       </ChartContainer>
+    </div>
     );
 }

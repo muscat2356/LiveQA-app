@@ -57,6 +57,7 @@ export default  function HostQaScreen({
                         pending={pollPending}
                         error={pollError}
                         poll={p}
+                        onChanged={pollLoad}
                     />
                 ))}
             </div>

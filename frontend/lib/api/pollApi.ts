@@ -17,7 +17,7 @@ export async function fetchPostPoll(
                 "Content-Type":"application/json",
                 ...(xsrfToken ? { "X-XSRF-TOKEN" : xsrfToken} : {}),
             },
-            credentials: "same-origin",
+            credentials: "include",
             body: JSON.stringify(
                 pollCreateRequest
             )}
@@ -40,7 +40,12 @@ export async function fetchGetPoll(id: number):Promise<PollDto[]>{
 
     const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/events/${id}/polls`,
-        { cache: "no-store", headers: { Accept: "application/json" } }
+        { cache: "no-store", 
+            headers: { 
+                Accept: "application/json",
+                 } ,
+            credentials: "include"
+        }
     );
 
     if(res.status === 404){
@@ -72,7 +77,7 @@ export async function fetchPatchPollStatus(
                 "Content-Type":"application/json",
                 ...(xsrfToken ? { "X-XSRF-TOKEN" : xsrfToken} : {}),
             },
-            credentials: "same-origin",
+            credentials: "include",
             body: JSON.stringify({ status }),
     });
 
