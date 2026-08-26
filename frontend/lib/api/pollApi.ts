@@ -1,7 +1,12 @@
 import { readCookie } from "@/components/cookie";
-import { PollDto, PollStatus, PollType } from "@/types/poll/poll";
+import { PollCreateRequest, PollDto} from "@/types/poll/poll";
 
-export async function fetchPostPoll(id: number, questionText: string, type: PollType, options: string[]){
+export async function fetchPostPoll(
+    id: number, 
+    pollCreateRequest:PollCreateRequest
+):
+    Promise<PollDto>
+{
 
     const xsrfToken = readCookie("XSRF-TOKEN");
 
@@ -13,10 +18,9 @@ export async function fetchPostPoll(id: number, questionText: string, type: Poll
                 ...(xsrfToken ? { "X-XSRF-TOKEN" : xsrfToken} : {}),
             },
             credentials: "same-origin",
-            body: JSON.stringify({
-                questionText, type, options
-            })
-            }
+            body: JSON.stringify(
+                pollCreateRequest
+            )}
     );
 
     if(res.status === 400){
@@ -32,7 +36,7 @@ export async function fetchPostPoll(id: number, questionText: string, type: Poll
     return pollDto;
 }
 
-export async function fetchGetPoll(id: number){
+export async function fetchGetPoll(id: number):Promise<PollDto[]>{
 
     const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/events/${id}/polls`,
@@ -47,11 +51,17 @@ export async function fetchGetPoll(id: number){
         throw new Error("エラーが発生しました");
     }
 
-    return res.json();
+    const polls : PollDto[] = await res.json();
+    return polls;
 
 }
 
-export async function fetchPatchPollStatus(pollId: number, status: PollStatus){
+export async function fetchPatchPollStatus(
+    pollId: number, 
+    status: "OPEN" | "CLOSED"
+):
+    Promise<PollDto>
+{
 
     const xsrfToken = readCookie("XSRF-TOKEN");
 
@@ -83,6 +93,7 @@ export async function fetchPatchPollStatus(pollId: number, status: PollStatus){
         throw new Error("エラーが発生しました")
     }
 
-    return res.json();
+    const poll : PollDto = await res.json();
+    return poll;
 }
 

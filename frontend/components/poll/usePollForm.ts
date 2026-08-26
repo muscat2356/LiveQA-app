@@ -13,7 +13,7 @@ export type OptionInput = {
 let count = 0;
 const newOption = ():OptionInput => ({key: count++, label:""});
 
-export default function PollForm(){
+export default function usePollForm(){
 
     const [ questionText, setQuestionText ] = useState("");
     const [ pollType, setPollType ] = useState<PollType>("SINGLE");

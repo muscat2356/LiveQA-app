@@ -20,3 +20,9 @@ export type option = {
     count: number;
 }
 
+export type PollCreateRequest = {
+    questionText: string;
+    type: PollType;
+    options: string[];
+}
+
