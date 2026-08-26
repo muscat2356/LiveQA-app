@@ -11,25 +11,23 @@ export async function fetchPostPoll(
     const xsrfToken = readCookie("XSRF-TOKEN");
 
     const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/events/${id}/polls`,{ 
+        `/api/events/${id}/polls`,{ 
             method: "POST",
             headers: { 
                 "Content-Type":"application/json",
                 ...(xsrfToken ? { "X-XSRF-TOKEN" : xsrfToken} : {}),
             },
-            credentials: "include",
+            credentials: "same-origin",
             body: JSON.stringify(
                 pollCreateRequest
             )}
     );
 
-    if(res.status === 400){
-        throw new Error("選択肢は2〜10個にしてください");
+    if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? "エラーが発生しました");
     }
 
-    if(!res.ok){
-        throw new Error("エラーが発生しました");
-    }
     //移し替え
     const pollDto: PollDto = await res.json();
 
@@ -39,22 +37,17 @@ export async function fetchPostPoll(
 export async function fetchGetPoll(id: number):Promise<PollDto[]>{
 
     const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/events/${id}/polls`,
-        { cache: "no-store", 
-            headers: { 
-                Accept: "application/json",
-                 } ,
-            credentials: "include"
+        `/api/events/${id}/polls`,{  
+            headers: { Accept: "application/json",} ,
+            credentials: "same-origin",
+            cache: "no-store"
         }
     );
 
-    if(res.status === 404){
-        throw new Error("イベントが存在しません");
-    }
-
-    if(!res.ok){
-        throw new Error("エラーが発生しました");
-    }
+    if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? "エラーが発生しました");
+}
 
     const polls : PollDto[] = await res.json();
     return polls;
@@ -71,32 +64,21 @@ export async function fetchPatchPollStatus(
     const xsrfToken = readCookie("XSRF-TOKEN");
 
     const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/polls/${pollId}/status`,{ 
+        `/api/polls/${pollId}/status`,{ 
             method: "PATCH",
             headers: { 
                 "Content-Type":"application/json",
                 ...(xsrfToken ? { "X-XSRF-TOKEN" : xsrfToken} : {}),
             },
-            credentials: "include",
+            credentials: "same-origin",
             body: JSON.stringify({ status }),
     });
 
 
-    if(res.status === 400){
-        throw new Error("status は OPEN / CLOSED のいずれかです。")
-    }
-
-    if(res.status === 409){
-        throw new Error("この状態遷移はできません。")
-    }
-
-    if(res.status === 404){
-        throw new Error("ポールまたはイベントが存在しません")
-    }
-
-    if(!res.ok){
-        throw new Error("エラーが発生しました")
-    }
+    if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? "エラーが発生しました");
+}
 
     const poll : PollDto = await res.json();
     return poll;

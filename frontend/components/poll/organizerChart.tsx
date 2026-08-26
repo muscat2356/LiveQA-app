@@ -61,7 +61,15 @@ export function OrganizerChart({
                   tickMargin={8}
                   tick={{ fontSize: 12 }}
               />
-              <ChartTooltip content={<ChartTooltipContent />} />
+              <ChartTooltip 
+                    content={
+                        <ChartTooltipContent 
+                            formatter={(value, _name, item) =>
+                                `${value}票 (${item.payload.percent}%)`
+                            }
+                        />
+                    } 
+                />
               <Bar dataKey="count" fill="var(--color-count)" radius={4} />
           </BarChart>
       </ChartContainer>
