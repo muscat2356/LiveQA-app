@@ -88,7 +88,7 @@ Service の `toXxxResponse` は、`form` へ移したら消す。一気にやら
 
 同じ TX で managed な Entity を書き換えたら、コミット時に dirty checking で UPDATE される。`save` は省略可。新規（transient）だけ `save` が必要。
 
-`save` 失敗は戻り値 null ではない（例外）。予防できる衝突は exists。業務 UNIQUE（いいね）は制約名で 409。想定外は 500。
+`save` 失敗は戻り値 null ではない（例外）。予防できる衝突は exists。業務 UNIQUE（いいね・ポール同一 option）は制約名で 409。SINGLE の 1ポール1票は UNIQUE では足りないので回答 POST がポール行を悲観ロックする。想定外は 500。
 
 ## Optional（項目55）
 

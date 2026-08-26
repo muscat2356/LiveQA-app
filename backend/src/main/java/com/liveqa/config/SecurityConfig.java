@@ -89,6 +89,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/guest").permitAll()
                 .requestMatchers("/api/events/*/questions").permitAll()
                 .requestMatchers("/api/events/*/polls").permitAll()
+                .requestMatchers("/api/polls/*/responses").permitAll()
+                .requestMatchers("/api/polls/*/results").permitAll()
                 .requestMatchers(
                         "/api/me",
                         "/api/auth/logout",
