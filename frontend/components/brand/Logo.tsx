@@ -1,5 +1,5 @@
 import { RiQuestionAnswerFill } from "@remixicon/react";
-import { cn } from "@/lib/utils/utils";
+import { cn } from "@/lib/utils";
 
 type LogoProps = {
   /** アイコンタイルのサイズ(px) */

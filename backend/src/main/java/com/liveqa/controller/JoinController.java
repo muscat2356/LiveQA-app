@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.liveqa.dto.response.EventJoinResponse;
 import com.liveqa.service.EventService;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 /**
  * リソースjoinに対するAPIコントローラー
  * JoinController
@@ -16,6 +18,7 @@ import com.liveqa.service.EventService;
  */
 @RestController
 @RequestMapping("/api")
+@Tag(name = "イベント", description = "参加コード照会")
 public class JoinController {
 
     private final EventService eventService;

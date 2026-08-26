@@ -86,9 +86,16 @@ public class SecurityConfig {
             .cors(Customizer.withDefaults())
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
+                .requestMatchers(
+                        "/v3/api-docs/**",
+                        "/swagger-ui/**",
+                        "/swagger-ui.html"
+                ).permitAll()
                 .requestMatchers("/api/auth/guest").permitAll()
                 .requestMatchers("/api/events/*/questions").permitAll()
                 .requestMatchers("/api/events/*/polls").permitAll()
+                .requestMatchers("/api/polls/*/responses").permitAll()
+                .requestMatchers("/api/polls/*/results").permitAll()
                 .requestMatchers(
                         "/api/me",
                         "/api/auth/logout",

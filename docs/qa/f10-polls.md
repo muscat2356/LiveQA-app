@@ -15,7 +15,7 @@ scope: `POST/GET /api/events/{id}/polls`、`PATCH /api/polls/{pollId}/status`。
 | `PollStatus.canTransitionTo` | **済み**（CLOSED は終端） |
 | `PollService.create` + `requireOwnedEvent` + `normalizeLabels` | **済み**（trim 後重複は Service 400） |
 | `POST /api/events/{id}/polls` | **済み**（HOST / `@Valid` / 201） |
-| `PollResponse.form` | **済み**（count / myOptionIds は F-11 まで 0） |
+| `PollResponse.form` | **済み**（count / myOptionIds は一覧・結果で実集計。作成は 0） |
 | Service / Controller テスト | **済み**（create / GET / PATCH / 不正 enum 400） |
 | GET 一覧 | **済み**（所有者=全件、未ログイン=OPEN。`@Transactional(readOnly = true)` で `form` まで同一 TX） |
 | PATCH 開閉 | **済み**（DRAFT→OPEN / DRAFT送り400 / CLOSED→OPEN 409 / 404。HOST・CSRF）

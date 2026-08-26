@@ -49,7 +49,7 @@ public class EventService {
         return eventRepository
                 .findByHost_IdOrderByCreatedAtDesc(user.getId())
                 .stream()
-                .map(e -> toEventSummaryResponse(e))
+                .map(EventSummaryResponse::form)
                 .toList();
     }
 
@@ -61,7 +61,7 @@ public class EventService {
      */
     @Transactional(readOnly = true)
     public EventDetailResponse findById(Long id, OidcUser oidc) {
-        return toEventDetailResponse(requireOwnedEvent(id, oidc));
+        return EventDetailResponse.form(requireOwnedEvent(id, oidc));
     }
 
     /**
@@ -90,7 +90,7 @@ public class EventService {
                         HttpStatus.NOT_FOUND,
                         "Not Found",
                         "該当するルームが見つかりません。"));
-        return toEventJoinResponse(event);
+        return EventJoinResponse.form(event);
     }
 
     /**
@@ -107,7 +107,7 @@ public class EventService {
         final User user = requiredUser(oidc);
         final JoinCode code = generateJoinCode();
         final Event event = eventRepository.save(Event.create(user, title, code.code()));
-        return toEventCreateResponse(event);
+        return EventCreateResponse.form(event);
     }
 
     /**
@@ -137,7 +137,7 @@ public class EventService {
         }
         event.changeStatus(status);
         eventRepository.save(event);
-        return toEventStatusResponse(event);
+        return EventStatusResponse.form(event);
     }
 
     /**
@@ -158,7 +158,7 @@ public class EventService {
 
         eventRepository.save(event);
 
-        return toEventDetailResponse(event);
+        return EventDetailResponse.form(event);
 
     }
 
@@ -224,68 +224,4 @@ public class EventService {
                         "イベントが見つかりません。"));
     }
 
-    /**
-     * レスポンスDTOへ変換するメソッド
-     * @param event DBから取得されたドメイン
-     * @return レスポンス
-     */
-    public EventSummaryResponse toEventSummaryResponse(Event event) {
-        return new EventSummaryResponse(
-                event.getId(),
-                event.getTitle(),
-                event.getJoinCode(),
-                event.getStatus(),
-                event.getCreatedAt());
-    }
-    /**
-     * レスポンスDTOへ変換するメソッド
-     * @param event DBから取得されたドメイン
-     * @return レスポンス
-     */
-    public EventCreateResponse toEventCreateResponse(Event event) {
-        return new EventCreateResponse(
-                event.getId(),
-                event.getTitle(),
-                event.getJoinCode(),
-                event.getStatus(),
-                event.getCreatedAt());
-    }
-    /**
-     * レスポンスDTOへ変換するメソッド
-     * @param event DBから取得されたドメイン
-     * @return レスポンス
-     */
-    public EventDetailResponse toEventDetailResponse(Event event) {
-        return new EventDetailResponse(
-                event.getId(),
-                event.getTitle(),
-                event.getJoinCode(),
-                event.getStatus(),
-                event.getQuestionCount(),
-                event.getCreatedAt(),
-                event.getUpdatedAt());
-    }
-
-     /**
-     * レスポンスDTOへ変換するメソッド
-     * @param event DBから取得されたドメイン
-     * @return レスポンス
-     */
-    public EventJoinResponse toEventJoinResponse(Event event) {
-        return new EventJoinResponse(
-                event.getId(),
-                event.getTitle(),
-                event.getStatus());
-    }
-
-    /**
-     * レスポンスDTOへ変換するメソッド
-     * @param event DBから取得されたドメイン
-     * @return レスポンス
-     */
-    public EventStatusResponse toEventStatusResponse(Event event) {
-        return new EventStatusResponse(
-                event.getId(),
-                event.getStatus());
-    }
 }

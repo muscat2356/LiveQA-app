@@ -1,5 +1,6 @@
 package com.liveqa.dto.response;
 
+import com.liveqa.domain.Event;
 import com.liveqa.enums.EventStatus;
 
 /**
@@ -13,4 +14,16 @@ public record EventJoinResponse(
     EventStatus status
 ) {
 
+    /**
+     * Entityから応答DTOへ変換するファクトリ
+     * 公開面は eventId / title / status だけ
+     * @param event イベント
+     * @return 応答DTO
+     */
+    public static EventJoinResponse form(Event event) {
+        return new EventJoinResponse(
+                event.getId(),
+                event.getTitle(),
+                event.getStatus());
+    }
 }

@@ -4,9 +4,14 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import com.liveqa.domain.Poll;
 import com.liveqa.enums.PollStatus;
+
+import jakarta.persistence.LockModeType;
 
 /**
  * pollsテーブルを操作するRepository
@@ -42,5 +47,17 @@ public interface PollRepository extends JpaRepository<Poll, Long> {
      * @return ポール1件
      */
     Optional<Poll> findByIdAndEvent_Host_Id(Long id, Long hostId);
+
+    /**
+     * ポール行を悲観ロックして復元するメソッド
+     * 回答POSTの直列化用。TXが終わるまで同じポールへの回答を待たせる
+     * 結果GETでは使わない
+     *
+     * @param id ポールid
+     * @return ポール1件
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT p FROM Poll p WHERE p.id = :id")
+    Optional<Poll> findByIdForUpdate(@Param("id") Long id);
 
 }

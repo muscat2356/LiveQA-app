@@ -17,6 +17,9 @@ import com.liveqa.websocket.QuestionEventPublisher;
 import com.liveqa.websocket.QuestionEventType;
 
 import jakarta.servlet.http.HttpSession;
+
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 /**
  * リソースvoteに対するAPIコントローラー
  * VoteController
@@ -24,6 +27,8 @@ import jakarta.servlet.http.HttpSession;
  */
 @RestController
 @RequestMapping("/api")
+@Tag(name = "いいね", description = "追加・取消")
+@SecurityRequirement(name = "SESSION")
 public class VoteController {
 
     private final VoteService voteService;

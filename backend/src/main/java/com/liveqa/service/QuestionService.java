@@ -91,7 +91,7 @@ public class QuestionService {
 
         eventRepository.incrementQuestionCount(event.getId());
 
-        return toQuestionResponse(saved, event.getId(), false);
+        return QuestionResponse.form(saved, event.getId(), false);
 
     }
 
@@ -150,7 +150,7 @@ public class QuestionService {
         return questionRepository
             .searchByEventId(eventId, questionSort, questionStatus)
             .stream()
-            .map(question -> toQuestionResponse(
+            .map(question -> QuestionResponse.form(
                 question,
                 eventId,
                 votedQuestionIds.contains(question.getId())))
@@ -195,7 +195,7 @@ public class QuestionService {
             final boolean votedByMe = voterKeyResolver.tryResolve(source)
                 .map(key -> voteRepository.existsByQuestion_IdAndVoterKey(questionId, key.value()))
                 .orElse(false);
-            return toQuestionResponse(question, question.getEvent().getId(), votedByMe);
+            return QuestionResponse.form(question, question.getEvent().getId(), votedByMe);
         }
 
     /**
@@ -296,30 +296,6 @@ public class QuestionService {
                 .filter(s -> !s.isBlank())
                 .orElse(ANONYMOUS_DISPLAY_NAME);
         return Question.post(event, body, displayName);
-    }
-
-    /**
-     * レスポンスDTOへ変換するメソッド
-     * @param question DBから取得されたドメイン
-     * @param eventId イベントid
-     * @param votedByMe 今のセッションがいいね済みか
-     * @return レスポンス
-     */
-    private QuestionResponse toQuestionResponse(
-        Question question,
-        Long eventId,
-        boolean votedByMe
-    ) {
-        return new QuestionResponse(
-            question.getId(),
-            eventId,
-            question.getBody(),
-            question.getDisplayName(),
-            question.getUpvoteCount(),
-            question.getStatus(),
-            votedByMe,
-            question.getCreatedAt()
-        );
     }
 
 }

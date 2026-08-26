@@ -40,14 +40,18 @@ DTO 化は Service（推奨）。Service が `ResponseEntity` まで返すのは
 |-----|-------------------|----------|
 | `QuestionResponse.votedByMe` | 今の SESSION の票 | Service |
 | `PollResponse.totalResponses` / `myOptionIds` | `poll_responses` | Service（F-11） |
-| `MeResponse.displayName` / `email` | `OidcUser` クレーム | Service |
+| `MeResponse.displayName` / `email` | `OidcUser` クレーム | Service が `OidcUser` を `form` へ渡す |
 
 ```text
-// F-10（得票なし）
-.polls.stream().map(PollResponse::form).toList()
+// 材料なし
+eventRepository.findByHost_IdOrderByCreatedAtDesc(...)
+    .stream().map(EventSummaryResponse::form).toList()
 
-// F-11（材料は Service）
-PollResponse.form(poll, totalResponses, myOptionIds)
+// 材料あり（質問）
+QuestionResponse.form(question, eventId, votedByMe)
+
+// 材料あり（F-11。count マップは Service が GROUP BY）
+PollResponse.form(poll, countByOptionId, myOptionIds)
 ```
 
 `dto` が `domain` を import するのは Response だけ許容（出力の写像）。Request → Entity はこれまでどおり Service / `Poll.create`。
@@ -57,13 +61,13 @@ PollResponse.form(poll, totalResponses, myOptionIds)
 | new するもの | 置き場 | 例 |
 |--------------|--------|-----|
 | Entity / 値オブジェクト | **domain** | `Event.create` / `User.hostOf` / `JoinCode.form` |
-| Response record | **dto の `form`** | `PollResponse.form` / `PollOptionResponse.form` |
+| Response record | **dto の `form`** | `PollResponse.form` / `QuestionResponse.form` / `EventSummaryResponse.form` |
 
-Service の `toXxxResponse` は、`form` へ移したら消す。一気にやらなくてよい。ポールで始めて、質問・イベントは触った単位で寄せる。
+Service の `toXxxResponse` は、`form` へ移したら消す。ポール・イベント・質問・いいね・Me・guest は寄せ済み。Vote の再 SELECT だけ Service に残る（`VoteResponse.form` は数字を受け取る）。ポール一覧はイベント単位の GROUP BY を `form` の引数にする。
 
 【EJ】静的ファクトリ … `form` は Response を new する入口  
 【EJ】公開面最小化 … Entity は API を知らない  
-【EJ】あえて外す … F-10 の `form` は count=0 固定。F-11 で引数を足す
+【EJ】あえて外す … `PollResponse.form(poll)` は作成直後の 0。一覧・結果・開閉は count マップ
 
 ## `var` と不変性は別軸
 
@@ -88,7 +92,7 @@ Service の `toXxxResponse` は、`form` へ移したら消す。一気にやら
 
 同じ TX で managed な Entity を書き換えたら、コミット時に dirty checking で UPDATE される。`save` は省略可。新規（transient）だけ `save` が必要。
 
-`save` 失敗は戻り値 null ではない（例外）。予防できる衝突は exists。業務 UNIQUE（いいね）は制約名で 409。想定外は 500。
+`save` 失敗は戻り値 null ではない（例外）。予防できる衝突は exists。業務 UNIQUE（いいね・ポール同一 option）は制約名で 409。SINGLE の 1ポール1票は UNIQUE では足りないので回答 POST がポール行を悲観ロックする。想定外は 500。
 
 ## Optional（項目55）
 
@@ -169,6 +173,6 @@ MVP は質問を status で閉じる。イベント削除だけ物理 DELETE。`
 | enum | 定数1行、`canTransitionTo` | — |
 | DTO | どの API の入出力か。`ErrorResponse` の `of` / `withField` | `body()` 等 |
 | Repository | 自前の派生クエリ | `save` / `findById` |
-| Service | 公開メソッド（404/409/401）、`toXxxResponse` | コンストラクタ・フィールド |
+| Service | 公開メソッド（404/409/401） | コンストラクタ・フィールド。写像は DTO の `form` |
 
 enum の遷移の正は [constraints](../design/constraints.md)。`EventStatus` は `DRAFT→OPEN`、`OPEN⇔CLOSED`。削除は物理 DELETE（enum に `DELETED` は持たない）。`QuestionStatus` は `OPEN→ANSWERED→ARCHIVED`（`OPEN→ARCHIVED` 可）。`PollStatus` は `DRAFT→OPEN→CLOSED`（終端、MVP-B）。
