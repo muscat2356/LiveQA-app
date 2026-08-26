@@ -31,7 +31,7 @@ flowchart LR
 | polls | type | 必須 | `SINGLE` / `MULTI` | Back + DB(CHECK) |
 | poll_options | label | 必須 | 1〜100文字、**同一ポール内で重複禁止** | Front + Back |
 | polls | 選択肢数 | 必須 | 2〜10個 | Front + Back |
-| poll_responses | optionIds | 必須 | `SINGLE`=ちょうど1件 / `MULTI`=1〜選択肢数。全て当該ポールの選択肢であること | Front + Back |
+| poll_responses | optionIds | 必須 | `SINGLE`=ちょうど1件 / `MULTI`=1〜選択肢数。全て当該ポールの選択肢であること | Front + Back + DB(複合FK) |
 | （参加コード入力） | joinCode | 必須 | `[A-Za-z0-9]{8}`。存在しなければ404 | Front + Back |
 
 - 参加者のニックネーム以外は原則 `@NotBlank`。文字数は `@Size`、形式は `@Pattern` で表現
@@ -110,7 +110,7 @@ ALTER TABLE poll_options ADD CONSTRAINT ck_poll_options_order CHECK (display_ord
 - 文字長はカラム長（`varchar(n)`）＋アプリ層で担保
 - Flyway 現行は `ck_events_question_count`。他の CHECK は上の SQL どおり足す
 - 「選択肢2〜10個」「同一ポール内のラベル重複禁止」「SINGLEは1票」などの複合ルールはDBでは表現しづらいため **サービス層で担保**
-- 一意制約: `votes(question_id, voter_key)` / `poll_responses(poll_option_id, voter_key)`
+- 一意制約: `votes(question_id, voter_key)` / `poll_responses(poll_option_id, voter_key)` / `poll_options(id, poll_id)`（複合 FK の参照先）
 
 ## 4. HTTPステータス対応
 
