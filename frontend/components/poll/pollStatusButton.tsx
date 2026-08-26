@@ -28,6 +28,7 @@ export default function PollStatusButton({
 
         }catch(e){
             setError(e instanceof Error ? e.message: "エラーが発生しました");
+            load();
         }finally{
 
             setPending(false);
