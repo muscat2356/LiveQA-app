@@ -30,7 +30,7 @@ export async function fetchPostPoll(
     if(!res.ok){
         throw new Error("エラーが発生しました");
     }
-
+    //移し替え
     const pollDto: PollDto = await res.json();
 
     return pollDto;
