@@ -1,8 +1,13 @@
-import { QuestionResponse, Sort } from "@/types/question/question";
+import { QuestionFilter, QuestionResponse, Sort } from "@/types/question/question";
 
-export async function fetchGetQuestion(eventId: number, sort:Sort){
+export async function fetchGetQuestion(eventId: number, sort:Sort, filter: QuestionFilter){
 
-        const res = await fetch(`/api/events/${eventId}/questions?sort=${sort}`,{
+        const params = new URLSearchParams({ sort });
+        if(filter !== "ALL"){
+            params.set("status", filter);
+        }
+
+        const res = await fetch(`/api/events/${eventId}/questions${params}`,{
              credentials: "same-origin", 
              headers: { Accept: "application/json" }
         });
