@@ -9,8 +9,8 @@ import { useState } from "react";
 import QuestionStatusButton from "./QuestionStatusButton";
 import { QuestionStatusBadge } from "@/components/question/questionStatusBadge";
 import useHostQuestions from "@/components/question/useHostQuestions";
-import { OrganizerChart } from "@/components/organizer/organizerChart";
-import usePoll from "@/components/organizer/usePoll";
+import { OrganizerChart } from "@/components/poll/organizerChart";
+import usePoll from "@/components/poll/usePoll";
 
 export default  function HostQaScreen({
      event 

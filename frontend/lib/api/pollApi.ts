@@ -51,7 +51,7 @@ export async function fetchGetPoll(id: number){
 
 }
 
-export async function fetchPatchPoll(pollId: number, status: PollStatus){
+export async function fetchPatchPollStatus(pollId: number, status: PollStatus){
 
     const xsrfToken = readCookie("XSRF-TOKEN");
 
