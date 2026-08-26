@@ -13,20 +13,19 @@ public record PollOptionResponse(
     String label,
     int count
 ) {
-    
+
     /**
-     * F10等、初期値が0の場合の入り口
-     * 引数で分岐するオーバーロード
-     * @param option
-     * @return
+     * 得票0の入り口（作成直後）
+     * @param option 選択肢
+     * @return 応答DTO（count=0）
      */
     public static PollOptionResponse form(PollOption option) {
         return form(option, 0);
     }
-    
+
     /**
      * Entityから応答DTOへ変換するファクトリ
-     * 得票数が引数としてあればこちらを採用
+     * 得票はServiceが集めて渡す
      * @param option 選択肢
      * @param count この選択肢の得票
      * @return 応答DTO
@@ -37,4 +36,5 @@ public record PollOptionResponse(
             option.getLabel(),
             count
         );
-    }}
+    }
+}

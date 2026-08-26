@@ -66,7 +66,7 @@ public class VoteService {
         }
         questionRepository.incrementUpvoteCount(questionId);
 
-        return toVoteResponse(questionId, true);
+        return currentVote(questionId, true);
     }
 
     /**
@@ -96,7 +96,7 @@ public class VoteService {
             voterKey.value()
         );
         questionRepository.decrementUpvoteCount(questionId);
-        return toVoteResponse(questionId, false);
+        return currentVote(questionId, false);
     }
 
     /**
@@ -124,9 +124,13 @@ public class VoteService {
     }
 
     /**
-     * レスポンスDTOへ変換するメソッド
+     * 書き込み後の件数を引き直して応答するメソッド
+     * upvote_count は原子的更新なので、再 SELECT してから form する
+     * @param questionId 質問id
+     * @param votedByMe 今のセッションがいいね済みか
+     * @return 応答DTO
      */
-    private VoteResponse toVoteResponse(Long questionId, boolean votedByMe) {
+    private VoteResponse currentVote(Long questionId, boolean votedByMe) {
         final Question refreshed = questionRepository.findById(questionId)
                 .orElseThrow(() -> new BusinessException(
                     HttpStatus.NOT_FOUND,

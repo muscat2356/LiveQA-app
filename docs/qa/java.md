@@ -63,11 +63,11 @@ PollResponse.form(poll, countByOptionId, myOptionIds)
 | Entity / 値オブジェクト | **domain** | `Event.create` / `User.hostOf` / `JoinCode.form` |
 | Response record | **dto の `form`** | `PollResponse.form` / `QuestionResponse.form` / `EventSummaryResponse.form` |
 
-Service の `toXxxResponse` は、`form` へ移したら消す。ポール・イベント・質問・いいね・Me・guest は寄せ済み。Vote の再 SELECT だけ Service に残る（`VoteResponse.form` は数字を受け取る）。
+Service の `toXxxResponse` は、`form` へ移したら消す。ポール・イベント・質問・いいね・Me・guest は寄せ済み。Vote の再 SELECT だけ Service に残る（`VoteResponse.form` は数字を受け取る）。ポール一覧はイベント単位の GROUP BY を `form` の引数にする。
 
 【EJ】静的ファクトリ … `form` は Response を new する入口  
 【EJ】公開面最小化 … Entity は API を知らない  
-【EJ】あえて外す … F-10 の `PollResponse.form(poll)` は count=0。F-11 で count マップを足す
+【EJ】あえて外す … `PollResponse.form(poll)` は作成直後の 0。一覧・結果・開閉は count マップ
 
 ## `var` と不変性は別軸
 

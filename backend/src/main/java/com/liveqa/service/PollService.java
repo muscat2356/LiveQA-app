@@ -30,6 +30,7 @@ import com.liveqa.repository.EventRepository;
 import com.liveqa.repository.PollRepository;
 import com.liveqa.repository.PollVoteRepository;
 import com.liveqa.repository.projection.OptionVoteCount;
+import com.liveqa.repository.projection.VoterOptionId;
 
 /**
  * Pollsに対する業務処理を行うサービスクラス
@@ -82,62 +83,61 @@ public class PollService {
         );
         
         return PollResponse.form(saved);
-
     }
 
     /**
      * イベント配下のポール一覧を返すメソッド
      * 所有者は全件、それ以外はOPEN。イベントが無ければ404
+     * 得票と myOptionIds はイベント単位のSQLで載せる（ポールごとのN+1にしない）
+     * キー未確立でも200、myOptionIdsは空
      * PollResponse.form が LAZY の options を読む。
      * open-in-view: false のため Repository の find 後に Session が閉じると 500 になる。
      * 同一 TX で form まで終わらせる
      * @param eventId イベントid
      * @param oidc SecurityContext内のOidcUser情報（未ログインならnull）
+     * @param source 投票キーの取得元
      * @return ポール一覧
      */
     @Transactional(readOnly = true)
-    public List<PollResponse> findByEventId(Long eventId, OidcUser oidc) {
-
+    public List<PollResponse> findByEventId(
+            Long eventId,
+            OidcUser oidc,
+            VoterKeySource source
+    ) {
         if (oidc != null) {
-            final User user =
-             userService.requireByOidcSubject(oidc.getSubject());
-            if (
-                eventRepository.findByIdAndHost_Id(
-                    eventId,
-                    user.getId()).isPresent()
-                ) {
-                return pollRepository.findByEvent_IdOrderByCreatedAtAsc(eventId)
-                        .stream()
-                        .map(PollResponse::form)
-                        .toList();
+            final User user = userService.requireByOidcSubject(oidc.getSubject());
+            if (eventRepository.findByIdAndHost_Id(eventId, user.getId()).isPresent()) {
+                return toResponses(
+                        pollRepository.findByEvent_IdOrderByCreatedAtAsc(eventId),
+                        eventId,
+                        source);
             }
-
         }
         requireVisibleEvent(eventId);
-        return 
-            pollRepository.findByEvent_IdAndStatusOrderByCreatedAtAsc(
+        return toResponses(
+                pollRepository.findByEvent_IdAndStatusOrderByCreatedAtAsc(
+                        eventId,
+                        PollStatus.OPEN),
                 eventId,
-                PollStatus.OPEN
-            )
-            .stream()
-            .map(PollResponse::form)
-            .toList();
-        
+                source);
     }
 
     /**
      * ポールステータスを遷移するメソッド
      * DRAFT送りは400。遷移不可は409。所有でなければ404
+     * 応答は最新の得票を載せる（PollDTOは一つ）
      * @param pollId ポールid
      * @param status 遷移先（OPEN / CLOSED）
      * @param oidc SecurityContext内のOidcUser情報
+     * @param source 投票キーの取得元
      * @return 更新したポール
      */
     @Transactional
     public PollResponse updateStatus(
         Long pollId,
         PollStatus status,
-        OidcUser oidc
+        OidcUser oidc,
+        VoterKeySource source
     ) {
         if (status == PollStatus.DRAFT) {
             throw new BusinessException(
@@ -155,7 +155,7 @@ public class PollService {
         poll.changeStatus(status);
         pollRepository.save(poll);
         // 配信（POLL_OPENED / POLL_CLOSED）は C。今は口だけ
-        return PollResponse.form(poll);
+        return formWithVotes(poll, source);
     }
 
     /**
@@ -219,10 +219,7 @@ public class PollService {
         if (poll.getStatus() == PollStatus.DRAFT) {
             requireOwnedDraft(pollId, oidc);
         }
-        final List<Long> myOptionIds = voterKeyResolver.tryResolve(source)
-                .map(voterKey -> myOptionIds(pollId, voterKey.value()))
-                .orElseGet(List::of);
-        return PollResponse.form(poll, countByOptionId(pollId), myOptionIds);
+        return formWithVotes(poll, source);
     }
 
     /**
@@ -366,6 +363,74 @@ public class PollService {
     }
 
     /**
+     * 1ポールの応答を、得票と自分の選択付きで組み立てるメソッド
+     * 開閉と結果GETで同じ口。キー未確立なら myOptionIds は空
+     * @param poll 対象ポール
+     * @param source 投票キーの取得元
+     * @return 応答DTO
+     */
+    private PollResponse formWithVotes(Poll poll, VoterKeySource source) {
+        final List<Long> myOptionIds = voterKeyResolver.tryResolve(source)
+                .map(voterKey -> myOptionIds(poll.getId(), voterKey.value()))
+                .orElseGet(List::of);
+        return PollResponse.form(poll, countByOptionId(poll.getId()), myOptionIds);
+    }
+
+    /**
+     * 一覧の応答を、イベント単位の得票と自分の選択付きで組み立てるメソッド
+     * ポールごとの COUNT / SELECT にしない
+     * @param polls 対象ポール
+     * @param eventId イベントid
+     * @param source 投票キーの取得元
+     * @return 応答DTO一覧
+     */
+    private List<PollResponse> toResponses(
+            List<Poll> polls,
+            Long eventId,
+            VoterKeySource source
+    ) {
+        if (polls.isEmpty()) {
+            return List.of();
+        }
+        final Map<Long, Integer> countByOptionId = pollVoteRepository
+                .countByOptionIdForEvent(eventId)
+                .stream()
+                .collect(Collectors.toMap(
+                        OptionVoteCount::optionId,
+                        row -> (int) row.count()));
+        final Map<Long, List<Long>> myByPollId = myOptionIdsByPollId(eventId, source);
+        return polls.stream()
+                .map(poll -> PollResponse.form(
+                        poll,
+                        countByOptionId,
+                        myByPollId.getOrDefault(poll.getId(), List.of())))
+                .toList();
+    }
+
+    /**
+     * 今のセッションがイベント配下で選んだ選択肢をポールごとに返すメソッド
+     * キー未確立なら空（401にしない）
+     * @param eventId イベントid
+     * @param source 投票キーの取得元
+     * @return ポールid→選んだ選択肢id
+     */
+    private Map<Long, List<Long>> myOptionIdsByPollId(
+            Long eventId,
+            VoterKeySource source
+    ) {
+        return voterKeyResolver.tryResolve(source)
+                .map(voterKey -> pollVoteRepository
+                        .findVoterOptionIdsByEventId(eventId, voterKey.value())
+                        .stream()
+                        .collect(Collectors.groupingBy(
+                                VoterOptionId::pollId,
+                                Collectors.mapping(
+                                        VoterOptionId::optionId,
+                                        Collectors.toList()))))
+                .orElseGet(Map::of);
+    }
+
+    /**
      * 今のセッションが選んだ選択肢idを返すメソッド
      * 二重回答の判定とmyOptionIdsを兼ねる
      * @param pollId ポールid
@@ -425,7 +490,7 @@ public class PollService {
      * @param oidc SecurityContext内のOidcUser情報
      * @return 所有イベント
      */
-    protected Event requireOwnedEvent(Long id, OidcUser oidc) {
+    private Event requireOwnedEvent(Long id, OidcUser oidc) {
         final User user = userService.requireByOidcSubject(oidc.getSubject());
         return eventRepository
                 .findByIdAndHost_Id(id, user.getId())
@@ -469,10 +534,6 @@ public class PollService {
                     "選択肢ラベルが重複しています");
         }
     
-        return trimmed; 
+        return trimmed;
     }
-
-
-
-
 }

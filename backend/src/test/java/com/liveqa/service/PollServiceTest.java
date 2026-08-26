@@ -38,6 +38,7 @@ import com.liveqa.repository.EventRepository;
 import com.liveqa.repository.PollRepository;
 import com.liveqa.repository.PollVoteRepository;
 import com.liveqa.repository.projection.OptionVoteCount;
+import com.liveqa.repository.projection.VoterOptionId;
 
 @ExtendWith(MockitoExtension.class)
 class PollServiceTest {
@@ -168,8 +169,10 @@ class PollServiceTest {
         ReflectionTestUtils.setField(open, "id", 2L);
         when(pollRepository.findByEvent_IdOrderByCreatedAtAsc(10L))
                 .thenReturn(List.of(draft, open));
+        when(voterKeyResolver.tryResolve(any())).thenReturn(Optional.empty());
 
-        final List<PollResponse> result = pollService.findByEventId(10L, oidc);
+        final List<PollResponse> result = pollService.findByEventId(
+                10L, oidc, new VoterKeySource.Host("sub-1"));
 
         assertThat(result).extracting(PollResponse::status)
                 .containsExactly(PollStatus.DRAFT, PollStatus.OPEN);
@@ -187,23 +190,58 @@ class PollServiceTest {
         ReflectionTestUtils.setField(open, "id", 2L);
         when(pollRepository.findByEvent_IdAndStatusOrderByCreatedAtAsc(10L, PollStatus.OPEN))
                 .thenReturn(List.of(open));
+        when(voterKeyResolver.tryResolve(any())).thenReturn(Optional.empty());
 
-        final List<PollResponse> result = pollService.findByEventId(10L, null);
+        final List<PollResponse> result = pollService.findByEventId(
+                10L, null, new VoterKeySource.Missing());
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).status()).isEqualTo(PollStatus.OPEN);
     }
 
     @Test
+    void findByEventId_得票とmyOptionIdsを載せる() {
+        final User host = User.hostOf("sub-host");
+        final Event event = Event.create(host, "LT会", "Ab12Cd34");
+        ReflectionTestUtils.setField(event, "id", 10L);
+        when(eventRepository.findById(10L)).thenReturn(Optional.of(event));
+
+        final Poll open = Poll.create(event, "受付中", PollType.SINGLE, List.of("A", "B"));
+        open.changeStatus(PollStatus.OPEN);
+        ReflectionTestUtils.setField(open, "id", 2L);
+        ReflectionTestUtils.setField(open.getOptions().get(0), "id", 31L);
+        ReflectionTestUtils.setField(open.getOptions().get(1), "id", 32L);
+        when(pollRepository.findByEvent_IdAndStatusOrderByCreatedAtAsc(10L, PollStatus.OPEN))
+                .thenReturn(List.of(open));
+        when(pollVoteRepository.countByOptionIdForEvent(10L)).thenReturn(List.of(
+                new OptionVoteCount(31L, 12L),
+                new OptionVoteCount(32L, 7L)));
+        when(voterKeyResolver.tryResolve(any())).thenReturn(Optional.of(VoterKey.guest("abc")));
+        when(pollVoteRepository.findVoterOptionIdsByEventId(10L, "g:abc"))
+                .thenReturn(List.of(new VoterOptionId(2L, 31L)));
+
+        final List<PollResponse> result = pollService.findByEventId(
+                10L, null, new VoterKeySource.Guest("abc"));
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).totalResponses()).isEqualTo(19);
+        assertThat(result.get(0).myOptionIds()).containsExactly(31L);
+        assertThat(result.get(0).options()).extracting(o -> o.count()).containsExactly(12, 7);
+        verify(pollVoteRepository, never()).countByOptionId(any());
+    }
+
+    @Test
     void findByEventId_イベントが無ければ404() {
         when(eventRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> pollService.findByEventId(99L, null))
+        assertThatThrownBy(() -> pollService.findByEventId(
+                99L, null, new VoterKeySource.Missing()))
                 .isInstanceOf(BusinessException.class)
                 .satisfies(ex -> {
                     final BusinessException be = (BusinessException) ex;
                     assertThat(be.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
                 });
+        verify(pollVoteRepository, never()).countByOptionIdForEvent(any());
     }
 
     @Test
@@ -221,8 +259,10 @@ class PollServiceTest {
         ReflectionTestUtils.setField(poll, "id", 5L);
         when(pollRepository.findByIdAndEvent_Host_Id(5L, 1L)).thenReturn(Optional.of(poll));
         when(pollRepository.save(poll)).thenReturn(poll);
+        when(voterKeyResolver.tryResolve(any())).thenReturn(Optional.empty());
 
-        final PollResponse response = pollService.updateStatus(5L, PollStatus.OPEN, oidc);
+        final PollResponse response = pollService.updateStatus(
+                5L, PollStatus.OPEN, oidc, new VoterKeySource.Host("sub-1"));
 
         assertThat(response.status()).isEqualTo(PollStatus.OPEN);
         assertThat(response.id()).isEqualTo(5L);
@@ -232,7 +272,8 @@ class PollServiceTest {
     void updateStatus_DRAFTを送ると400() {
         final OidcUser oidc = mock(OidcUser.class);
 
-        assertThatThrownBy(() -> pollService.updateStatus(5L, PollStatus.DRAFT, oidc))
+        assertThatThrownBy(() -> pollService.updateStatus(
+                5L, PollStatus.DRAFT, oidc, new VoterKeySource.Host("sub-1")))
                 .isInstanceOf(BusinessException.class)
                 .satisfies(ex -> {
                     final BusinessException be = (BusinessException) ex;
@@ -257,7 +298,8 @@ class PollServiceTest {
         ReflectionTestUtils.setField(poll, "id", 5L);
         when(pollRepository.findByIdAndEvent_Host_Id(5L, 1L)).thenReturn(Optional.of(poll));
 
-        assertThatThrownBy(() -> pollService.updateStatus(5L, PollStatus.OPEN, oidc))
+        assertThatThrownBy(() -> pollService.updateStatus(
+                5L, PollStatus.OPEN, oidc, new VoterKeySource.Host("sub-1")))
                 .isInstanceOf(BusinessException.class)
                 .satisfies(ex -> {
                     final BusinessException be = (BusinessException) ex;
@@ -276,7 +318,8 @@ class PollServiceTest {
         when(userService.requireByOidcSubject("sub-1")).thenReturn(user);
         when(pollRepository.findByIdAndEvent_Host_Id(99L, 1L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> pollService.updateStatus(99L, PollStatus.OPEN, oidc))
+        assertThatThrownBy(() -> pollService.updateStatus(
+                99L, PollStatus.OPEN, oidc, new VoterKeySource.Host("sub-1")))
                 .isInstanceOf(BusinessException.class)
                 .satisfies(ex -> {
                     final BusinessException be = (BusinessException) ex;
