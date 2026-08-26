@@ -119,12 +119,17 @@ public class QuestionController {
             @Valid @RequestBody QuestionStatusRequest request,
             HttpSession session
     ) {
-        return ResponseEntity.ok(
-                questionService.updateStatus(
-                        qid,
-                        request.status(),
-                        oidc,
-                        VoterKeySources.form(oidc, session)));
+        QuestionResponse response = questionService.updateStatus(
+            qid,
+            request.status(),
+            oidc,
+            VoterKeySources.form(oidc, session));
+
+        questionEventPublisher.publish(
+                QuestionEventType.QUESTION_ANSWERED,
+                response);
+
+        return ResponseEntity.ok(response);
     }
 
 }
