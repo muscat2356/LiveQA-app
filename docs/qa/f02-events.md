@@ -160,6 +160,25 @@ OPEN 中の削除は UI で確認ダイアログ必須。STOMP `EVENT_DELETED` �
 
 到達点: 詳細の主催者URLは `/dashboard/{id}/qa`（`frontend/app/(organizer)/dashboard/[id]/page.tsx`）。`/join/1/qa` を直打ちすると、いまも `GET /api/join/1` → `JoinCode` が 8 文字でないので **400** → SSR throw。[#92](https://github.com/muscat2356/live-qa-app/issues/92) は修正済みでクローズ。
 
+## Q. ダッシュボード詳細だけエラーで開かない？（2026-08-26）
+
+**API ではなく、詳細ページだけ `NEXT_PUBLIC_URL` が無いと throw する。** 一覧・主催者 Q&A はこの変数を見ない。
+
+```text
+const baseURL = process.env.NEXT_PUBLIC_URL;
+if (!baseURL) throw new Error("URLが存在しません");
+```
+
+`error.tsx` がメッセージを隠すので「イベントの取得に失敗しました。」に見える。`compose.yml` も `frontend/.env.local` も `NEXT_PUBLIC_URL` を置いていない。コピー用 URL のために 2026-08-24 に入った。
+
+開発なら `frontend/.env.local` と compose の frontend に:
+
+```text
+NEXT_PUBLIC_URL=http://localhost:3000
+```
+
+バックの `GET /api/events/{id}` は一覧と同じ Cookie SSR。ポール GET の Lazy とは別件（詳細は polls を呼ばない）。
+
 ## Q. `findByJoinCode` の `@Transactional(readOnly = true)` は要るか？（#94）
 
 **必須ではない。** レビュー指摘どおり、ここは参照1本（`findByJoinCodeAndStatusNot`）で、DTO は `id` / `title` / `status` だけ。`host`（LAZY）は触らない。
