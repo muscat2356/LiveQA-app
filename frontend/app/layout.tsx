@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, DM_Sans } from "next/font/google";
 import "./globals.css";
-import { cn } from "@/lib/utils/utils";
+import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/sonner";
 
 const dmSans = DM_Sans({subsets:['latin'],variable:'--font-sans'});
