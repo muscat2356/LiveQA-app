@@ -39,8 +39,8 @@ export default function PollCreateForm({
 
     if(!open){
         return(
-            <div>
-                <Button variant="outline" onClick={() => setOpen(true)}>
+            <div className="mt-6">
+                <Button variant="outline" onClick={() => setOpen(true)} className="w-full">
                     +投票を作成
                 </Button>
             </div>
@@ -48,16 +48,18 @@ export default function PollCreateForm({
     }
 
     return(
-        <div>
-            <Label>設問</Label>
-            
-            <Textarea 
-                value={form.questionText}
-                onChange={(e) => form.setQuestionText(e.target.value)}
-                maxLength={200}
-                rows={2}
-            />
-            <p>{form.trimmedText.length}/200</p>
+        <div className="mt-6 space-y-4 rounded-2xl border bg-card p-4 shadow-sm ring-1 ring-foreground/5">
+            <div className="space-y-1.5">
+                <Label>設問</Label>
+                <Textarea
+                    value={form.questionText}
+                    onChange={(e) => form.setQuestionText(e.target.value)}
+                    maxLength={200}
+                    rows={2}
+                    className="resize-none"
+                />
+                <p className="text-right text-xs text-muted-foreground">{form.trimmedText.length}/200</p>
+            </div>
 
             <PollTypeSelect
                 value={form.pollType} onChange={form.setPollType}
@@ -72,16 +74,18 @@ export default function PollCreateForm({
             />
 
             {error && (
-                <p>{error}</p>
+                <p className="text-sm text-destructive">{error}</p>
             )}
 
-            <Button onClick={() => {form.reset(); setOpen(false);}} disabled={pending}>
-                キャンセル
-            </Button>
+            <div className="flex justify-end gap-2 border-t pt-4">
+                <Button variant="outline" onClick={() => {form.reset(); setOpen(false);}} disabled={pending}>
+                    キャンセル
+                </Button>
 
-            <Button onClick={pollPost} disabled={form.invalid || pending}>
-                {pending ? "作成中" : "作成"}
-            </Button>
+                <Button onClick={pollPost} disabled={form.invalid || pending}>
+                    {pending ? "作成中" : "作成"}
+                </Button>
+            </div>
 
         </div>
     )
