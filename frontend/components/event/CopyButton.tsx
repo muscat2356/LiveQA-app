@@ -9,7 +9,7 @@ export default function CopyButton({text}: {text: string}){
     const handleCopy = async() => {
         try{
             await navigator.clipboard.writeText(text);
-            toast.success("URLをコピーしました")
+            toast.success("コピーしました")
         }catch{
             toast.error("コピーに失敗しました")
         }

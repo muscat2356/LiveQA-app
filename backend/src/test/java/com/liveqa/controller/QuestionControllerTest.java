@@ -30,6 +30,8 @@ import com.liveqa.dto.request.QuestionCreateRequest;
 import com.liveqa.dto.response.QuestionResponse;
 import com.liveqa.enums.QuestionStatus;
 import com.liveqa.service.QuestionService;
+import com.liveqa.websocket.QuestionEventPublisher;
+import com.liveqa.websocket.QuestionEventType;
 
 /**
  * QuestionController の HTTP 面（配線スライス）。
@@ -47,6 +49,9 @@ class QuestionControllerTest {
 
     @MockitoBean
     QuestionService questionService;
+
+    @MockitoBean
+    QuestionEventPublisher questionEventPublisher;
 
     @Test
     void create_201でSessionのguestIdをSourceに渡す() throws Exception {
@@ -77,6 +82,11 @@ class QuestionControllerTest {
         final ArgumentCaptor<VoterKeySource> captor = ArgumentCaptor.forClass(VoterKeySource.class);
         verify(questionService).create(eq(10L), any(QuestionCreateRequest.class), captor.capture());
         assertThat(captor.getValue()).isEqualTo(new VoterKeySource.Guest("abc"));
+
+        verify(questionEventPublisher).publish(
+                eq(QuestionEventType.QUESTION_CREATED),
+                any(QuestionResponse.class)
+        );
     }
 
     @Test

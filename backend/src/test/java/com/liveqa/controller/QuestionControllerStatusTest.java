@@ -2,6 +2,7 @@ package com.liveqa.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.oidcLogin;
@@ -26,6 +27,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.liveqa.dto.response.QuestionResponse;
 import com.liveqa.enums.QuestionStatus;
 import com.liveqa.service.QuestionService;
+import com.liveqa.websocket.QuestionEventPublisher;
+import com.liveqa.websocket.QuestionEventType;
 
 /**
  * 質問ステータス PATCH の HTTP 面（HOST / CSRF）。
@@ -44,22 +47,27 @@ class QuestionControllerStatusTest {
     @MockitoBean
     QuestionService questionService;
 
+    @MockitoBean
+    QuestionEventPublisher questionEventPublisher;
+
     @Test
     void updateStatus_HOSTなら200() throws Exception {
+        QuestionResponse response = new QuestionResponse(
+                42L,
+                10L,
+                "資料は？",
+                "花子",
+                8,
+                QuestionStatus.ANSWERED,
+                false,
+                Instant.parse("2026-08-21T00:00:00Z"));
+
         when(questionService.updateStatus(
                 eq(42L),
                 eq(QuestionStatus.ANSWERED),
                 any(OidcUser.class),
                 any()))
-                .thenReturn(new QuestionResponse(
-                        42L,
-                        10L,
-                        "資料は？",
-                        "花子",
-                        8,
-                        QuestionStatus.ANSWERED,
-                        false,
-                        Instant.parse("2026-08-21T00:00:00Z")));
+                .thenReturn(response);
 
         mockMvc.perform(patch("/api/questions/42/status")
                         .with(oidcLogin()
@@ -72,6 +80,10 @@ class QuestionControllerStatusTest {
                 .andExpect(jsonPath("$.id").value(42))
                 .andExpect(jsonPath("$.eventId").value(10))
                 .andExpect(jsonPath("$.status").value("ANSWERED"));
+
+        verify(questionEventPublisher).publish(
+                QuestionEventType.QUESTION_ANSWERED,
+                response);
     }
 
     @Test

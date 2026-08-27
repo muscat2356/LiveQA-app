@@ -9,6 +9,32 @@ export type QuestionResponse = {
     createdAt: string;
 };
 
+export type QuestionEventType =
+    | "QUESTION_CREATED"
+    | "QUESTION_UPVOTED"
+    | "QUESTION_ANSWERED";
+
+type VisibleQuestionEventPayload =
+    Omit<QuestionResponse, "votedByMe" | "status">
+    & {
+        status: Exclude<QuestionStatus, "ARCHIVED">;
+    };
+
+type ArchivedQuestionEventPayload =
+    Pick<QuestionResponse, "id" | "eventId">
+    & {
+        status: "ARCHIVED";
+    };
+
+export type QuestionEventPayload =
+    | VisibleQuestionEventPayload
+    | ArchivedQuestionEventPayload;
+
+export type QuestionEvent = {
+    type: QuestionEventType;
+    question: QuestionEventPayload;
+}
+
 export type VoteResponse = {
     questionId: number;
     upvoteCount: number;
@@ -49,7 +75,3 @@ export const questionFilterLabel: Record<QuestionFilter, string> = {
     ANSWERED: "回答済み",
     ARCHIVED: "非表示"
 }
-
-
-
-

@@ -20,6 +20,8 @@ import com.liveqa.dto.request.QuestionCreateRequest;
 import com.liveqa.dto.request.QuestionStatusRequest;
 import com.liveqa.dto.response.QuestionResponse;
 import com.liveqa.service.QuestionService;
+import com.liveqa.websocket.QuestionEventPublisher;
+import com.liveqa.websocket.QuestionEventType;
 
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
@@ -39,8 +41,13 @@ public class QuestionController {
 
     private final QuestionService questionService;
 
-    public QuestionController(QuestionService questionService) {
+    private final QuestionEventPublisher questionEventPublisher;
+
+    public QuestionController(
+            QuestionService questionService,
+            QuestionEventPublisher questionEventPublisher) {
         this.questionService = questionService;
+        this.questionEventPublisher = questionEventPublisher;
     }
 
     /**
@@ -59,16 +66,20 @@ public class QuestionController {
             @AuthenticationPrincipal OidcUser oidc,
             HttpSession session
     ) {
+        QuestionResponse response = questionService.create(
+            id,
+            request,
+            VoterKeySources.form(oidc, session)
+        );
+
+        questionEventPublisher.publish(
+            QuestionEventType.QUESTION_CREATED,
+            response
+        );
+
         return ResponseEntity
             .status(HttpStatus.CREATED)
-            .body(
-                questionService
-                    .create(
-                        id,
-                        request,
-                        VoterKeySources.form(oidc, session)
-                    )
-                );
+            .body(response);
         }
     
     /**
@@ -114,12 +125,17 @@ public class QuestionController {
             @Valid @RequestBody QuestionStatusRequest request,
             HttpSession session
     ) {
-        return ResponseEntity.ok(
-                questionService.updateStatus(
-                        qid,
-                        request.status(),
-                        oidc,
-                        VoterKeySources.form(oidc, session)));
+        QuestionResponse response = questionService.updateStatus(
+            qid,
+            request.status(),
+            oidc,
+            VoterKeySources.form(oidc, session));
+
+        questionEventPublisher.publish(
+                QuestionEventType.QUESTION_ANSWERED,
+                response);
+
+        return ResponseEntity.ok(response);
     }
 
 }

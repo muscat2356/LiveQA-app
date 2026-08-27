@@ -64,5 +64,25 @@
         }
       ]
     }
+  ],
+  "users": [
+    {
+      "username": "host@example.com",
+      "email": "host@example.com",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Dev",
+      "lastName": "Host",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "live-qa-dev-host",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "HOST"
+      ]
+    }
   ]
 }

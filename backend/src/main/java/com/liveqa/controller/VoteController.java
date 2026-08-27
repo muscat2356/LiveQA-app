@@ -10,15 +10,19 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.liveqa.dto.response.VoteResponse;
+import com.liveqa.service.VoteResult;
 import com.liveqa.service.VoteService;
-
-import jakarta.servlet.http.HttpSession;
+import com.liveqa.websocket.QuestionEventPublisher;
+import com.liveqa.websocket.QuestionEventType;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpSession;
+
 /**
  * リソースvoteに対するAPIコントローラー
  * VoteController
+ *
  * @author ichikura
  */
 @RestController
@@ -29,50 +33,63 @@ public class VoteController {
 
     private final VoteService voteService;
 
-    public VoteController(VoteService voteService) {
+    private final QuestionEventPublisher questionEventPublisher;
+
+    public VoteController(
+            VoteService voteService,
+            QuestionEventPublisher questionEventPublisher) {
         this.voteService = voteService;
+        this.questionEventPublisher = questionEventPublisher;
     }
 
     /**
      * いいねを追加するPOSTメソッド
      * CSRF必須
-     * @param qid 対象の質問id
-     * @param oidc SecurityContext内のOidcUser情報
+     *
+     * @param qid     対象の質問id
+     * @param oidc    SecurityContext内のOidcUser情報
      * @param session guestIdを読み書きするHttpSession
      * @return いいねされた情報を含むResponseクラス
      */
     @PostMapping("/questions/{qid}/vote")
     public ResponseEntity<VoteResponse> add(
-        @PathVariable Long qid,
-        @AuthenticationPrincipal OidcUser oidc,
-        HttpSession session
-    ) {
-        return ResponseEntity
-            .ok(voteService.add(
+            @PathVariable Long qid,
+            @AuthenticationPrincipal OidcUser oidc,
+            HttpSession session) {
+        VoteResult result = voteService.add(
                 qid,
-                VoterKeySources.form(oidc, session)
-            ));
+                VoterKeySources.form(oidc, session));
+
+        questionEventPublisher.publish(
+                QuestionEventType.QUESTION_UPVOTED,
+                result.question());
+
+        return ResponseEntity.ok(result.response());
     }
 
     /**
      * いいねを取り消すDELETEメソッド
      * CSRF必須
-     * @param qid 対象の質問id
-     * @param oidc SecurityContext内のOidcUser情報
+     *
+     * @param qid     対象の質問id
+     * @param oidc    SecurityContext内のOidcUser情報
      * @param session guestIdを読み書きするHttpSession
      * @return いいねが削除された情報を含むResponseクラス
      */
     @DeleteMapping("/questions/{qid}/vote")
     public ResponseEntity<VoteResponse> remove(
-        @PathVariable Long qid,
-        @AuthenticationPrincipal OidcUser oidc,
-        HttpSession session
-    ) {
-        return ResponseEntity
-            .ok(voteService.remove(
+            @PathVariable Long qid,
+            @AuthenticationPrincipal OidcUser oidc,
+            HttpSession session) {
+        VoteResult result = voteService.remove(
                 qid,
-                VoterKeySources.form(oidc, session)
-            ));
+                VoterKeySources.form(oidc, session));
+
+        questionEventPublisher.publish(
+                QuestionEventType.QUESTION_UPVOTED,
+                result.question());
+
+        return ResponseEntity.ok(result.response());
     }
 
 }

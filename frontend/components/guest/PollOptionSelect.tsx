@@ -15,19 +15,20 @@ export default function PollOptionSelect({
     disabled: boolean;
 }){
     return(
-        <div>
-            {options.map((o) => 
+        <div className="flex flex-col gap-2">
+            {options.map((o) =>
                 <Button
                     key={o.id}
                     type="button"
                     variant={isSelected(o.id) ? "default" : "outline"}
                     onClick={() => onToggle(o.id)}
                     disabled={disabled}
+                    className="h-auto w-full justify-start whitespace-normal py-2.5 text-left"
                 >
                     {o.label}
                 </Button>
             )}
         </div>
-        
+
     )
 }

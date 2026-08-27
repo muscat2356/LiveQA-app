@@ -119,6 +119,10 @@ realm `live-qa` は `registrationAllowed: false`。Keycloak の公開自己登�
 
 JSON・yml・volume は [ops.md](ops.md) の「専用 realm `live-qa`」。compose は `live-qa-realm.json` だけを import する。
 
+### Q. import JSON の初期ユーザーは誰？
+
+**開発用 HOST 1 人。** `host@example.com` / `live-qa-dev-host`、realm role `HOST`。ログインして JIT すればローカル `users` ができる。SMTP の秘密は載せない。既存 volume には入らないので、入れるときは `docker compose down -v`。本番ではパスワードを変えるか、登録 API の人だけ使う。
+
 ### Q. デプロイ手順の「2. SMTP を入れて Admin からテストメール」とは？
 
 **Keycloak が郵便を出せるようにする作業。アプリのコードではない。** パスワード設定リンクは Spring ではなく Keycloak が送る。送り先の郵便局（SMTP）が空だと、登録 API が成功してもメールは届かない。

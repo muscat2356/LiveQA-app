@@ -9,6 +9,7 @@ import com.liveqa.domain.Question;
 import com.liveqa.domain.Vote;
 import com.liveqa.domain.VoterKey;
 import com.liveqa.domain.VoterKeySource;
+import com.liveqa.dto.response.QuestionResponse;
 import com.liveqa.dto.response.VoteResponse;
 import com.liveqa.enums.EventStatus;
 import com.liveqa.exception.BusinessException;
@@ -34,24 +35,23 @@ public class VoteService {
      * いいねを追加するメソッド
      * VoterKeyをsourceから取得し、質問情報をDBより取得
      * 非OPENは409
+     *
      * @param questionId 質問id
-     * @param source 投票キーの取得元
-     * @return いいね後の件数と投票フラグ
+     * @param source     投票キーの取得元
+     * @return いいね後のREST応答とWebSocket配信データ
      */
     @Transactional
-    public VoteResponse add(Long questionId, VoterKeySource source) {
+    public VoteResult add(Long questionId, VoterKeySource source) {
         final VoterKey voteKey = voterKeyResolver.resolve(source);
         final Question question = requireOpenQuestion(questionId);
 
         if (voteRepository.existsByQuestion_IdAndVoterKey(
-            questionId,
-            voteKey.value()
-        )) {
+                questionId,
+                voteKey.value())) {
             throw new BusinessException(
-                HttpStatus.CONFLICT,
-                "Conflict",
-                "既に投票済みです。"
-            );
+                    HttpStatus.CONFLICT,
+                    "Conflict",
+                    "既に投票済みです。");
         }
         try {
             voteRepository.saveAndFlush(Vote.cast(question, voteKey.value()));
@@ -71,30 +71,28 @@ public class VoteService {
 
     /**
      * いいねを取り消すメソッド
+     *
      * @param questionId 対象の質問id
-     * @param source 投票キーの取得元
-     * @return 取り消された投票情報　フラグOFF
+     * @param source     投票キーの取得元
+     * @return いいね取消後のREST応答とWebSocket配信データ
      */
     @Transactional
-    public VoteResponse remove(Long questionId, VoterKeySource source) {
+    public VoteResult remove(Long questionId, VoterKeySource source) {
         final VoterKey voterKey = voterKeyResolver.resolve(source);
 
         requireOpenQuestion(questionId);
 
         if (!voteRepository.existsByQuestion_IdAndVoterKey(
-            questionId,
-            voterKey.value())
-        ) {
-           throw new BusinessException(
-            HttpStatus.NOT_FOUND,
-            "Not Found",
-            "投票が見つかりません。"
-        ); 
+                questionId,
+                voterKey.value())) {
+            throw new BusinessException(
+                    HttpStatus.NOT_FOUND,
+                    "Not Found",
+                    "投票が見つかりません。");
         }
         voteRepository.deleteByQuestion_IdAndVoterKey(
-            questionId,
-            voterKey.value()
-        );
+                questionId,
+                voterKey.value());
         questionRepository.decrementUpvoteCount(questionId);
         return currentVote(questionId, false);
     }
@@ -102,42 +100,52 @@ public class VoteService {
     /**
      * OPENルームの質問を特定するメソッド
      * 見つからない場合には404 非OPENは409
+     *
      * @param questionId 質問id
      * @return 取得した質問
      */
     private Question requireOpenQuestion(Long questionId) {
         final Question question = questionRepository.findById(questionId)
                 .orElseThrow(() -> new BusinessException(
-                    HttpStatus.NOT_FOUND,
-                    "Not Found",
-                    "質問が見つかりません。"
-                ));
+                        HttpStatus.NOT_FOUND,
+                        "Not Found",
+                        "質問が見つかりません。"));
         if (question.getEvent().getStatus() != EventStatus.OPEN) {
             throw new BusinessException(
-                HttpStatus.CONFLICT,
-                "Conflict",
-                "このルームは現在質問を受け付けていません"
-            );
+                    HttpStatus.CONFLICT,
+                    "Conflict",
+                    "このルームは現在質問を受け付けていません");
         }
 
         return question;
     }
 
     /**
-     * 書き込み後の件数を引き直して応答するメソッド
-     * upvote_count は原子的更新なので、再 SELECT してから form する
+     * 書き込み後のREST応答とWebSocket配信データを作る。
+     * upvote_countは原子的更新なので、再SELECTした質問から生成する。
+     *
      * @param questionId 質問id
-     * @param votedByMe 今のセッションがいいね済みか
-     * @return 応答DTO
+     * @param votedByMe  今のセッションがいいね済みか
+     * @return REST応答とWebSocket配信データ
      */
-    private VoteResponse currentVote(Long questionId, boolean votedByMe) {
+    private VoteResult currentVote(Long questionId, boolean votedByMe) {
         final Question refreshed = questionRepository.findById(questionId)
                 .orElseThrow(() -> new BusinessException(
-                    HttpStatus.NOT_FOUND,
-                    "Not Found",
-                    "質問が見つかりません。"
-                ));
-        return VoteResponse.form(questionId, refreshed.getUpvoteCount(), votedByMe);
+                        HttpStatus.NOT_FOUND,
+                        "Not Found",
+                        "質問が見つかりません。"));
+
+        final VoteResponse response = VoteResponse.form(
+                questionId,
+                refreshed.getUpvoteCount(),
+                votedByMe);
+
+        final QuestionResponse question = QuestionResponse.form(
+                refreshed,
+                refreshed.getEvent().getId(),
+                false);
+
+        return new VoteResult(response, question);
     }
 
     /**
