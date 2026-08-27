@@ -5,12 +5,14 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -50,7 +52,13 @@ public class KeycloakAdminRestClient implements KeycloakAdminClient {
             @Value("${app.keycloak.admin.password}") String adminPassword,
             @Value("${app.keycloak.admin.client-id}") String actionsClientId,
             @Value("${app.keycloak.admin.redirect-uri}") String actionsRedirectUri) {
-        this.restClient = RestClient.builder().baseUrl(baseUrl).build();
+        final SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(3000);
+        factory.setReadTimeout(5000);
+        this.restClient = RestClient.builder()
+                .baseUrl(baseUrl)
+                .requestFactory(factory)
+                .build();
         this.realm = realm;
         this.adminUsername = adminUsername;
         this.adminPassword = adminPassword;
@@ -67,29 +75,31 @@ public class KeycloakAdminRestClient implements KeycloakAdminClient {
     @Override
     public String createHostUser(String email) {
         try {
-            final ResponseEntity<Void> created = restClient.post()
-                .uri("/admin/realms/{realm}/users", realm)
-                .headers(headers -> headers.setBearerAuth(adminAccessToken()))
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of(
-                    "username", email,
-                    "email", email,
-                    "enabled", true,
-                    "emailVerified", true
-                ))
-                .retrieve()
-                .onStatus(HttpStatusCode::isError, (request, response) -> {
-                    if (response.getStatusCode().value() == 409) {
-                        throw new BusinessException(
-                            HttpStatus.CONFLICT,
-                            "Conflict",
-                            "このメールアドレスは既に登録されています。"
-                        );
-                    }
-                    throw badGateway();
-                })
-                .toBodilessEntity();
-            return userIdFromLocation(created.getHeaders().getLocation());
+            return withAdminToken(token -> {
+                final ResponseEntity<Void> created = restClient.post()
+                    .uri("/admin/realms/{realm}/users", realm)
+                    .headers(headers -> headers.setBearerAuth(token))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of(
+                        "username", email,
+                        "email", email,
+                        "enabled", true,
+                        "emailVerified", true
+                    ))
+                    .retrieve()
+                    .onStatus(HttpStatusCode::isError, (request, response) -> {
+                        if (response.getStatusCode().value() == 409) {
+                            throw new BusinessException(
+                                HttpStatus.CONFLICT,
+                                "Conflict",
+                                "このメールアドレスは既に登録されています。"
+                            );
+                        }
+                        throwIfStaleOrBadGateway(response.getStatusCode());
+                    })
+                    .toBodilessEntity();
+                return userIdFromLocation(created.getHeaders().getLocation());
+            });
         } catch (BusinessException ex) {
             throw ex;
         } catch (RestClientException ex) {
@@ -105,27 +115,30 @@ public class KeycloakAdminRestClient implements KeycloakAdminClient {
     @Override
     public void assignHostRole(String userId) {
         try {
-            final RealmRole host = restClient.get()
-                    .uri("/admin/realms/{realm}/roles/HOST", realm)
-                    .headers(headers -> headers.setBearerAuth(adminAccessToken()))
-                    .retrieve()
-                    .onStatus(HttpStatusCode::isError, (request, response) -> {
-                        throw badGateway();
-                    })
-                    .body(RealmRole.class);
-            if (host == null || host.id() == null) {
-                throw badGateway();
-            }
-            restClient.post()
-                    .uri("/admin/realms/{realm}/users/{id}/role-mappings/realm", realm, userId)
-                    .headers(headers -> headers.setBearerAuth(adminAccessToken()))
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(List.of(host))
-                    .retrieve()
-                    .onStatus(HttpStatusCode::isError, (request, response) -> {
-                        throw badGateway();
-                    })
-                    .toBodilessEntity();
+            withAdminToken(token -> {
+                final RealmRole host = restClient.get()
+                        .uri("/admin/realms/{realm}/roles/HOST", realm)
+                        .headers(headers -> headers.setBearerAuth(token))
+                        .retrieve()
+                        .onStatus(HttpStatusCode::isError, (request, response) -> {
+                            throwIfStaleOrBadGateway(response.getStatusCode());
+                        })
+                        .body(RealmRole.class);
+                if (host == null || host.id() == null) {
+                    throw badGateway();
+                }
+                restClient.post()
+                        .uri("/admin/realms/{realm}/users/{id}/role-mappings/realm", realm, userId)
+                        .headers(headers -> headers.setBearerAuth(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(List.of(host))
+                        .retrieve()
+                        .onStatus(HttpStatusCode::isError, (request, response) -> {
+                            throwIfStaleOrBadGateway(response.getStatusCode());
+                        })
+                        .toBodilessEntity();
+                return null;
+            });
         } catch (BusinessException ex) {
             throw ex;
         } catch (RestClientException ex) {
@@ -141,20 +154,23 @@ public class KeycloakAdminRestClient implements KeycloakAdminClient {
     @Override
     public void sendUpdatePasswordEmail(String userId) {
         try {
-            restClient.put()
-                    .uri(uriBuilder -> uriBuilder
-                            .path("/admin/realms/{realm}/users/{id}/execute-actions-email")
-                            .queryParam("client_id", actionsClientId)
-                            .queryParam("redirect_uri", actionsRedirectUri)
-                            .build(realm, userId))
-                    .headers(headers -> headers.setBearerAuth(adminAccessToken()))
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(List.of("UPDATE_PASSWORD"))
-                    .retrieve()
-                    .onStatus(HttpStatusCode::isError, (request, response) -> {
-                        throw badGateway();
-                    })
-                    .toBodilessEntity();
+            withAdminToken(token -> {
+                restClient.put()
+                        .uri(uriBuilder -> uriBuilder
+                                .path("/admin/realms/{realm}/users/{id}/execute-actions-email")
+                                .queryParam("client_id", actionsClientId)
+                                .queryParam("redirect_uri", actionsRedirectUri)
+                                .build(realm, userId))
+                        .headers(headers -> headers.setBearerAuth(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(List.of("UPDATE_PASSWORD"))
+                        .retrieve()
+                        .onStatus(HttpStatusCode::isError, (request, response) -> {
+                            throwIfStaleOrBadGateway(response.getStatusCode());
+                        })
+                        .toBodilessEntity();
+                return null;
+            });
         } catch (BusinessException ex) {
             throw ex;
         } catch (RestClientException ex) {
@@ -168,8 +184,8 @@ public class KeycloakAdminRestClient implements KeycloakAdminClient {
      * @return Bearer に載せる access_token
      */
     private String adminAccessToken() {
-        final Instant now = Instant.now();
         synchronized (adminTokenLock) {
+            final Instant now = Instant.now();
             if (cachedAdminToken != null
                     && cachedAdminTokenExpiresAt != null
                     && now.isBefore(cachedAdminTokenExpiresAt)) {
@@ -180,6 +196,42 @@ public class KeycloakAdminRestClient implements KeycloakAdminClient {
             this.cachedAdminTokenExpiresAt = fetched.expiresAt();
             return this.cachedAdminToken;
         }
+    }
+
+    /**
+     * Admin REST を 1 回呼び、401 ならキャッシュを捨てて再交換するメソッド
+     */
+    private <T> T withAdminToken(Function<String, T> call) {
+        try {
+            return call.apply(adminAccessToken());
+        } catch (StaleAdminTokenException ex) {
+            invalidateAdminToken();
+            try {
+                return call.apply(adminAccessToken());
+            } catch (StaleAdminTokenException retry) {
+                throw badGateway();
+            }
+        }
+    }
+
+    /**
+     * キャッシュした管理者トークンを捨てるメソッド
+     */
+    private void invalidateAdminToken() {
+        synchronized (adminTokenLock) {
+            this.cachedAdminToken = null;
+            this.cachedAdminTokenExpiresAt = null;
+        }
+    }
+
+    /**
+     * Admin REST の 401 を期限切れ、それ以外の失敗を 502 にするメソッド
+     */
+    private static void throwIfStaleOrBadGateway(HttpStatusCode status) {
+        if (status.value() == 401) {
+            throw new StaleAdminTokenException();
+        }
+        throw badGateway();
     }
 
     /**
@@ -240,6 +292,12 @@ public class KeycloakAdminRestClient implements KeycloakAdminClient {
                 HttpStatus.BAD_GATEWAY,
                 "Bad Gateway",
                 FAIL_MESSAGE);
+    }
+
+    /**
+     * キャッシュした Bearer が Keycloak 側で無効だったときの内部例外
+     */
+    private static final class StaleAdminTokenException extends RuntimeException {
     }
 
     /**

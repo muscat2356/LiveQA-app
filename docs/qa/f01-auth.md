@@ -215,7 +215,7 @@ interface は契約（3メソッド）。`KeycloakAdminRestClient` が HTTP の�
 
 ### Q. RestClient の1回分は何をしている？（#122）
 
-有効期限内なら同じ Bearer を付ける → Admin API を叩く。期限切れのときだけ master でトークンを交換する。失敗は 409（重複）か 502（口が開かない）。Cookie / Redis / `users` は出ない。細かい HTTP と図は次の節。
+有効期限内なら同じ Bearer を付ける → Admin API を叩く。期限切れ、または Admin REST が 401 ならキャッシュを捨てて 1 回だけ再交換する。失敗は 409（重複）か 502（口が開かない）。Cookie / Redis / `users` は出ない。細かい HTTP と図は次の節。
 
 ---
 
@@ -360,7 +360,7 @@ sequenceDiagram
   Note over K: TokenResponse は access_token と expires_in を復元<br/>他の JSON は @JsonIgnoreProperties で無視<br/>期限の 10 秒前まで Client 内で使う
 ```
 
-1登録の 3手（HTTP は最大4本）で同じ Bearer を使う。`expires_in` の少し前まで Client 内に保持する。Cookie / Redis / `users` には載せない。期限切れ後の次の登録で再交換する。失敗（接続拒否・401・空トークン）は全部 **502**。Keycloak の生エラーはクライアントに出さない。
+1登録の 3手（HTTP は最大4本）で同じ Bearer を使う。`expires_in` の少し前まで Client 内に保持する。Cookie / Redis / `users` には載せない。Admin REST が 401 ならキャッシュを捨てて 1 回だけ再交換する。接続拒否・2回目の 401・空トークンは **502**。Keycloak の生エラーはクライアントに出さない。connect 3 秒 / read 5 秒。
 
 Bearer の載せ方:
 
@@ -516,7 +516,7 @@ flowchart LR
 【EJ】依存性注入 … Controller / Service / RestClient はコンストラクタ（設定は @Value）
 【EJ】不変性 … HostRegisterRequest / TokenResponse / RealmRole / CachedAdminToken は record
 【EJ】例外 … 409 と 502 は BusinessException。Keycloak の本文は漏らさない
-【EJ】あえて外す … Redis には載せない。401 時の再交換リトライと Clock 注入は今はやらない。Entity は登録では作らない
+【EJ】あえて外す … Redis には載せない。interceptor と Clock 注入は今はやらない。Entity は登録では作らない
 【EJ】あえて外す … interface は単一実装でもテスト用の契約として残す
 ```
 
