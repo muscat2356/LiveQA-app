@@ -17,7 +17,7 @@ export default async function DashBoard(){
     });
 
     if (res.status === 401) {
-        redirect("/login");
+        redirect("/");
     }
 
     if(!res.ok){
