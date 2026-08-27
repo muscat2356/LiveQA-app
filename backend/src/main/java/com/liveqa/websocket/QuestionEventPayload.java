@@ -2,6 +2,7 @@ package com.liveqa.websocket;
 
 import java.time.Instant;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.liveqa.dto.response.QuestionResponse;
 import com.liveqa.enums.QuestionStatus;
 
@@ -17,21 +18,26 @@ import com.liveqa.enums.QuestionStatus;
  * @param createdAt   作成日時
  * @author mizumura
  */
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public record QuestionEventPayload(
         Long id,
         Long eventId,
         String body,
         String displayName,
-        int upvoteCount,
+        Integer upvoteCount,
         QuestionStatus status,
         Instant createdAt) {
 
     /**
      * REST APIの質問応答データからWebSocket配信用データを生成する。
+     *
      * @param response 変換元の質問応答データ
      * @return WebSocket配信用の質問データ
      */
     public static QuestionEventPayload from(QuestionResponse response) {
+        if (response.status() == QuestionStatus.ARCHIVED) {
+            return archivedFrom(response);
+        }
         return new QuestionEventPayload(
                 response.id(),
                 response.eventId(),
@@ -40,6 +46,23 @@ public record QuestionEventPayload(
                 response.upvoteCount(),
                 response.status(),
                 response.createdAt());
+    }
+
+    /**
+     * ARCHIVED通知用の最小限の配信データを生成する。
+     *
+     * @param response ARCHIVEDへ変更された質問応答データ
+     * @return 本文などを含まない配信用データ
+     */
+    public static QuestionEventPayload archivedFrom(QuestionResponse response) {
+        return new QuestionEventPayload(
+                response.id(),
+                response.eventId(),
+                null,
+                null,
+                null,
+                response.status(),
+                null);
     }
 
 }

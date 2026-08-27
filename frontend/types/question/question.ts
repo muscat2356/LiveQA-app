@@ -14,7 +14,21 @@ export type QuestionEventType =
     | "QUESTION_UPVOTED"
     | "QUESTION_ANSWERED";
 
-export type QuestionEventPayload = Omit<QuestionResponse, "votedByMe">;
+type VisibleQuestionEventPayload =
+    Omit<QuestionResponse, "votedByMe" | "status">
+    & {
+        status: Exclude<QuestionStatus, "ARCHIVED">;
+    };
+
+type ArchivedQuestionEventPayload =
+    Pick<QuestionResponse, "id" | "eventId">
+    & {
+        status: "ARCHIVED";
+    };
+
+export type QuestionEventPayload =
+    | VisibleQuestionEventPayload
+    | ArchivedQuestionEventPayload;
 
 export type QuestionEvent = {
     type: QuestionEventType;

@@ -57,11 +57,15 @@ class VoteServiceTest {
             return 1;
         });
 
-        final VoteResponse response = voteService.add(42L, new VoterKeySource.Guest("abc"));
+        final VoteResult result = voteService.add(42L, new VoterKeySource.Guest("abc"));
+        final VoteResponse response = result.response();
 
         assertThat(response.questionId()).isEqualTo(42L);
         assertThat(response.upvoteCount()).isEqualTo(1);
         assertThat(response.votedByMe()).isTrue();
+        assertThat(result.question().id()).isEqualTo(42L);
+        assertThat(result.question().eventId()).isEqualTo(10L);
+        assertThat(result.question().upvoteCount()).isEqualTo(1);
         verify(voteRepository).saveAndFlush(any(Vote.class));
         verify(questionRepository).incrementUpvoteCount(42L);
     }
@@ -163,11 +167,15 @@ class VoteServiceTest {
             return 1;
         });
 
-        final VoteResponse response = voteService.remove(42L, new VoterKeySource.Guest("abc"));
+        final VoteResult result = voteService.remove(42L, new VoterKeySource.Guest("abc"));
+        final VoteResponse response = result.response();
 
         assertThat(response.questionId()).isEqualTo(42L);
         assertThat(response.upvoteCount()).isZero();
         assertThat(response.votedByMe()).isFalse();
+        assertThat(result.question().id()).isEqualTo(42L);
+        assertThat(result.question().eventId()).isEqualTo(10L);
+        assertThat(result.question().upvoteCount()).isZero();
         verify(voteRepository).deleteByQuestion_IdAndVoterKey(42L, "g:abc");
         verify(questionRepository).decrementUpvoteCount(42L);
     }

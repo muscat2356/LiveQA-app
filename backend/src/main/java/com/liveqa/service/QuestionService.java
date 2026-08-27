@@ -199,28 +199,6 @@ public class QuestionService {
         }
 
     /**
-     * WebSocket配信用に最新の質問情報を取得する。
-     *
-     * @param questionId 質問ID
-     * @return 最新の質問情報
-     */
-    @Transactional(readOnly = true)
-    public QuestionResponse findByIdForWebSocket(Long questionId) {
-        Question question = questionRepository.findById(questionId)
-                .orElseThrow(() -> new BusinessException(
-                    HttpStatus.NOT_FOUND,
-                    "Not Found",
-                    "質問が見つかりません。"
-                ));
-
-        return QuestionResponse.form(
-            question,
-            question.getEvent().getId(),
-            false
-        );
-    }
-
-    /**
      * 公開してよいイベントを復元するメソッド
      * 無い行は404（存在漏洩しない）
      * @param eventId イベントid

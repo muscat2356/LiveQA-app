@@ -5,29 +5,29 @@ import { QuestionEvent, QuestionFilter, QuestionResponse, Sort } from "@/types/q
 import { Client } from "@stomp/stompjs";
 import { useEffect, useState } from "react";
 
-export default function useHostQuestions(eventId: number, sort: Sort, filter: QuestionFilter){
-    
+export default function useHostQuestions(eventId: number, sort: Sort, filter: QuestionFilter) {
+
     const [questions, setQuestions] = useState<QuestionResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    function applyVote(questionId: number, upvoteCount: number, votedByMe: boolean){
+    function applyVote(questionId: number, upvoteCount: number, votedByMe: boolean) {
         setQuestions(prev =>
             prev.map(q => (q.id === questionId ? { ...q, upvoteCount, votedByMe } : q))
-        );  
+        );
     }
 
-    async function hostLoad(){
-        
+    async function hostLoad() {
+
         setLoading(true);
         setError(null);
 
-        try{
+        try {
             const data: QuestionResponse[] = await fetchGetQuestion(eventId, sort, filter);
             setQuestions(data);
-        }catch (e){
+        } catch (e) {
             setError(e instanceof Error ? e.message : "エラーが発生しました");
-        }finally{
+        } finally {
             setLoading(false);
         }
     }
@@ -61,18 +61,18 @@ export default function useHostQuestions(eventId: number, sort: Sort, filter: Qu
                                     question.id !== questionEvent.question.id
                                 )
                                 : questionExists
-                                ? previousQuestions.map(question =>
-                                    question.id === questionEvent.question.id
-                                        ? { ...question, ...questionEvent.question }
-                                        : question
-                                )
-                                : matchesFilter ? [
-                                    {
-                                        ...questionEvent.question,
-                                        votedByMe: false
-                                    },
-                                    ...previousQuestions
-                                ] : previousQuestions;
+                                    ? previousQuestions.map(question =>
+                                        question.id === questionEvent.question.id
+                                            ? { ...question, ...questionEvent.question }
+                                            : question
+                                    )
+                                    : matchesFilter
+                                        && questionEvent.question.status !== "ARCHIVED" ? [{
+                                            ...questionEvent.question,
+                                            votedByMe: false
+                                        },
+                                        ...previousQuestions
+                                    ] : previousQuestions;
 
                             return [...updatedQuestions].sort((first, second) => {
                                 if (sort === "popular") {
@@ -95,5 +95,5 @@ export default function useHostQuestions(eventId: number, sort: Sort, filter: Qu
         };
     }, [eventId, sort, filter]);
 
-    return { questions, loading, error, hostLoad, applyVote};
+    return { questions, loading, error, hostLoad, applyVote };
 }
