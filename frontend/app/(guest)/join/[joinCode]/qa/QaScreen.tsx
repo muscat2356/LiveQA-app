@@ -43,14 +43,14 @@ export default function QaScreen({ event, nickname }: { event: JoinEvent; nickna
             </div>
 
             {pollPending && polls.length === 0 && (
-                <p>読み込み中・・・</p>
+                <p className="py-6 text-center text-sm text-muted-foreground">読み込み中・・・</p>
             )}
 
             {!pollPending && pollError && (
-                <p >{pollError}</p>
+                <p className="mb-4 rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">{pollError}</p>
             )}
 
-            <div>
+            <div className="mb-4 space-y-3">
                 {polls.map((p) => (
                     <GuestPollCard key={p.id} poll={p} load={pollLoad} />
                 ))}
