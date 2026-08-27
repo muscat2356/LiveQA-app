@@ -2,11 +2,11 @@
 
 import { getGuestSession } from "@/lib/api/guestSession";
 import { fetchGetQuestion } from "@/lib/api/questionApi";
-import { QuestionEvent, QuestionResponse, Sort } from "@/types/question/question";
+import { QuestionEvent, QuestionFilter, QuestionResponse, Sort } from "@/types/question/question";
 import { useEffect, useState } from "react";
 import { Client } from "@stomp/stompjs";
 
-export default function useGuestQuestions(eventId: number, sort: Sort){
+export default function useGuestQuestions(eventId: number, sort: Sort, filter: QuestionFilter){
     
     const [questions, setQuestions] = useState<QuestionResponse[]>([]);
     const [loading, setLoading] = useState(true);
@@ -26,7 +26,7 @@ export default function useGuestQuestions(eventId: number, sort: Sort){
         try{
             await getGuestSession();
 
-            const data = await fetchGetQuestion(eventId, sort);
+            const data = await fetchGetQuestion(eventId, sort, filter);
             setQuestions(data);
         }catch (e){
             setError(e instanceof Error ? e.message : "エラーが発生しました");
@@ -37,7 +37,7 @@ export default function useGuestQuestions(eventId: number, sort: Sort){
 
     useEffect(() => {
         guestLoad();
-    }, [eventId, sort]);
+    }, [eventId, sort, filter]);
 
     useEffect(() => {
         const client = new Client({
@@ -56,20 +56,26 @@ export default function useGuestQuestions(eventId: number, sort: Sort){
                                 question =>
                                     question.id === questionEvent.question.id
                             );
+                            const matchesFilter = filter === "ALL"
+                                || questionEvent.question.status === filter;
 
-                            const updatedQuestions: QuestionResponse[] = questionExists
+                            const updatedQuestions: QuestionResponse[] = questionExists && !matchesFilter
+                                ? previousQuestions.filter(question =>
+                                    question.id !== questionEvent.question.id
+                                )
+                                : questionExists
                                 ? previousQuestions.map(question =>
                                     question.id === questionEvent.question.id
                                         ? { ...question, ...questionEvent.question }
                                         : question
                                 )
-                                : [
+                                : matchesFilter ? [
                                     {
                                         ...questionEvent.question,
                                         votedByMe: false
                                     },
                                     ...previousQuestions
-                                ];
+                                ] : previousQuestions;
 
                             return [...updatedQuestions].sort((first, second) => {
                                 if (sort === "popular") {
@@ -91,7 +97,7 @@ export default function useGuestQuestions(eventId: number, sort: Sort){
         return () => {
             client.deactivate();
         };
-    }, [eventId, sort]);
+    }, [eventId, sort, filter]);
 
     return { questions, loading, error, guestLoad, applyVote};
 }
