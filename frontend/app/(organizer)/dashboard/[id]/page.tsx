@@ -19,10 +19,7 @@ export default async function detailPage({
     const { id } = await params;
     const cookieStore = await cookies();
 
-    const baseURL = process.env.NEXT_PUBLIC_URL;
-    if(!baseURL){
-        throw new Error("URLが存在しません")
-    }
+    const baseURL = process.env.NEXT_PUBLIC_URL ?? "http://localhost:3000";
 
     const hostUrlpath = `${baseURL}/dashboard/${id}/qa`;
 
