@@ -72,12 +72,15 @@ export default function QaScreen({ event, nickname }: { event: JoinEvent; nickna
                     <li key={q.id} className="flex gap-3 rounded-2xl border bg-card p-4 shadow-sm ring-1 ring-foreground/5">
                         <div className="min-w-0 flex-1">
                             <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">{q.body}</p>
-                            <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-                                <Avatar name={q.displayName ?? "匿名"} />
-                                <span>{q.displayName ?? "匿名"}</span>
-                                <span aria-hidden className="text-muted-foreground/40">·</span>
-                                <span>{relativeTime(q.createdAt)}</span>
-                                <QuestionStatusBadge status={q.status} />
+                            <div className="mt-3 flex items-center justify-between gap-2 text-sm text-muted-foreground">
+                                <span className="inline-flex min-w-0 items-center gap-2">
+                                    <Avatar name={q.displayName ?? "匿名"} />
+                                    <span className="truncate">{q.displayName ?? "匿名"}</span>
+                                </span>
+                                <span className="inline-flex shrink-0 items-center gap-2">
+                                    <span>{relativeTime(q.createdAt)}</span>
+                                    <QuestionStatusBadge status={q.status} />
+                                </span>
                             </div>
                         </div>
                         <div className="shrink-0">
