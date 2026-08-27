@@ -26,6 +26,9 @@ import com.liveqa.websocket.QuestionEventType;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 /**
  * リソースquestionsに対するAPIコントローラー
  * QuestionController
@@ -33,6 +36,7 @@ import jakarta.validation.Valid;
  */
 @RestController
 @RequestMapping("/api")
+@Tag(name = "質問", description = "投稿・一覧・ステータス")
 public class QuestionController {
 
     private final QuestionService questionService;
@@ -55,6 +59,7 @@ public class QuestionController {
      * @return 作成した質問情報
      */
     @PostMapping("/events/{id}/questions")
+    @SecurityRequirement(name = "SESSION")
     public ResponseEntity<QuestionResponse> create(
             @PathVariable Long id,
             @Valid @RequestBody QuestionCreateRequest request,
@@ -113,6 +118,7 @@ public class QuestionController {
      */
     @PatchMapping("/questions/{qid}/status")
     @PreAuthorize("hasRole('HOST')")
+    @SecurityRequirement(name = "SESSION")
     public ResponseEntity<QuestionResponse> updateStatus(
             @AuthenticationPrincipal OidcUser oidc,
             @PathVariable Long qid,

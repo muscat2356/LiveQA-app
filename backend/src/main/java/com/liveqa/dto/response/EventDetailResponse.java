@@ -2,6 +2,7 @@ package com.liveqa.dto.response;
 
 import java.time.Instant;
 
+import com.liveqa.domain.Event;
 import com.liveqa.enums.EventStatus;
 
 /**
@@ -19,4 +20,19 @@ public record EventDetailResponse(
         Instant updatedAt
     ) {
 
+    /**
+     * Entityから応答DTOへ変換するファクトリ
+     * @param event イベント
+     * @return 応答DTO
+     */
+    public static EventDetailResponse form(Event event) {
+        return new EventDetailResponse(
+                event.getId(),
+                event.getTitle(),
+                event.getJoinCode(),
+                event.getStatus(),
+                event.getQuestionCount(),
+                event.getCreatedAt(),
+                event.getUpdatedAt());
+    }
 }

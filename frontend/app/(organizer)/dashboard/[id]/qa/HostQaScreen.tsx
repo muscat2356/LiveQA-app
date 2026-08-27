@@ -9,6 +9,9 @@ import { useState } from "react";
 import QuestionStatusButton from "./QuestionStatusButton";
 import { QuestionStatusBadge } from "@/components/question/questionStatusBadge";
 import useHostQuestions from "@/components/question/useHostQuestions";
+import { OrganizerChart } from "@/components/poll/organizerChart";
+import usePoll from "@/components/poll/usePoll";
+import PollCreateForm from "@/components/poll/PollCreateForm";
 
 export default  function HostQaScreen({
      event 
@@ -18,7 +21,8 @@ export default  function HostQaScreen({
 
     const [ sort, setSort ] = useState<Sort>("popular");
     const { questions, loading, error, hostLoad } = useHostQuestions(event.id, sort);
-    
+    const { poll, pending: pollPending, error: pollError, load: pollLoad } = usePoll(event.id);
+
     return(
         <div className="app-container max-w-2xl py-6">
             <header className="mb-4 flex items-start justify-between gap-3">
@@ -26,7 +30,7 @@ export default  function HostQaScreen({
                     <h1 className="truncate text-xl font-bold tracking-tight sm:text-2xl">{event.title}</h1>
                     <StatusBadge status={event.status}/>
                 </div>
-                <Button variant="outline" size="sm" onClick={hostLoad} disabled={loading} className="shrink-0">
+                <Button variant="outline" size="sm" onClick={() => {hostLoad(); pollLoad();}} disabled={loading || pollPending} className="shrink-0">
                     更新
                 </Button>
             </header>
@@ -38,9 +42,29 @@ export default  function HostQaScreen({
                 />
             </div>
 
+            {pollPending && poll.length === 0 && (
+                <p className="py-6 text-center text-sm text-muted-foreground">読み込み中・・・</p>
+            )}
+
+            {!pollPending && pollError && (
+                <p className="mb-4 rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">{pollError}</p>
+            )}
+
+            <div className={`space-y-4 ${pollPending ? "opacity-60" : ""}`}>
+                {poll.map((p) => (
+                    <OrganizerChart
+                        key={p.id}
+                        pending={pollPending}
+                        error={pollError}
+                        poll={p}
+                        onChanged={pollLoad}
+                    />
+                ))}
+            </div>
+            
             {loading && <p className="py-10 text-center text-sm text-muted-foreground">読み込み中・・・</p>}
             {!loading &&!error && questions.length === 0 && <p className="py-10 text-center text-sm text-muted-foreground">まだ質問がありません</p>}
-            {!loading &&error && questions.length === 0 && <p className="rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">再度実行してください</p>}
+            {!loading &&error && <p className="rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">再度実行してください</p>}
 
             <ul className="space-y-3">
                 {questions.map((q) => (
@@ -63,6 +87,7 @@ export default  function HostQaScreen({
                     </li>
                 ))}
             </ul>
+            <PollCreateForm eventId={event.id} load={pollLoad} />
         </div>
     );
 }

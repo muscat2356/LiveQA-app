@@ -1,6 +1,10 @@
 # API仕様メモ（OpenAPI）
 
-ライブQ&A + 投票アプリのREST API / STOMP設計メモ。実装時は springdoc-openapi でコードからOpenAPI 3を自動生成する前提の、設計段階の合意事項。ER図は [../design/er-diagram.md](../design/er-diagram.md)、制約は [../design/constraints.md](../design/constraints.md)、シーケンスは [../design/websocket-sequence.md](../design/websocket-sequence.md) を参照。
+ライブQ&A + 投票アプリのREST API / STOMP設計メモ。
+
+**契約の正はこのファイル。** springdoc（`/swagger-ui.html`）は実装から OpenAPI 3 を生成する閲覧用。矛盾したら先にここを直し、実装を合わせる。STOMP は springdoc の外（本ファイルの STOMP 節）。
+
+ER図は [../design/er-diagram.md](../design/er-diagram.md)、制約は [../design/constraints.md](../design/constraints.md)、シーケンスは [../design/websocket-sequence.md](../design/websocket-sequence.md) を参照。
 
 - ベースパス: `/api`
 - 認証: Keycloak(OIDC/SSO)でログイン → Cookieセッション（`SESSION` Cookie、Spring Session + Redis）で以降を管理するハイブリッド
