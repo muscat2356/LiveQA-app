@@ -85,7 +85,7 @@ ER図は [../design/er-diagram.md](../design/er-diagram.md)、制約は [../desi
 
 ### POST /api/auth/register （公開・HOST 発行）
 
-メールアドレスだけ受け取り、Keycloak realm `live-qa` に主催者ユーザーを作る。**パスワードは受け取らない・保存しない。** ローカル `users` 行は作らない（初回ログインの JIT）。未実装（[#122](https://github.com/muscat2356/live-qa-app/issues/122)）。
+メールアドレスだけ受け取り、Keycloak realm `live-qa` に主催者ユーザーを作る。**パスワードは受け取らない・保存しない。** ローカル `users` 行は作らない（初回ログインの JIT）。実装済み（[#122](https://github.com/muscat2356/live-qa-app/issues/122)）。フロントの入力欄は未。
 
 - Request:
 

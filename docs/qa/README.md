@@ -8,7 +8,7 @@
 
 | ファイル | 機能 |
 |----------|------|
-| [f01-auth.md](f01-auth.md) | **F-01** 認証・セッション（JIT / 登録 API 契約 / `/api/me` / CSRF / Cookie） |
+| [f01-auth.md](f01-auth.md) | **F-01** 認証・セッション（JIT / 登録 API / Admin REST 図解 / `/api/me` / CSRF / Cookie） |
 | [f02-events.md](f02-events.md) | **F-02** ルーム作成・一覧・Join 照会 |
 | [f03-status.md](f03-status.md) | **F-03** ルーム開閉・所有者 404 |
 | [f04-guest.md](f04-guest.md) | **F-04** 匿名セッション / `voter_key` |
@@ -63,6 +63,8 @@ F-07 は実装が始まったら同型で `f07-*.md` を足す。
 | realm / client | テナント境界／アプリ1つの設定。realm `live-qa`、client `live-qa-app` | [ops](ops.md) |
 | `sub` / oidcSubject / JIT | IdP の一意 ID。初回ログインで `users` 行を作る | [f01](f01-auth.md) |
 | `realm_access` / mapper | IdToken のロール袋 → `ROLE_HOST` | [f01](f01-auth.md) [26](26-securityconfig-data-flow.md) |
+| Admin REST / `admin-cli` | Spring が管理者として User を格納する道。oauth2Login とは別トークン | [f01](f01-auth.md) |
+| execute-actions-email | Keycloak が SMTP でパスワード設定リンクを発行する。一次パスワードは載せない | [f01](f01-auth.md) |
 
 ### セッション・Cookie
 

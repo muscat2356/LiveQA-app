@@ -14,3 +14,8 @@ spring:
             jwk-set-uri: http://keycloak:8080/realms/live-qa/protocol/openid-connect/certs
             user-info-uri: http://keycloak:8080/realms/live-qa/protocol/openid-connect/userinfo
             user-name-attribute: preferred_username
+
+app:
+  keycloak:
+    admin:
+      base-url: ${KEYCLOAK_ADMIN_BASE_URL:http://keycloak:8080}

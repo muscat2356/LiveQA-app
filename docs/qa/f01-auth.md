@@ -3,7 +3,8 @@
 scope: Keycloak OIDC → Cookie Session（Redis）→ `/api/me` / logout / CSRF / JIT。  
 正: [openapi-notes](../api/openapi-notes.md) / [architecture](../architecture.md)。  
 深いカタログ（Filter 列・型）: [05-security-config.md](05-security-config.md) / [06-me-controller.md](06-me-controller.md) / [26-securityconfig-data-flow.md](26-securityconfig-data-flow.md)。  
-Keycloak realm 専用 `live-qa`・URL 2種: [ops.md](ops.md)。
+Keycloak realm 専用 `live-qa`・URL 2種: [ops.md](ops.md)。  
+**Admin REST（HOST 発行）の図解:** 「Q. Keycloak Admin REST は何をしている？」
 
 ## 到達点
 
@@ -11,7 +12,7 @@ Keycloak realm 専用 `live-qa`・URL 2種: [ops.md](ops.md)。
 |------|------|
 | oauth2Login / mapper 差し込み / CSRF / Session+Redis | あり。guest POST は ignore（#104 / [f04](f04-guest.md)） |
 | JIT（`provisionHost`） | あり |
-| `POST /api/auth/register`（HOST メール発行） | **未**（[#122](https://github.com/muscat2356/live-qa-app/issues/122)。契約は [openapi-notes](../api/openapi-notes.md)。ローカル SMTP・専用 realm は済み） |
+| `POST /api/auth/register`（HOST メール発行） | **あり**（[#122](https://github.com/muscat2356/live-qa-app/issues/122)。フロントの入力欄は未。ローカル SMTP・専用 realm は済み） |
 | `GET /api/me`（ローカル PK + `currentHost` + `@PreAuthorize HOST`） | あり |
 | `POST /api/auth/logout` | あり |
 | ログイン後 → フロント `/dashboard` | あり（`successHandler`） |
@@ -36,8 +37,10 @@ Cookie / Redis / SecurityContext の復元は以降の API でも同じ。JWT �
 | 層 | する | しない |
 |----|------|--------|
 | SecurityConfig | Filter・CSRF・EntryPoint/AccessDenied・mapper 接続 | 業務分岐 |
-| UserService | JIT / 復元 / MeResponse 組み立て | `ResponseEntity` |
-| MeController | principal 受け取り、`ResponseEntity.ok` | DTO 組み立て本体 |
+| UserService | JIT / 復元 / MeResponse 組み立て | `ResponseEntity` / Keycloak Admin |
+| HostRegistrationService | メール正規化 → Admin Client に発行を依頼 | `ResponseEntity` / パスワード |
+| KeycloakAdminClient | Admin トークン交換・User 格納・HOST 付与・設定メール発行 | ローカル `users` |
+| Controller | principal または email 受け取り、`ResponseEntity` | DTO 組み立て本体 |
 
 401/403（未ログイン・権限不足・CSRF）は **Filter**。Controller 到達後の 400/404/409 は **Advice**。形 `{ status, error, message }` は揃える。
 
@@ -187,3 +190,345 @@ Mailhog で受けるだけなら Host は compose のサービス名（例 `mail
 【EJ】公開面最小化 … Controller は薄く、組み立ては Service
 【EJ】あえて外す … Entity は JPA で可変
 ```
+
+## Q. `POST /api/auth/register` の写経単位は？（#122・2026-08-27）
+
+**Service は Keycloak に発行を依頼するだけ。`users` は触らない。** パスワードは受け取らない。この POST では Cookie / Redis / SecurityContext は使わない（ログイン前）。
+
+```text
+POST /api/auth/register { email }
+  → @Valid で形式を検証する
+  → Service が trim + 小文字へ変換する
+  → master の admin-cli でトークンを交換する
+  → live-qa に User を格納する（201 Location から id）
+  → realm role HOST を付ける
+  → execute-actions-email（UPDATE_PASSWORD）を発行する
+  → 202 空ボディ
+  → リンクでパスワード設定 → トップのログイン → JIT
+```
+
+Admin の口はホスト `localhost:8080`、Compose は `keycloak:8080`。管理者は `.env` の `KEYCLOAK_ADMIN`。JSON に秘密を書かない。
+
+テスト: Service は Client を Mock（成功 / 409 / 502）。Controller は 202 と 400。CSRF ignore は guest と同じ Filter スライス。HTTP 1 手ずつの図は「Q. Keycloak Admin REST は何をしている？」。
+
+### Q. KeycloakAdminClient は oauth2Login と同じ？（#122）
+
+**違う。** oauth2Login は主催者がブラウザでログインする道。Admin Client は Spring が **管理者**として User を作る道。トークンも別（`admin-cli` の password grant。client `live-qa-app` ではない）。
+
+interface は契約（3メソッド）。`KeycloakAdminRestClient` が HTTP の具象。Service は「正規化して3つをこの順で呼ぶ」だけ。`@Component` が無いと DI されない。
+
+### Q. RestClient の1回分は何をしている？（#122）
+
+有効期限内なら同じ Bearer を付ける → Admin API を叩く。期限切れ、または Admin REST が 401 ならキャッシュを捨てて 1 回だけ再交換する。失敗は 409（重複）か 502（口が開かない）。Cookie / Redis / `users` は出ない。細かい HTTP と図は次の節。
+
+---
+
+## Q. Keycloak Admin REST は何をしている？（図解・#122）
+
+**なぜ作るか:** 主催者を Spring の会員マスタにしない。パスワードも持たない。Keycloak に User を格納し、設定リンクだけ発行する。ログイン後の Session は従来どおり oauth2Login。
+
+**役割:** Controller がメールを受け取る → Service が正規化して 3 手を順に依頼する → RestClient が Admin HTTP を叩く → 202 空を返す。
+
+**この POST で触らないもの:** Cookie `SESSION`、Redis、PostgreSQL の `users`、SecurityContext。箱の発行は、メールのリンクでパスワードを決めたあと、トップから OIDC ログインしたとき。
+
+### 1. 道は 2 本（混ぜない）
+
+Keycloak の口は用途で分かれる。同じホスト `8080` でも **クライアントとトークンが別**。
+
+```mermaid
+flowchart TB
+  subgraph ブラウザ
+    A["メール入力<br/>POST /api/auth/register"]
+    L["トップのログインボタン<br/>/oauth2/authorization/keycloak"]
+  end
+
+  subgraph Spring["Spring Backend"]
+    C["HostRegistrationController"]
+    S["HostRegistrationService"]
+    R["KeycloakAdminRestClient"]
+    O["oauth2Login<br/>OidcUserService + mapper + JIT"]
+  end
+
+  subgraph KC["Keycloak"]
+    M["realm master<br/>admin-cli + password grant"]
+    Q["realm live-qa<br/>Admin REST /users /roles"]
+    P["realm live-qa<br/>client live-qa-app<br/>authorization_code"]
+  end
+
+  subgraph あとで["ログイン後だけ"]
+    Redis[(Redis SESSION)]
+    DB[("PostgreSQL users")]
+  end
+
+  A --> C --> S --> R
+  R -->|"① トークン交換"| M
+  R -->|"②③④ Bearer"| Q
+  L --> O
+  O -->|"コードをトークンに交換"| P
+  O -->|"provisionHost"| DB
+  O -->|"SESSION 発行"| Redis
+```
+
+| 道 | 誰が | クライアント | grant | 結果 |
+|----|------|-------------|-------|------|
+| **Admin REST** | Spring が管理者として | `admin-cli`（master） | password | User 格納・HOST 付与・設定メール |
+| **oauth2Login** | 主催者がブラウザで | `live-qa-app`（live-qa） | authorization_code | ID Token → Session → JIT |
+
+`live-qa-app` の client secret はログイン用。Admin の Bearer には使わない。
+
+### 2. 層と型の正体
+
+```text
+ブラウザ
+  → Filter（permitAll + CSRF ignore）… ログイン前の発行口
+  → HostRegistrationController … email を受け取り、202 の箱を返す
+  → HostRegistrationService … trim + 小文字へ変換し、3 メソッドをこの順で呼ぶ
+  → KeycloakAdminClient（interface=契約）
+  → KeycloakAdminRestClient（具象=@Component）
+       RestClient … HTTP クライアント
+       TokenResponse / RealmRole … 応答 JSON の必要な項目だけ（record）
+```
+
+| 型 | 正体 |
+|----|------|
+| `KeycloakAdminClient` | interface＝契約（3 メソッド）。Service は HTTP を知らない |
+| `KeycloakAdminRestClient` | 具象。`@Component` が無いと DI されない |
+| `HostRegisterRequest` | record＝不変 DTO。`@Email` / `@NotBlank` は検証のメタデータ |
+| `@Value("${app.keycloak.admin.*}")` | 設定の注入。秘密は JSON に書かない |
+| `RestClient` | Spring 6 の同期 HTTP。`WebClient` ではない |
+| `BusinessException` | 409 / 502 を Advice が `{ status, error, message }` に変換する |
+
+Controller は `ResponseEntity`。DTO 組み立ては無い（202 空）。パスワードはリクエストにも DB にも載せない。
+
+### 3. 登録 1 回のシーケンス
+
+操作語: **検証**（形式）→ **変換**（trim・小文字）→ **交換**（admin トークン）→ **格納**（User）→ **復元**（Location の id）→ **付与**（HOST）→ **発行**（設定メール）。
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor ブラウザ
+  participant C as HostRegistrationController
+  participant S as HostRegistrationService
+  participant K as KeycloakAdminRestClient
+  participant Master as Keycloak master
+  participant Live as Keycloak live-qa
+  participant SMTP as SMTP（Gmail 等）
+
+  ブラウザ->>C: POST /api/auth/register { email }
+  Note over ブラウザ,C: Cookie / Redis / users はまだ無い
+  C->>C: @Valid で形式を検証
+  C->>S: register(email)
+  S->>S: trim + Locale.ROOT で小文字へ変換
+
+  S->>K: createHostUser(normalized)
+  K->>Master: POST /realms/master/protocol/openid-connect/token
+  Master-->>K: access_token + expires_in
+  Note over K: Client 内に保持（Redis には載せない）
+  K->>Live: POST /admin/realms/live-qa/users  Bearer
+  Live-->>K: 201 Location .../users/{id}
+  K-->>S: userId
+
+  S->>K: assignHostRole(userId)
+  Note over K: 期限内ならキャッシュを復元（再交換しない）
+  K->>Live: GET /admin/realms/live-qa/roles/HOST
+  Live-->>K: { id, name: HOST }
+  K->>Live: POST .../users/{id}/role-mappings/realm
+  Live-->>K: 204
+
+  S->>K: sendUpdatePasswordEmail(userId)
+  Note over K: 同じ Bearer
+  K->>Live: PUT .../users/{id}/execute-actions-email
+  Live->>SMTP: パスワード設定リンク
+  SMTP-->>ブラウザ: メール
+  Live-->>K: 204
+  K-->>S: void
+  S-->>C: void
+  C-->>ブラウザ: 202 空ボディ
+```
+
+Spring はメール本文を作らない。Keycloak が SMTP で送る。Realm settings → Email が空だと 4 手目が 502 になる。
+
+### 4. トークン交換（password grant）
+
+**交換** = 管理者の username/password を、短い access_token に取り替える。主催者ログインの認可コード交換とは別。
+
+```mermaid
+sequenceDiagram
+  participant K as KeycloakAdminRestClient
+  participant Master as POST /realms/master/protocol/openid-connect/token
+
+  K->>Master: Content-Type application/x-www-form-urlencoded
+  Note right of K: grant_type=password<br/>client_id=admin-cli<br/>username=KEYCLOAK_ADMIN<br/>password=KEYCLOAK_ADMIN_PASSWORD
+  Master-->>K: { "access_token": "eyJ...", "expires_in": 60, ... }
+  Note over K: TokenResponse は access_token と expires_in を復元<br/>他の JSON は @JsonIgnoreProperties で無視<br/>期限の 10 秒前まで Client 内で使う
+```
+
+1登録の 3手（HTTP は最大4本）で同じ Bearer を使う。`expires_in` の少し前まで Client 内に保持する。Cookie / Redis / `users` には載せない。Admin REST が 401 ならキャッシュを捨てて 1 回だけ再交換する。接続拒否・2回目の 401・空トークンは **502**。Keycloak の生エラーはクライアントに出さない。connect 3 秒 / read 5 秒。
+
+Bearer の載せ方:
+
+```text
+Authorization: Bearer eyJ...
+```
+
+このトークンは **master の管理者**として Admin REST を叩く鍵。ブラウザの SESSION ではない。Redis にも格納しない。
+
+### 5. User 格納と Location から id を復元
+
+```mermaid
+flowchart LR
+  A["POST /admin/realms/live-qa/users"] --> B{"HTTP"}
+  B -->|201| C["Location ヘッダ"]
+  C --> D["パス末尾を user id として復元"]
+  B -->|409| E["BusinessException CONFLICT"]
+  B -->|その他 / 通信失敗| F["502 Bad Gateway"]
+```
+
+本文（パスワードなし）:
+
+```json
+{
+  "username": "user@example.com",
+  "email": "user@example.com",
+  "enabled": true,
+  "emailVerified": true
+}
+```
+
+username と email は同じ正規化済み文字列。一次パスワード（`credentials` / `temporary`）は載せない。
+
+201 の Location 例:
+
+```text
+http://keycloak:8080/admin/realms/live-qa/users/a1b2c3d4-...
+                                                      ^^^^^^^^
+                                                      この UUID を復元して次の 2 手に渡す
+```
+
+409 は「同じメールが既にある」。Advice が `{ status: 409, error: Conflict, message: ... }`。
+
+### 6. realm role HOST を付ける
+
+ロール名の文字列だけでは足りない。Keycloak は **ロール定義の id** を role-mappings に載せる。
+
+```mermaid
+sequenceDiagram
+  participant K as RestClient
+  participant Live as live-qa Admin
+
+  K->>Live: GET /admin/realms/live-qa/roles/HOST
+  Live-->>K: RealmRole { id, name: "HOST" }
+  K->>Live: POST /admin/realms/live-qa/users/{userId}/role-mappings/realm
+  Note right of K: body = [ { id, name } ]
+  Live-->>K: 204
+```
+
+これで IdToken の `realm_access.roles` に `HOST` が載る前提ができる。ログイン時の mapper が `ROLE_HOST` に変換する（登録 API では mapper は走らない）。
+
+### 7. execute-actions-email（UPDATE_PASSWORD）
+
+**発行** = パスワード設定用のワンタイムリンクを、Keycloak 経由でメールする。Spring はリンク文字列を受け取らない。
+
+```mermaid
+flowchart TB
+  PUT["PUT /admin/realms/live-qa/users/{id}/execute-actions-email"]
+  Q["?client_id=live-qa-app<br/>&redirect_uri=http://localhost:3000/"]
+  B["body: [\"UPDATE_PASSWORD\"]"]
+  PUT --> Q
+  PUT --> B
+  PUT --> SMTP["Keycloak → SMTP → 受信箱"]
+  SMTP --> LINK["ユーザーがリンクを開く"]
+  LINK --> SET["Keycloak 画面でパスワードを決める"]
+  SET --> TOP["redirect_uri のトップ /"]
+  TOP --> OIDC["ログインボタン → oauth2Login"]
+```
+
+`client_id` / `redirect_uri` は設定メール完了後の戻り先。oauth2Login の `{baseUrl}/login/oauth2/code/{registrationId}` とは別。完了後はフロントのトップから、いつものログイン開始 URL を踏む。
+
+### 8. メールのあと（ここから Cookie / Redis / DB）
+
+登録 202 の時点ではローカル `users` は無い。初回ログインで JIT。
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor 主催者
+  participant KC as Keycloak live-qa
+  participant Spring as oauth2Login
+  participant Redis as Redis
+  participant DB as PostgreSQL users
+
+  主催者->>KC: メールのリンクでパスワードを決める
+  主催者->>Spring: GET /oauth2/authorization/keycloak
+  Spring->>KC: 認可コードをトークンに交換（live-qa-app）
+  KC-->>Spring: ID Token（sub / email / realm_access.HOST）
+  Spring->>Spring: delegate.loadUser → provisionHost(sub)
+  Spring->>DB: 無ければ User.hostOf で格納
+  Spring->>Spring: mapper が HOST → ROLE_HOST
+  Spring->>Redis: Session 箱を格納
+  Spring-->>主催者: Set-Cookie SESSION → 302 /dashboard
+  主催者->>Spring: GET /api/me（Cookie で箱を復元）
+```
+
+| 時点 | Cookie SESSION | Redis | users 行 | Keycloak User |
+|------|----------------|-------|----------|---------------|
+| register の 202 | なし | なし | なし | あり（HOST 付き） |
+| パスワード設定直後 | なし | なし | なし | あり（資格情報あり） |
+| OIDC ログイン成功 | 発行 | 箱を格納 | JIT で作成 | 同じ User |
+
+### 9. URL と設定（秘密は JSON に書かない）
+
+| 設定 | ホスト `mvn` の既定 | Compose（profile docker） | 何のため |
+|------|---------------------|---------------------------|----------|
+| `app.keycloak.admin.base-url` | `http://localhost:8080` | `http://keycloak:8080` | Admin REST の向き先 |
+| `realm` | `live-qa` | 同じ | User / role のテナント |
+| `username` / `password` | `.env` の `KEYCLOAK_ADMIN*` | compose が backend に渡す | master のトークン交換 |
+| `client-id` | `live-qa-app` | 同じ | 設定メールの `client_id`（Bearer 用ではない） |
+| `redirect-uri` | `http://localhost:3000/` | 同じ | 設定完了後の戻り |
+
+ホスト起動なのに `base-url` が `http://keycloak:8080` だと名前解決できず 502。Compose なのに `localhost:8080` だと **コンテナ内の** localhost になり、Keycloak に届かない。
+
+SMTP は Admin 画面。import JSON の `"smtpServer": {}` は空のまま。`down -v` すると消える。
+
+### 10. エラーと Filter
+
+```text
+400 … @Valid（空・形式不正）。Controller に入る前の Bean Validation
+409 … Keycloak が同じメールで 409。Client が Conflict に変換
+502 … トークン交換失敗・ロール無し・SMTP 失敗・接続拒否。生エラーは出さない
+401/403 … この POST では出さない（permitAll）
+CSRF 403 … ignore 済み（guest と同じ）。トークン無しでも 202 まで届く
+```
+
+```mermaid
+flowchart LR
+  REQ["POST /api/auth/register"] --> CSRF{"CSRF Filter"}
+  CSRF -->|ignore| AUTH{"authorizeHttpRequests"}
+  AUTH -->|permitAll| VAL["@Valid"]
+  VAL -->|失敗| E400["400"]
+  VAL -->|成功| SVC["Service → Admin REST"]
+  SVC -->|重複| E409["409"]
+  SVC -->|Keycloak/SMTP| E502["502"]
+  SVC -->|完了| OK["202"]
+```
+
+### 11. 【EJ】
+
+```text
+【EJ】公開面最小化 … Service は HTTP を知らない。トークンキャッシュも Client の private
+【EJ】依存性注入 … Controller / Service / RestClient はコンストラクタ（設定は @Value）
+【EJ】不変性 … HostRegisterRequest / TokenResponse / RealmRole / CachedAdminToken は record
+【EJ】例外 … 409 と 502 は BusinessException。Keycloak の本文は漏らさない
+【EJ】あえて外す … Redis には載せない。interceptor と Clock 注入は今はやらない。Entity は登録では作らない
+【EJ】あえて外す … interface は単一実装でもテスト用の契約として残す
+```
+
+### 12. 疎通（登録 API）
+
+1. backend に `KEYCLOAK_ADMIN_PASSWORD` がある（Compose ならルート `.env`）
+2. Keycloak Admin の Email テストが通っている
+3. `curl -s -i -X POST http://localhost:8081/api/auth/register -H 'Content-Type: application/json' -d '{"email":"..."}'`
+4. 202 → 受信箱に設定リンク → トップから OIDC → `GET /api/me` で `role: HOST`
+
+テスト: `HostRegistrationServiceTest`（Client Mock）、`HostRegistrationControllerTest`（202/400/409）、`HostRegistrationControllerCsrfTest`（ignore）。
