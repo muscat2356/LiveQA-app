@@ -12,6 +12,7 @@ import SortTab from "../../../../../components/question/SortTab";
 import usePoll from "@/components/poll/usePoll";
 import GuestPollCard from "@/components/guest/GuestPollCard";
 import StatusTab from "@/components/question/StatusTab";
+import { QuestionStatusBadge } from "@/components/question/questionStatusBadge";
 
 
 export default function QaScreen({ event, nickname }: { event: JoinEvent; nickname: string}) {
@@ -68,16 +69,17 @@ export default function QaScreen({ event, nickname }: { event: JoinEvent; nickna
                 {questions.map((q) => (
                     <li key={q.id} className="rounded-2xl border bg-card p-4 shadow-sm ring-1 ring-foreground/5">
                         <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">{q.body}</p>
-                        <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                            {q.displayName ?? "匿名"} /
+                        <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+                            <span>{q.displayName ?? "匿名"}</span>
+                            <span aria-hidden className="text-muted-foreground/40">·</span>
                             <VoteButton
                                 questionId={q.id}
                                 upvoteCount={q.upvoteCount}
                                 votedByMe={q.votedByMe}
                                 applyVote={applyVote}
                                 onSync={guestLoad}
-                            />/ 
-                            {q.status}
+                            />
+                            <QuestionStatusBadge status={q.status} />
                         </div>
                     </li>
                 ))}
