@@ -2,6 +2,7 @@ package com.liveqa.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -21,8 +22,11 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.liveqa.dto.response.QuestionResponse;
 import com.liveqa.dto.response.VoteResponse;
+import com.liveqa.service.VoteResult;
 import com.liveqa.service.VoteService;
+import com.liveqa.websocket.QuestionEventPublisher;
 
 /**
  * いいね POST/DELETE の CSRF（Filter 層）。
@@ -41,9 +45,14 @@ class VoteControllerCsrfTest {
     @MockitoBean
     VoteService voteService;
 
+    @MockitoBean
+    QuestionEventPublisher questionEventPublisher;
+
     @Test
     void add_CSRFありなら200() throws Exception {
-        when(voteService.add(eq(42L), any())).thenReturn(new VoteResponse(42L, 1, true));
+        final VoteResponse response = new VoteResponse(42L, 1, true);
+        final QuestionResponse question = mock(QuestionResponse.class);
+        when(voteService.add(eq(42L), any())).thenReturn(new VoteResult(response, question));
 
         mockMvc.perform(post("/api/questions/42/vote").with(csrf()))
                 .andExpect(status().isOk())
@@ -58,7 +67,9 @@ class VoteControllerCsrfTest {
 
     @Test
     void remove_CSRFありなら200() throws Exception {
-        when(voteService.remove(eq(42L), any())).thenReturn(new VoteResponse(42L, 0, false));
+        final VoteResponse response = new VoteResponse(42L, 0, false);
+        final QuestionResponse question = mock(QuestionResponse.class);
+        when(voteService.remove(eq(42L), any())).thenReturn(new VoteResult(response, question));
 
         mockMvc.perform(delete("/api/questions/42/vote").with(csrf()))
                 .andExpect(status().isOk())

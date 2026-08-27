@@ -490,4 +490,5 @@ class QuestionServiceTest {
         event.changeStatus(EventStatus.OPEN);
         return event;
     }
+
 }
