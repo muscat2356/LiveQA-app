@@ -9,7 +9,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
-      # LibraShare realm に相乗り（サードパーティークライアント）
+      # 専用 realm live-qa（client live-qa-app）
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-live-qa-app}
       KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-live-qa-dev-secret}
     ports:
@@ -81,8 +81,8 @@ services:
       retries: 30
       start_period: 40s
     volumes:
-      # LibraShare realm の export をそのまま import（client / user は温存）
-      - ./keycloak:/opt/keycloak/data/import
+      # 専用 realm だけ import。同じフォルダの旧 JSON は載せない
+      - ./keycloak/live-qa-realm.json:/opt/keycloak/data/import/live-qa-realm.json
     ports:
       - "8080:8080"
     depends_on:

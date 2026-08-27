@@ -1,6 +1,7 @@
 # OCI 無料枠へ Compose ごと載せる（かみ砕き）
 
-正本は **このファイル1つ** と GitHub [#44 の手順コメント](https://github.com/muscat2356/live-qa-app/issues/44#issuecomment-5422566268)（同じ本文）。設定の短い対応は [ops.md](ops.md)。
+正本は **このファイル1つ** と GitHub [#44 の手順コメント](https://github.com/muscat2356/live-qa-app/issues/44#issuecomment-5422566268)（同じ本文）。設定の短い対応は [ops.md](ops.md)。  
+他メンバーの Codex / Claude Code へ貼る命令文: [#44 の AI コメント](https://github.com/muscat2356/live-qa-app/issues/44#issuecomment-5422781734)。
 
 ## デプロイ手順（正本・1本）
 
@@ -79,7 +80,7 @@ Let's Encrypt はこういう名前でも取れることが多い。DNS 浸透�
 | **Cookie `Secure`** | 「封をした店でしかバンドを出さない」印。HTTP のまま付けるとバンドが乗らない |
 | **`NEXT_PUBLIC_*`** | ログインボタンに焼き付く住所。本番ビルドでは **作った瞬間の値**が残る |
 | **rewrite** | 画面サーバが `/api` を裏の Spring へ取り次ぐ。お客さんには API の部屋番号が見えない |
-| **realm / client** | Keycloak の「この学校」と「このアプリ用の許可リスト」。`LibraShare` / `live-qa-app` |
+| **realm / client** | Keycloak の「この学校」と「このアプリ用の許可リスト」。`live-qa` / `live-qa-app` |
 | **volume** | 弁当箱を開け直しても残る保存容器。Postgres にはある。Redis は今は無い |
 
 ---
@@ -318,7 +319,7 @@ KC_HOSTNAME: http://YOUR_IP:8080
 **手:** デフォルトは localhost のまま env 化する（ローカル Compose が壊れない）。
 
 ```yaml
-authorization-uri: ${KEYCLOAK_AUTHORIZATION_URI:http://localhost:8080/realms/LibraShare/protocol/openid-connect/auth}
+authorization-uri: ${KEYCLOAK_AUTHORIZATION_URI:http://localhost:8080/realms/live-qa/protocol/openid-connect/auth}
 ```
 
 `token-uri` / `jwk-set-uri` / `user-info-uri` は `http://keycloak:8080/...` のまま。
@@ -326,7 +327,7 @@ authorization-uri: ${KEYCLOAK_AUTHORIZATION_URI:http://localhost:8080/realms/Lib
 **ファイル 2:** `compose.yml` の backend `environment` に足す（**VM 上**。git に実 IP をベタ書きしたくなければ VM の `.env` や override）:
 
 ```yaml
-KEYCLOAK_AUTHORIZATION_URI: http://YOUR_IP:8080/realms/LibraShare/protocol/openid-connect/auth
+KEYCLOAK_AUTHORIZATION_URI: http://YOUR_IP:8080/realms/live-qa/protocol/openid-connect/auth
 LOGIN_SUCCESS_REDIRECT_URI: http://YOUR_IP:3000/dashboard
 POST_LOGOUT_REDIRECT_URI: http://YOUR_IP:3000/
 CORS_ALLOWED_ORIGINS: http://YOUR_IP:3000
@@ -347,7 +348,7 @@ CORS_ALLOWED_ORIGINS: http://YOUR_IP:3000
 
 1. ブラウザで `http://YOUR_IP:8080`  
 2. `.env` の管理者でログイン  
-3. realm **LibraShare** → **Clients** → **live-qa-app**  
+3. realm **live-qa** → **Clients** → **live-qa-app**  
 4. Valid redirect URIs に追加:  
    - `http://YOUR_IP:8081/*`  
    - `http://YOUR_IP:3000/*`  
@@ -578,7 +579,7 @@ volumes:
 |------|-----------------|-----------------|
 | フロントのログイン URL | `http://YOUR_IP:8081/oauth2/...` | `https://APP_HOST/oauth2/authorization/keycloak` |
 | `KC_HOSTNAME` | `http://YOUR_IP:8080` | `https://AUTH_HOST` |
-| `KEYCLOAK_AUTHORIZATION_URI` | `http://YOUR_IP:8080/realms/...` | `https://AUTH_HOST/realms/LibraShare/protocol/openid-connect/auth` |
+| `KEYCLOAK_AUTHORIZATION_URI` | `http://YOUR_IP:8080/realms/...` | `https://AUTH_HOST/realms/live-qa/protocol/openid-connect/auth` |
 | `LOGIN_SUCCESS_REDIRECT_URI` | `http://YOUR_IP:3000/dashboard` | `https://APP_HOST/dashboard` |
 | `POST_LOGOUT` / CORS | `http://YOUR_IP:3000` | `https://APP_HOST` |
 | token / jwk / redis | 変えない | **変えない** |

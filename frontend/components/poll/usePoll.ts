@@ -1,5 +1,6 @@
 "use client"
 
+import { getGuestSession } from "@/lib/api/guestSession";
 import { fetchGetPoll } from "@/lib/api/pollApi";
 import { PollDto } from "@/types/poll/poll";
 import { useCallback, useEffect, useState } from "react";
@@ -12,6 +13,9 @@ export default function usePoll(id: number) {
 
     const load = useCallback(async () => {
         try {
+
+            await getGuestSession();
+            
             setPending(true);
             setError("");
             setPoll(await fetchGetPoll(id));

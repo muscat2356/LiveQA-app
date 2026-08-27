@@ -1,5 +1,5 @@
 # Compose 内の backend 用（コンテナから Keycloak は hostname "keycloak"）
-# realm は LibraShare（live-qa-app はサードパーティークライアントとして相乗り）
+# realm は live-qa（専用。LibraShare 相乗りはやめる）
 # ブラウザ向け認可 URL は localhost、トークン／JWK は Docker ネットワーク名を使う
 
 spring:
@@ -9,8 +9,8 @@ spring:
         provider:
           keycloak:
             # issuer-uri は使わない（localhost だとコンテナ内で Connection refused）
-            authorization-uri: http://localhost:8080/realms/LibraShare/protocol/openid-connect/auth
-            token-uri: http://keycloak:8080/realms/LibraShare/protocol/openid-connect/token
-            jwk-set-uri: http://keycloak:8080/realms/LibraShare/protocol/openid-connect/certs
-            user-info-uri: http://keycloak:8080/realms/LibraShare/protocol/openid-connect/userinfo
+            authorization-uri: http://localhost:8080/realms/live-qa/protocol/openid-connect/auth
+            token-uri: http://keycloak:8080/realms/live-qa/protocol/openid-connect/token
+            jwk-set-uri: http://keycloak:8080/realms/live-qa/protocol/openid-connect/certs
+            user-info-uri: http://keycloak:8080/realms/live-qa/protocol/openid-connect/userinfo
             user-name-attribute: preferred_username

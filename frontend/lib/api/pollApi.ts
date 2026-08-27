@@ -84,3 +84,27 @@ export async function fetchPatchPollStatus(
     return poll;
 }
 
+export async function fetchPostPollResponse(pollId: number, optionIds: number[]){
+
+    const xsrfToken = readCookie("XSRF-TOKEN");
+
+    const res = await fetch(
+        `/api/polls/${pollId}/responses`,{ 
+            method: "POST",
+            headers: { 
+                "Content-Type":"application/json",
+                ...(xsrfToken ? { "X-XSRF-TOKEN" : xsrfToken} : {}),
+            },
+            credentials: "same-origin",
+            body: JSON.stringify({ optionIds }),
+    });
+
+    if(!res.ok){
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.message??"エラーが発生しました");
+    }
+
+    const poll:PollDto = await res.json();
+
+    return poll;
+} 

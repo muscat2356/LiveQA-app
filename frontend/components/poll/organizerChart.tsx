@@ -1,16 +1,9 @@
 "use client"
 
 import { PollDto } from "@/types/poll/poll";
-import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "../ui/chart";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import PollStatusButton from "./pollStatusButton";
+import { PollResultChart } from "../guest/PollResultChart";
 
-const chartConfig = {
-  count:{
-      label: "票数",
-      color: "var(--chart-1)",
-  },
-} satisfies ChartConfig;
 
 export function OrganizerChart({
     pending,
@@ -28,51 +21,30 @@ export function OrganizerChart({
     if (error && !poll)   return <p className="rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</p>;
     if (!poll)   return null;
 
-    const total = poll.totalResponses;
-
-    const data = poll.options.map((o) => ({
-        label: o.label,
-        count: o.count,
-        percent: total > 0 ? Math.round(( o.count / total ) * 100 ): 0,
-    }));
 
     return (
-    <div>
+    <div className="rounded-2xl border bg-card p-4 shadow-sm ring-1 ring-foreground/5">
 
-        <p>{poll.questionText}</p>
-        <p>{poll.type === "SINGLE" ? "単一選択" : "複数選択"}/回答数{total}件</p>
+        <div className="mb-3 flex items-start justify-between gap-3">
+            <div className="min-w-0 space-y-1.5">
+                <span className="inline-flex w-fit items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">投票</span>
+                <p className="text-[15px] font-semibold leading-snug">{poll.questionText}</p>
+                <p className="text-xs text-muted-foreground">{poll.type === "SINGLE" ? "単一選択" : "複数選択"} / 回答数 {poll.totalResponses} 件</p>
+            </div>
 
-        <PollStatusButton
-            pollId={poll.id}
-            status={poll.status}
-            load={onChanged}
-        />
-      
-      <ChartContainer config={chartConfig} className="mb-4 min-h-[200px] w-full">
-          <BarChart accessibilityLayer data={data} layout="vertical" margin={{ left: 0, right: 16 }}>
-              <CartesianGrid horizontal={false} />
-              <XAxis type="number" dataKey="count" hide />
-              <YAxis
-                  type="category"
-                  dataKey="label"
-                  tickLine={false}
-                  axisLine={false}
-                  width={120}
-                  tickMargin={8}
-                  tick={{ fontSize: 12 }}
-              />
-              <ChartTooltip 
-                    content={
-                        <ChartTooltipContent 
-                            formatter={(value, _name, item) =>
-                                `${value}票 (${item.payload.percent}%)`
-                            }
-                        />
-                    } 
+            <div className="shrink-0">
+                <PollStatusButton
+                    pollId={poll.id}
+                    status={poll.status}
+                    load={onChanged}
                 />
-              <Bar dataKey="count" fill="var(--color-count)" radius={4} />
-          </BarChart>
-      </ChartContainer>
+            </div>
+        </div>
+
+        <PollResultChart
+            poll={poll}
+        />
+
     </div>
     );
 }

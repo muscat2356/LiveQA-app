@@ -8,7 +8,7 @@
 
 | ファイル | 機能 |
 |----------|------|
-| [f01-auth.md](f01-auth.md) | **F-01** 認証・セッション（JIT / `/api/me` / CSRF / Cookie） |
+| [f01-auth.md](f01-auth.md) | **F-01** 認証・セッション（JIT / 登録 API 契約 / `/api/me` / CSRF / Cookie） |
 | [f02-events.md](f02-events.md) | **F-02** ルーム作成・一覧・Join 照会 |
 | [f03-status.md](f03-status.md) | **F-03** ルーム開閉・所有者 404 |
 | [f04-guest.md](f04-guest.md) | **F-04** 匿名セッション / `voter_key` |
@@ -25,8 +25,10 @@
 | ファイル | 内容 |
 |----------|------|
 | [java.md](java.md) | 三層・DTO record・JPA・Javadoc 粒度・`var`・UNIQUE・削除・テスト |
-| [ops.md](ops.md) | Keycloak 相乗り・CI・Docker・Swagger UI |
-| [deploy-oci.md](deploy-oci.md) | OCI 無料枠 Compose の作業手順（たとえ・図・手でやること）。正本は [#44](https://github.com/muscat2356/live-qa-app/issues/44) |
+| [ops.md](ops.md) | Keycloak 専用 realm `live-qa`・CI・Docker・Swagger UI |
+| [deploy-oci.md](deploy-oci.md) | OCI 無料枠 Compose の作業手順（たとえ・図・手でやること）。正本は [#44](https://github.com/muscat2356/live-qa-app/issues/44)。他メンバー AI 用命令文は [同 Issue コメント](https://github.com/muscat2356/live-qa-app/issues/44#issuecomment-5422781734) |
+| [handoff.md](handoff.md) | B 全体確認・総評・コーディング癖・よく出た質問・ルール6本（次回持ち込み） |
+| [java-learning-pair-skill.md](java-learning-pair-skill.md) | 次回 Cursor 用 Skill のコピー原稿（`~/.cursor/skills/` へ） |
 
 F-07 は実装が始まったら同型で `f07-*.md` を足す。
 
@@ -47,7 +49,7 @@ F-07 は実装が始まったら同型で `f07-*.md` を足す。
 | [07-guest-session.md](07-guest-session.md) | 匿名セッション素振り（正は [f04](f04-guest.md)） |
 | [26-securityconfig-data-flow.md](26-securityconfig-data-flow.md) | SecurityConfig 型カタログ・Q&A |
 
-ラボ当時は Keycloak `8081` / realm `live-qa` 前提の記述が残る。本番は Keycloak `8080` / realm `LibraShare`（[ops](ops.md)）。
+ラボ当時は Keycloak `8081` / realm `live-qa` の記述が残る。いまの正は Keycloak `8080` / 専用 realm `live-qa`（[ops](ops.md)）。旧メモの `LibraShare` 相乗りは廃棄方針。
 
 ---
 
@@ -58,7 +60,7 @@ F-07 は実装が始まったら同型で `f07-*.md` を足す。
 | 用語 | 一言 | 出典 |
 |------|------|------|
 | IdP / OIDC / oauth2Login | Keycloak でログインし Session にする | [f01](f01-auth.md) [05](05-security-config.md) |
-| realm / client | テナント境界／アプリ1つの設定。`live-qa-app` は相乗り | [ops](ops.md) |
+| realm / client | テナント境界／アプリ1つの設定。realm `live-qa`、client `live-qa-app` | [ops](ops.md) |
 | `sub` / oidcSubject / JIT | IdP の一意 ID。初回ログインで `users` 行を作る | [f01](f01-auth.md) |
 | `realm_access` / mapper | IdToken のロール袋 → `ROLE_HOST` | [f01](f01-auth.md) [26](26-securityconfig-data-flow.md) |
 

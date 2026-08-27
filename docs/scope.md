@@ -6,7 +6,8 @@
 
 ### F-01 認証・セッション（担当B主 / A=UI / C=Compose）
 
-- 主催者ログイン: KeycloakのSSO(OIDC)でログイン → Cookieセッション（Spring Session + Redis）で管理。会員はOIDCクレームから自動作成（自前の登録画面は持たない）。ログアウトあり
+- 主催者ログイン: KeycloakのSSO(OIDC)でログイン → Cookieセッション（Spring Session + Redis）で管理。ローカル `users` はOIDCクレーム(`sub`)から JIT 作成。**パスワード検証は Spring が持たない**（Keycloak に委譲）
+- 主催者登録: メールアドレスだけ受け取り、Spring が Keycloak Admin API で User + realm role `HOST` を作り、パスワード設定リンクメールを発行する。Keycloak の公開自己登録（`registrationAllowed`）は使わない。参加者は Keycloak に作らない
 - RBAC（HOST=主催者 / 参加者=匿名セッション）
 - CSRF保護の有効化（stateful化に伴い有効化）
 
@@ -60,7 +61,7 @@ MVP-A が E2E で通ってから着手。API の正は [api/openapi-notes.md](ap
 ## 対象外
 
 - 決済連携
-- メール / プッシュ通知
+- アプリからのお知らせメール / プッシュ通知（**Keycloak が送る HOST パスワード設定メールは F-01。対象外ではない**）
 - 画像・動画・ファイル添付
 - チャット（1:1 DM）
 - モバイルアプリ

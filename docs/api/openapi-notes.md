@@ -26,7 +26,7 @@ ER図は [../design/er-diagram.md](../design/er-diagram.md)、制約は [../desi
 
 - stateful（Cookieセッション）のため CSRF保護を有効化
 - 状態変更系（`POST` / `PATCH` / `DELETE`）は CSRFトークンを `X-XSRF-TOKEN` ヘッダで要求（`XSRF-TOKEN` Cookieと突合）
-- 例外: `POST /api/auth/guest` は発行専用のため CSRF 検証しない（応答で `XSRF-TOKEN` Cookie は載る）
+- 例外: `POST /api/auth/guest` と `POST /api/auth/register` は発行専用のため CSRF 検証しない（応答で `XSRF-TOKEN` Cookie は載る）
 - 参加者（匿名セッション）にもCSRFトークンを発行する
 
 ### 共通エラーレスポンス
@@ -68,7 +68,9 @@ ER図は [../design/er-diagram.md](../design/er-diagram.md)、制約は [../desi
 
 ## 認証（SSO / OIDC・担当B）
 
-主催者のログインは Keycloak(OIDC) に委譲する。会員登録・パスワード検証は自前で持たず、Spring Security の `oauth2Login` が提供するエンドポイントを利用する（`spring-boot-starter-oauth2-client`）。ログイン成功時にセッションを作成し、以降は `SESSION` Cookieで認証する。
+主催者のログインは Keycloak(OIDC) に委譲する。**パスワードの保存・検証は Spring が持たない。** ログインは Spring Security の `oauth2Login`（`spring-boot-starter-oauth2-client`）。成功時にセッションを作成し、以降は `SESSION` Cookie で認証する。
+
+主催者の**新規発行**はメールアドレスだけ受け取り、Keycloak Admin API で User + `HOST` を作り、パスワード設定リンクを Keycloak が送る（下記 `POST /api/auth/register`）。Keycloak の `registrationAllowed` は false。参加者は Keycloak に作らない。
 
 ### GET /oauth2/authorization/keycloak （公開・ログイン開始）
 
@@ -80,6 +82,30 @@ ER図は [../design/er-diagram.md](../design/er-diagram.md)、制約は [../desi
 - 動作: Keycloakからの認可コードを受け取り、トークン交換 → IDトークンの `sub` で `users` をJITプロビジョニング → セッション作成
 - Response: `Set-Cookie: SESSION=...; HttpOnly; Secure; SameSite=Lax` を付与し、フロントの主催者ダッシュボードへリダイレクト（JSONボディなし）
 - 失敗時: ログインエラーページへリダイレクト
+
+### POST /api/auth/register （公開・HOST 発行）
+
+メールアドレスだけ受け取り、Keycloak realm `live-qa` に主催者ユーザーを作る。**パスワードは受け取らない・保存しない。** ローカル `users` 行は作らない（初回ログインの JIT）。未実装（[#122](https://github.com/muscat2356/live-qa-app/issues/122)）。
+
+- Request:
+
+```json
+{ "email": "host@example.com" }
+```
+
+- 公開。ログイン不要。CSRF 検証はしない（guest と同じ。発行専用）
+- 動作:
+  1. メール形式を検証する
+  2. Keycloak Admin でトークンを交換する（master の管理者。秘密は env）
+  3. realm `live-qa` に User を格納する（username = email、email verified は実装時に決める）
+  4. realm role `HOST` を付ける
+  5. execute-actions-email（`UPDATE_PASSWORD`）を発行する。一次パスワードはメールに載せない
+- Response 202: ボディなし（メール送信は Keycloak。Spring は「受け付けた」だけ）
+- Response 400: メール形式不正 `{ status, error, message }`（任意で `fields.email`）
+- Response 409: 同じメールが Keycloak に既にある
+- Response 502: Admin API / SMTP 側が失敗（利用者向け message は短く。秘密を返さない）
+
+`users.email` 列は持たない。表示用メールはログイン後の IdToken クレーム。
 
 ### GET /api/me （HOST）
 

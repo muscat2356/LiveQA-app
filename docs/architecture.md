@@ -33,7 +33,7 @@ flowchart LR
 - **WebSocket（担当C）** → `spring-boot-starter-websocket` + STOMP（+ SockJS fallback）。質問・いいね・ステータス変更のライブ配信
 - **SSO / OIDCログイン（担当B）** → `spring-boot-starter-oauth2-client` の `oauth2Login()` で Keycloak にAuthorization Codeフロー。ログイン成功後は `SecurityContext` をセッションに格納し、以降はセッションで認証。トークンはログイン以降不要なら破棄可
 - **Cookieセッション（担当B）** → `spring-boot-starter-security` + `spring-session-data-redis`。ログイン状態をRedisに保存し `SESSION` Cookieで識別。参加者は匿名セッションで「1人1票」を判定。WebSocketハンドシェイクも同じCookieセッションで認証
-- **Keycloak** → SSO / OIDCプロバイダ（前回LibraShareの資産を再利用）。主催者ユーザーはOIDCクレーム(`sub`)から初回ログイン時にJITプロビジョニング
+- **Keycloak** → SSO / OIDCプロバイダ（専用 realm `live-qa`、client `live-qa-app`）。主催者ユーザーはOIDCクレーム(`sub`)から初回ログイン時にJITプロビジョニング。新規 HOST の発行は Spring が Admin API で行い、パスワード設定メールは Keycloak が送る
 - **Spring Boot** → REST API本体
 - **Next.js（担当A）** → App Router + SSRでイベント一覧/詳細、クライアントコンポーネントでSTOMP接続しライブ受信
 - **動的クエリ（担当B）** → QueryDSL（型安全に条件を組み立て）で質問の並び替え/フィルタを軽めに実装

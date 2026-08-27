@@ -106,7 +106,7 @@ flowchart LR
 
 | ID | 機能 | Member A（Next.js） | Member B（Session+API） | Member C（WS+Docker） |
 |----|------|--------------------|------------------------|----------------------|
-| F-01 | Keycloak SSO(OIDC)ログイン + Cookieセッション認証(RBAC/CSRF) | ログイン導線 / 認証状態UI | `oauth2Login`→セッション橋渡し / JITプロビジョニング / RBAC・CSRF | Keycloak・RedisのCompose |
+| F-01 | Keycloak SSO(OIDC)ログイン + Cookieセッション認証(RBAC/CSRF) | ログイン導線 / HOST メール登録 UI / 認証状態UI | `oauth2Login`→セッション橋渡し / JIT / **HOST 登録 API（Admin API）** / RBAC・CSRF | Keycloak・RedisのCompose |
 | F-02 | イベント(ルーム)作成・参加コード/URL発行・名称更新・物理削除 | 作成画面 / 主催者ダッシュボード（名称変更・削除） | イベント作成・名称更新・削除 API・`joinCode`発行 | — |
 | F-03 | ルーム状態遷移 `DRAFT → OPEN ⇔ CLOSED` | 開始/締切/再開のUI | ステータス変更API・遷移バリデーション | — |
 | F-04 | 参加者の匿名参加（コード/URL・匿名セッション） | 参加ページ / 参加コード入力（SSR） | 匿名セッション発行・`voter_key`識別 | — |

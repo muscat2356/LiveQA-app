@@ -20,23 +20,25 @@ export default function PollOptionInputs({
 }){
 
     return(
-        <div>
+        <div className="space-y-2">
             <Label>選択肢(2~10個)</Label>
 
-            
             {options.map((o, i) => (
-                <div key={o.key}>
+                <div key={o.key} className="flex items-center gap-2">
                     <Input
                         value={o.label}
                         onChange={(e) => onEdit(o.key, e.target.value)}
                         placeholder={`選択肢${i + 1}`}
                         maxLength={100}
+                        className="flex-1"
                     />
                     <Button
                         type="button"
                         variant="ghost"
+                        size="sm"
                         onClick={() => onRemove(o.key)}
                         disabled={options.length <= 2}
+                        className="shrink-0 text-muted-foreground"
                     >
                         削除
                     </Button>
@@ -46,14 +48,17 @@ export default function PollOptionInputs({
             {options.length < 10 &&
                 <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={onAdd}
-                >   
+                className="w-full"
+                >
                     追加
                 </Button>
             }
 
             {hasDuplicate&&(
-                <p>選択肢が重複しています</p>
+                <p className="text-sm text-destructive">選択肢が重複しています</p>
             )}
         </div>
     )

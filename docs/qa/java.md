@@ -156,6 +156,26 @@ MVP は質問を status で閉じる。イベント削除だけ物理 DELETE。`
 
 `src/test` は自動生成されない。`starter-test` で JUnit/Mockito/AssertJ/MockMvc は揃う。JaCoCo は後からで可。正常1 + 分岐0〜1。E2E/100% 不要。
 
+## Q. レベルが高すぎて他メンバーに共有しにくい？
+
+**コードの正しさではなく、説明の言語が重い。** 三層・record・所有者 404・Cookie は共有してよい。EJ 項目番号・sealed・mapper 差し込みは B の学習メモに留め、A/C にはたとえで話す。
+
+| 共有してよい | 共有を薄くする |
+|--------------|----------------|
+| Controller は薄い。DTO は record。エラーは `{ status, error, message }` | 「項目55」「ユーティリティクラス（項目4）」 |
+| SESSION は鍵、中身は Redis。ゲストは `g:` | SecurityConfig の Filter 列を全部読む宿題 |
+| ポール CLOSED は終端。削除 API は無い | `VoterKeySource` の sealed をフロントが知る必要 |
+
+A が要るのはパス・Cookie・CSRF ヘッダ・401 の意味。C が要るのは Session Cookie が STOMP に乗ることと compose の URL 2種。
+
+## コード全体フィードバック（2026-08-26）
+
+形は揃っている（三層・record・RE・`final`・`var` なし・テスト層）。直すなら機能追加より穴: Cookie Secure、`anyRequest().permitAll()`、500 の `error` 表記、V1 の CHECK、`PollService` の長さ。STOMP は口だけ（C）。
+
+## Javadoc の粒度
+
+## Javadoc の粒度
+
 ```text
 【EJ】不変性 … DTO は record
 【EJ】静的ファクトリ … Entity の入り口

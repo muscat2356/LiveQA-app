@@ -11,7 +11,9 @@ import {
 
 import Link from "next/link";
 import StatusChangeDialog from "@/components/event/statusChangeDialog";
+import CopyButton from "@/components/event/CopyButton";
 import formDateTime from "@/lib/utils/date";
+import { RiTimeLine } from "@remixicon/react";
 
 // ステータスごとの表示色（色分けのみ）
 const statusBadgeClass: Record<EventStatus, string> = {
@@ -23,27 +25,48 @@ const statusBadgeClass: Record<EventStatus, string> = {
 export default function EventRow({ event }: {event: EventListResponse }) {
 
     const status = event.status;
+    const isOpen = status === "OPEN";
 
     return(
-        <Card className="transition-shadow hover:shadow-lg">
-            <CardContent className="flex items-start justify-between gap-4">
-                <div className="min-w-0 space-y-1">
+        <Card className={`transition-shadow hover:shadow-lg ${isOpen ? "ring-1 ring-primary/40" : ""}`}>
+            <CardContent className="space-y-4">
+                {/* 見出し */}
+                <div className="flex items-start justify-between gap-3">
                     <Link
                         href={`/dashboard/${event.id}`}
-                        className="block truncate text-base font-semibold hover:text-primary hover:underline"
+                        className="flex min-w-0 items-center gap-2 text-base font-semibold hover:text-primary hover:underline"
                     >
-                        {event.title}
+                        {isOpen && (
+                            <span
+                                aria-hidden
+                                className="size-2 shrink-0 rounded-full bg-green-500 ring-4 ring-green-500/20"
+                            />
+                        )}
+                        <span className="truncate">{event.title}</span>
                     </Link>
-                    <p className="text-sm text-muted-foreground">
-                        参加コード： <span className="font-mono font-medium text-foreground">{event.joinCode}</span>
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                        作成日時： {formDateTime(event.createdAt)}
-                    </p>
+                    <Badge variant="secondary" className={`shrink-0 ${statusBadgeClass[status]}`}>{statusLabel[status]}</Badge>
                 </div>
 
-                <div className="flex shrink-0 flex-col items-end gap-2">
-                    <Badge variant="secondary" className={statusBadgeClass[status]}>{statusLabel[status]}</Badge>
+                {/* 参加コード・作成日時 */}
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+                    <span className="inline-flex items-center gap-2">
+                        <span className="rounded-md bg-muted px-2 py-1 font-mono font-semibold tracking-wider text-foreground">{event.joinCode}</span>
+                        <CopyButton text={event.joinCode} />
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                        <RiTimeLine className="size-4" />
+                        {formDateTime(event.createdAt)}
+                    </span>
+                </div>
+
+                {/* 操作 */}
+                <div className="flex items-center justify-between gap-3 border-t pt-3">
+                    <Link
+                        href={`/dashboard/${event.id}`}
+                        className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                        管理画面へ →
+                    </Link>
                     <StatusChangeDialog
                         eventId={event.id}
                         title={event.title}

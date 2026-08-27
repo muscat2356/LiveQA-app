@@ -40,20 +40,20 @@ export default function PollStatusButton({
     }
 
     return(
-        <div>
+        <div className="flex flex-col items-end gap-1">
             {status === "DRAFT" &&(
-                <Button onClick={() => change("OPEN")} disabled={pending}>
+                <Button size="sm" onClick={() => change("OPEN")} disabled={pending}>
                     公開
                 </Button>
             )}
 
             {status === "OPEN" &&(
-                <Button onClick={() => change("CLOSED")} disabled={pending}>
+                <Button size="sm" variant="outline" onClick={() => change("CLOSED")} disabled={pending}>
                     締め切る
                 </Button>
             )}
 
-            {error && <span>{error}</span>}
+            {error && <span className="text-xs text-destructive">{error}</span>}
         </div>
     )
 }

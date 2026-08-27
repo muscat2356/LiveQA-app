@@ -2,42 +2,42 @@
 
 import { getGuestSession } from "@/lib/api/guestSession";
 import { fetchGetQuestion } from "@/lib/api/questionApi";
-import { QuestionEvent, QuestionResponse, Sort } from "@/types/question/question";
+import { QuestionEvent, QuestionFilter, QuestionResponse, Sort } from "@/types/question/question";
 import { useEffect, useState } from "react";
 import { Client } from "@stomp/stompjs";
 
-export default function useGuestQuestions(eventId: number, sort: Sort){
-    
+export default function useGuestQuestions(eventId: number, sort: Sort, filter: QuestionFilter) {
+
     const [questions, setQuestions] = useState<QuestionResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    function applyVote(questionId: number, upvoteCount: number, votedByMe: boolean){
+    function applyVote(questionId: number, upvoteCount: number, votedByMe: boolean) {
         setQuestions(prev =>
             prev.map(q => (q.id === questionId ? { ...q, upvoteCount, votedByMe } : q))
-        );  
+        );
     }
 
-    async function guestLoad(){
-        
+    async function guestLoad() {
+
         setLoading(true);
         setError(null);
 
-        try{
+        try {
             await getGuestSession();
 
-            const data = await fetchGetQuestion(eventId, sort);
+            const data = await fetchGetQuestion(eventId, sort, filter);
             setQuestions(data);
-        }catch (e){
+        } catch (e) {
             setError(e instanceof Error ? e.message : "エラーが発生しました");
-        }finally{
+        } finally {
             setLoading(false);
         }
     }
 
     useEffect(() => {
         guestLoad();
-    }, [eventId, sort]);
+    }, [eventId, sort, filter]);
 
     useEffect(() => {
         const client = new Client({
@@ -57,19 +57,31 @@ export default function useGuestQuestions(eventId: number, sort: Sort){
                                     question.id === questionEvent.question.id
                             );
 
-                            const updatedQuestions: QuestionResponse[] = questionExists
-                                ? previousQuestions.map(question =>
-                                    question.id === questionEvent.question.id
-                                        ? { ...question, ...questionEvent.question }
-                                        : question
+                            const matchesFilter =
+                                questionEvent.question.status !== "ARCHIVED"
+                                && (
+                                    filter === "ALL"
+                                    || questionEvent.question.status === filter
+                                );
+
+                            const updatedQuestions: QuestionResponse[] = questionExists && !matchesFilter
+                                ? previousQuestions.filter(question =>
+                                    question.id !== questionEvent.question.id
                                 )
-                                : [
-                                    {
-                                        ...questionEvent.question,
-                                        votedByMe: false
-                                    },
-                                    ...previousQuestions
-                                ];
+                                : questionExists
+                                    ? previousQuestions.map(question =>
+                                        question.id === questionEvent.question.id
+                                            ? { ...question, ...questionEvent.question }
+                                            : question
+                                    )
+                                    : matchesFilter
+                                        && questionEvent.question.status !== "ARCHIVED" ? [
+                                        {
+                                            ...questionEvent.question,
+                                            votedByMe: false
+                                        },
+                                        ...previousQuestions
+                                    ] : previousQuestions;
 
                             return [...updatedQuestions].sort((first, second) => {
                                 if (sort === "popular") {
@@ -91,7 +103,7 @@ export default function useGuestQuestions(eventId: number, sort: Sort){
         return () => {
             client.deactivate();
         };
-    }, [eventId, sort]);
+    }, [eventId, sort, filter]);
 
-    return { questions, loading, error, guestLoad, applyVote};
+    return { questions, loading, error, guestLoad, applyVote };
 }

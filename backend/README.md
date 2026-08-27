@@ -5,11 +5,11 @@ F-01 骨組みは `live-qa-session-lab` から移植済み。手順・差分は:
 - [docs/qa/00-transplant-from-lab.md](../docs/qa/00-transplant-from-lab.md)
 - [docs/qa/08-backend-project-migrate.md](../docs/qa/08-backend-project-migrate.md)
 
-認証先は **LibraShare realm に相乗り**（サードパーティークライアント）。要点は [docs/qa/ops.md](../docs/qa/ops.md)。学習メモの入口は [docs/qa/README.md](../docs/qa/README.md)。
+認証先は **専用 realm `live-qa`**（client `live-qa-app`）。要点は [docs/qa/ops.md](../docs/qa/ops.md)。学習メモの入口は [docs/qa/README.md](../docs/qa/README.md)。
 
 | 項目 | 値 |
 |------|-----|
-| realm | `LibraShare` |
+| realm | `live-qa` |
 | client | `live-qa-app`（confidential） |
 | Keycloak | `http://localhost:8080`（Compose が公開） |
 | backend | Compose では `http://localhost:8081` |

@@ -14,7 +14,21 @@ export type QuestionEventType =
     | "QUESTION_UPVOTED"
     | "QUESTION_ANSWERED";
 
-export type QuestionEventPayload = Omit<QuestionResponse, "votedByMe">;
+type VisibleQuestionEventPayload =
+    Omit<QuestionResponse, "votedByMe" | "status">
+    & {
+        status: Exclude<QuestionStatus, "ARCHIVED">;
+    };
+
+type ArchivedQuestionEventPayload =
+    Pick<QuestionResponse, "id" | "eventId">
+    & {
+        status: "ARCHIVED";
+    };
+
+export type QuestionEventPayload =
+    | VisibleQuestionEventPayload
+    | ArchivedQuestionEventPayload;
 
 export type QuestionEvent = {
     type: QuestionEventType;
@@ -30,6 +44,8 @@ export type VoteResponse = {
 export type QuestionStatus = "OPEN" | "ANSWERED" | "ARCHIVED";
 
 export type Sort = "popular" | "newest";
+
+export type QuestionFilter = "ALL" | QuestionStatus;
 
 export const nextQuestionStatusMap: Record<QuestionStatus, readonly QuestionStatus[]> = {
   OPEN: ["ANSWERED", "ARCHIVED"],
@@ -51,4 +67,11 @@ export const questionStatusLabel: Record<QuestionStatus, string > = {
     OPEN: "未回答",
     ANSWERED: "回答済み",
     ARCHIVED: "非表示",
+}
+
+export const questionFilterLabel: Record<QuestionFilter, string> = {
+    ALL: "すべて",
+    OPEN: "未回答",
+    ANSWERED: "回答済み",
+    ARCHIVED: "非表示"
 }
