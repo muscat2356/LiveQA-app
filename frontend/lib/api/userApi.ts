@@ -6,11 +6,11 @@ export async function fetchPostUserRegister( email: string ): Promise<void>{
             "Content-Type":"application/json",
         },
         credentials: "same-origin",
+        body: JSON.stringify({email}),
     });
 
     if (!res.ok) {
     const body = await res.json().catch(() => null);
     throw new Error(body?.message ?? "エラーが発生しました");
     }
-
 }
