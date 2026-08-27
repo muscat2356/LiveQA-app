@@ -9,12 +9,15 @@ import { StatusBadge } from "@/components/event/statusBadge";
 import PostForm from "./PostForm";
 import VoteButton from "./VoteButton";
 import SortTab from "../../../../../components/question/SortTab";
+import usePoll from "@/components/poll/usePoll";
+import GuestPollCard from "@/components/guest/GuestPollCard";
 
 
 export default function QaScreen({ event, nickname }: { event: JoinEvent; nickname: string}) {
 
     const [sort, setSort] = useState<Sort>("popular");
     const {questions, loading, error, guestLoad, applyVote} = useQuestions(event.eventId, sort);
+    const { poll: polls, pending: pollPending, error: pollError, load: pollLoad } = usePoll(event.eventId);
 
     return(
         <div className="app-container max-w-2xl py-6">
@@ -23,7 +26,7 @@ export default function QaScreen({ event, nickname }: { event: JoinEvent; nickna
                     <h1 className="truncate text-xl font-bold tracking-tight sm:text-2xl">{event.title}</h1>
                     <StatusBadge status={event.status} />
                 </div>
-                <Button variant="outline" size="sm" onClick={guestLoad} className="shrink-0">
+                <Button variant="outline" size="sm" onClick={() => { guestLoad(); pollLoad(); }} className="shrink-0">
                     {!error ? "更新" : "再更新"}
                 </Button>
             </header>
@@ -32,12 +35,26 @@ export default function QaScreen({ event, nickname }: { event: JoinEvent; nickna
                 <SortTab value={sort} onChange={setSort} />
             </div>
 
-            {!loading && error && <p className="rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</p>}
+            {pollPending && polls.length === 0 && (
+                <p>読み込み中・・・</p>
+            )}
 
-            {loading && <p className="py-10 text-center text-sm text-muted-foreground">読み込み中・・・</p>}
+            {!pollPending && pollError && (
+                <p >{pollError}</p>
+            )}
+
+            <div>
+                {polls.map((p) => (
+                    <GuestPollCard key={p.id} poll={p} load={pollLoad} />
+                ))}
+            </div>
+
+            {!loading && error && <p>{error}</p>}
+
+            {loading && <p>読み込み中・・・</p>}
 
             {!loading && !error &&questions.length === 0 && (
-                <p className="py-10 text-center text-sm text-muted-foreground">まだ質問はありません。最初の質問を投稿してみましょう！</p>
+                <p>まだ質問はありません。最初の質問を投稿してみましょう！</p>
             )}
 
             <ul className="space-y-3">
