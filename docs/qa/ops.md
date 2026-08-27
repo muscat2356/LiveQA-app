@@ -11,7 +11,8 @@ LibraShare 相乗りはやめる。**このアプリ用の薄い realm だけを
 | realm | `live-qa` |
 | client | `live-qa-app`（confidential、secret は今と同じ `live-qa-dev-secret`） |
 | realm role | `HOST` のみ（参加者は Keycloak に作らない） |
-| 自己登録 | Keycloak UI は `registrationAllowed: false`。アプリのメール登録は `POST /api/auth/register`（未。[#122](https://github.com/muscat2356/live-qa-app/issues/122)） |
+| 自己登録 | Keycloak UI は `registrationAllowed: false`。アプリのメール登録は `POST /api/auth/register`（[#122](https://github.com/muscat2356/live-qa-app/issues/122)） |
+| 初期 HOST | import JSON の `host@example.com` / `live-qa-dev-host`（開発用。SMTP 秘密は載せない） |
 | Keycloak | `http://localhost:8080` |
 | backend（ホスト起動） | `http://localhost:8081`（KC と 8080 が被る） |
 | 正の JSON | [`keycloak/live-qa-realm.json`](../../keycloak/live-qa-realm.json)（compose はこのファイルだけを import。旧 `Librashare-realm.json` はマウントしない） |
@@ -20,7 +21,7 @@ LibraShare 相乗りはやめる。**このアプリ用の薄い realm だけを
 
 IdToken の `realm_access.roles` は **client `live-qa-app` の protocolMapper** で載せる（Client scopes の `roles` を触らなくても 403 を避ける）。確認は Admin → Clients → live-qa-app → Client scopes タブではなく Dedicated mappers。
 
-最初の HOST ユーザーは JSON に含めない。Admin で 1 人作るか、登録 API のあと。
+初期 HOST は JSON に 1 人（`host@example.com` / パスワード `live-qa-dev-host`、realm role `HOST`）。SMTP のアプリパスワードは載せない。本番ではこのパスワードを変えるか、登録 API の人だけ使う。
 
 ### URL が 2 種類ある理由
 
@@ -40,8 +41,8 @@ IdToken の `realm_access.roles` は **client `live-qa-app` の protocolMapper**
 1. `keycloak/live-qa-realm.json` が入っている。compose は **このファイルだけ** を import する（旧 `Librashare-realm.json` はフォルダに残っていても載らない）。不要なら手元で `.json.old` にリネームしてよい。
 2. `application.yml` の `issuer-uri` と `application-docker.yml` の 4 URI は `realms/live-qa`。`compose.yml` のコメントも専用 realm。
 3. `docker compose down -v` → `docker compose up -d --build`（volume 作り直し。イベントデータは消える）。まだならここから。
-4. Admin `http://localhost:8080` → realm `live-qa` があること。Users で HOST 1 人を作る（Email as username、role `HOST`、パスワード設定）。
-5. トップのログイン → `/dashboard` → `GET /api/me` が `role: HOST`。
+4. Admin `http://localhost:8080` → realm `live-qa` → Users に `host@example.com` があること。
+5. トップのログイン（`host@example.com` / `live-qa-dev-host`）→ `/dashboard` → `GET /api/me` が `role: HOST`。
 6. Realm settings → Email で SMTP → Test / Send test email。JSON には書かない。
 
 デプロイでは JSON・client・role はそのまま。変えるのは `KC_HOSTNAME`、redirect URI に `APP_HOST`、yml のホスト部分、Cookie `Secure`。
