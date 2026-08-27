@@ -23,21 +23,28 @@ export function OrganizerChart({
 
 
     return (
-    <div>
+    <div className="rounded-2xl border bg-card p-4 shadow-sm ring-1 ring-foreground/5">
 
-        <p>{poll.questionText}</p>
-        <p>{poll.type === "SINGLE" ? "単一選択" : "複数選択"}/回答数{poll.totalResponses}件</p>
+        <div className="mb-3 flex items-start justify-between gap-3">
+            <div className="min-w-0 space-y-1.5">
+                <span className="inline-flex w-fit items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">投票</span>
+                <p className="text-[15px] font-semibold leading-snug">{poll.questionText}</p>
+                <p className="text-xs text-muted-foreground">{poll.type === "SINGLE" ? "単一選択" : "複数選択"} / 回答数 {poll.totalResponses} 件</p>
+            </div>
 
-        <PollStatusButton
-            pollId={poll.id}
-            status={poll.status}
-            load={onChanged}
-        />
+            <div className="shrink-0">
+                <PollStatusButton
+                    pollId={poll.id}
+                    status={poll.status}
+                    load={onChanged}
+                />
+            </div>
+        </div>
 
         <PollResultChart
             poll={poll}
         />
-      
+
     </div>
     );
 }
