@@ -1,6 +1,8 @@
 package com.liveqa.client;
 
 import java.net.URI;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -29,6 +31,7 @@ import com.liveqa.exception.BusinessException;
 public class KeycloakAdminRestClient implements KeycloakAdminClient {
 
     private static final String FAIL_MESSAGE = "ユーザー発行に失敗しました";
+    private static final Duration EXPIRY_SKEW = Duration.ofSeconds(10);
 
     private final RestClient restClient;
     private final String realm;
@@ -36,6 +39,9 @@ public class KeycloakAdminRestClient implements KeycloakAdminClient {
     private final String adminPassword;
     private final String actionsClientId;
     private final String actionsRedirectUri;
+    private final Object adminTokenLock = new Object();
+    private String cachedAdminToken;
+    private Instant cachedAdminTokenExpiresAt;
 
     public KeycloakAdminRestClient(
             @Value("${app.keycloak.admin.base-url}") String baseUrl,
@@ -158,10 +164,29 @@ public class KeycloakAdminRestClient implements KeycloakAdminClient {
 
     /**
      * master の admin-cli で管理者トークンを交換するメソッド
-     * 主催者ログイン（live-qa-app）とは別の鍵
+     * 有効期限内なら同じ Bearer を使う。SESSION / Redis には載せない
      * @return Bearer に載せる access_token
      */
     private String adminAccessToken() {
+        final Instant now = Instant.now();
+        synchronized (adminTokenLock) {
+            if (cachedAdminToken != null
+                    && cachedAdminTokenExpiresAt != null
+                    && now.isBefore(cachedAdminTokenExpiresAt)) {
+                return cachedAdminToken;
+            }
+            final CachedAdminToken fetched = fetchAdminToken();
+            this.cachedAdminToken = fetched.accessToken();
+            this.cachedAdminTokenExpiresAt = fetched.expiresAt();
+            return this.cachedAdminToken;
+        }
+    }
+
+    /**
+     * password grant で access_token を交換し、期限を復元するメソッド
+     * @return キャッシュ用のトークンと期限
+     */
+    private CachedAdminToken fetchAdminToken() {
         final MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
         form.add("grant_type", "password");
         form.add("client_id", "admin-cli");
@@ -179,7 +204,13 @@ public class KeycloakAdminRestClient implements KeycloakAdminClient {
         if (token == null || token.accessToken() == null || token.accessToken().isBlank()) {
             throw badGateway();
         }
-        return token.accessToken();
+        final int expiresInSeconds = token.expiresIn() == null || token.expiresIn() <= 0
+                ? 60
+                : token.expiresIn();
+        final Instant expiresAt = Instant.now()
+                .plusSeconds(expiresInSeconds)
+                .minus(EXPIRY_SKEW);
+        return new CachedAdminToken(token.accessToken(), expiresAt);
     }
 
     /**
@@ -215,7 +246,15 @@ public class KeycloakAdminRestClient implements KeycloakAdminClient {
      * トークン応答の必要な項目だけ。他の JSON は無視する
      */
     @JsonIgnoreProperties(ignoreUnknown = true)
-    private record TokenResponse(@JsonProperty("access_token") String accessToken) {
+    private record TokenResponse(
+            @JsonProperty("access_token") String accessToken,
+            @JsonProperty("expires_in") Integer expiresIn) {
+    }
+
+    /**
+     * 使い回す管理者トークンと、捨てる時刻
+     */
+    private record CachedAdminToken(String accessToken, Instant expiresAt) {
     }
 
     /**

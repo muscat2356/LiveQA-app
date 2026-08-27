@@ -215,7 +215,7 @@ interface は契約（3メソッド）。`KeycloakAdminRestClient` が HTTP の�
 
 ### Q. RestClient の1回分は何をしている？（#122）
 
-毎回だいたい同じ。管理者トークンを交換する → Bearer を付ける → Admin API を叩く。失敗は 409（重複）か 502（口が開かない）。Cookie / Redis / `users` は出ない。細かい HTTP と図は次の節。
+有効期限内なら同じ Bearer を付ける → Admin API を叩く。期限切れのときだけ master でトークンを交換する。失敗は 409（重複）か 502（口が開かない）。Cookie / Redis / `users` は出ない。細かい HTTP と図は次の節。
 
 ---
 
@@ -319,20 +319,21 @@ sequenceDiagram
 
   S->>K: createHostUser(normalized)
   K->>Master: POST /realms/master/protocol/openid-connect/token
-  Master-->>K: access_token
+  Master-->>K: access_token + expires_in
+  Note over K: Client 内に保持（Redis には載せない）
   K->>Live: POST /admin/realms/live-qa/users  Bearer
   Live-->>K: 201 Location .../users/{id}
   K-->>S: userId
 
   S->>K: assignHostRole(userId)
-  K->>Master: トークン交換（毎回）
+  Note over K: 期限内ならキャッシュを復元（再交換しない）
   K->>Live: GET /admin/realms/live-qa/roles/HOST
   Live-->>K: { id, name: HOST }
   K->>Live: POST .../users/{id}/role-mappings/realm
   Live-->>K: 204
 
   S->>K: sendUpdatePasswordEmail(userId)
-  K->>Master: トークン交換（毎回）
+  Note over K: 同じ Bearer
   K->>Live: PUT .../users/{id}/execute-actions-email
   Live->>SMTP: パスワード設定リンク
   SMTP-->>ブラウザ: メール
@@ -355,11 +356,11 @@ sequenceDiagram
 
   K->>Master: Content-Type application/x-www-form-urlencoded
   Note right of K: grant_type=password<br/>client_id=admin-cli<br/>username=KEYCLOAK_ADMIN<br/>password=KEYCLOAK_ADMIN_PASSWORD
-  Master-->>K: { "access_token": "eyJ...", ... }
-  Note over K: TokenResponse は access_token だけ復元<br/>他の JSON は @JsonIgnoreProperties で無視
+  Master-->>K: { "access_token": "eyJ...", "expires_in": 60, ... }
+  Note over K: TokenResponse は access_token と expires_in を復元<br/>他の JSON は @JsonIgnoreProperties で無視<br/>期限の 10 秒前まで Client 内で使う
 ```
 
-毎回 `adminAccessToken()` を呼ぶ（User 作成・ロール・メールの 3 回）。キャッシュは今は無い。失敗（接続拒否・401・空トークン）は全部 **502**。Keycloak の生エラーはクライアントに出さない。
+1登録の 3手（HTTP は最大4本）で同じ Bearer を使う。`expires_in` の少し前まで Client 内に保持する。Cookie / Redis / `users` には載せない。期限切れ後の次の登録で再交換する。失敗（接続拒否・401・空トークン）は全部 **502**。Keycloak の生エラーはクライアントに出さない。
 
 Bearer の載せ方:
 
@@ -511,11 +512,11 @@ flowchart LR
 ### 11. 【EJ】
 
 ```text
-【EJ】公開面最小化 … Service は HTTP を知らない。契約は 3 メソッド
+【EJ】公開面最小化 … Service は HTTP を知らない。トークンキャッシュも Client の private
 【EJ】依存性注入 … Controller / Service / RestClient はコンストラクタ（設定は @Value）
-【EJ】不変性 … HostRegisterRequest / TokenResponse / RealmRole は record
+【EJ】不変性 … HostRegisterRequest / TokenResponse / RealmRole / CachedAdminToken は record
 【EJ】例外 … 409 と 502 は BusinessException。Keycloak の本文は漏らさない
-【EJ】あえて外す … Admin トークンは毎回交換（キャッシュ無し）。Entity は登録では作らない
+【EJ】あえて外す … Redis には載せない。401 時の再交換リトライと Clock 注入は今はやらない。Entity は登録では作らない
 【EJ】あえて外す … interface は単一実装でもテスト用の契約として残す
 ```
 
