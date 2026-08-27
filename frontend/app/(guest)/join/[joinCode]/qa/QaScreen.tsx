@@ -2,7 +2,7 @@
 
 import { JoinEvent } from "@/types/event/event";
 import { useState } from "react";
-import type { Sort } from "@/types/question/question";
+import type { QuestionFilter, Sort } from "@/types/question/question";
 import { Button } from "@/components/ui/button";
 import useQuestions from "../../../../../components/question/useGuestQuestions";
 import { StatusBadge } from "@/components/event/statusBadge";
@@ -11,12 +11,14 @@ import VoteButton from "./VoteButton";
 import SortTab from "../../../../../components/question/SortTab";
 import usePoll from "@/components/poll/usePoll";
 import GuestPollCard from "@/components/guest/GuestPollCard";
+import StatusTab from "@/components/question/StatusTab";
 
 
 export default function QaScreen({ event, nickname }: { event: JoinEvent; nickname: string}) {
 
     const [sort, setSort] = useState<Sort>("popular");
-    const {questions, loading, error, guestLoad, applyVote} = useQuestions(event.eventId, sort);
+    const [ filter, setFilter ] = useState<QuestionFilter>("ALL");
+    const {questions, loading, error, guestLoad, applyVote} = useQuestions(event.eventId, sort, filter);
     const { poll: polls, pending: pollPending, error: pollError, load: pollLoad } = usePoll(event.eventId);
 
     return(
@@ -33,6 +35,11 @@ export default function QaScreen({ event, nickname }: { event: JoinEvent; nickna
 
             <div className="mb-4">
                 <SortTab value={sort} onChange={setSort} />
+                <StatusTab
+                    value={filter}
+                    onChange={setFilter}
+                    isHost={false}
+                />
             </div>
 
             {pollPending && polls.length === 0 && (

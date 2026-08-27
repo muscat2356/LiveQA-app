@@ -1,10 +1,10 @@
 "use client"
 
-import { getGuestSession } from "@/lib/api/guestSession";
-import { QuestionResponse, Sort } from "@/types/question/question";
+import { fetchGetQuestion } from "@/lib/api/questionApi";
+import { QuestionFilter, QuestionResponse, Sort } from "@/types/question/question";
 import { useEffect, useState } from "react";
 
-export default function useGuestQuestions(eventId: number, sort: Sort){
+export default function useHostQuestions(eventId: number, sort: Sort, filter: QuestionFilter){
     
     const [questions, setQuestions] = useState<QuestionResponse[]>([]);
     const [loading, setLoading] = useState(true);
@@ -22,17 +22,7 @@ export default function useGuestQuestions(eventId: number, sort: Sort){
         setError(null);
 
         try{
-            const res = await fetch(`/api/events/${eventId}/questions?sort=${sort}`,{
-             credentials: "same-origin", 
-             headers: { Accept: "application/json" }
-            });
-
-            if(!res.ok){
-                const problem = await res.json().catch(() => null);
-                throw new Error(problem?.message ?? "エラーが発生しました");
-            }
-
-            const data: QuestionResponse[] = await res.json();
+            const data: QuestionResponse[] = await fetchGetQuestion(eventId, sort, filter);
             setQuestions(data);
         }catch (e){
             setError(e instanceof Error ? e.message : "エラーが発生しました");
@@ -43,7 +33,7 @@ export default function useGuestQuestions(eventId: number, sort: Sort){
 
     useEffect(() => {
         hostLoad();
-    }, [eventId, sort]);
+    }, [eventId, sort, filter]);
 
     return { questions, loading, error, hostLoad, applyVote};
 }
