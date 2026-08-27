@@ -11,7 +11,7 @@ LibraShare 相乗りはやめる。**このアプリ用の薄い realm だけを
 | realm | `live-qa` |
 | client | `live-qa-app`（confidential、secret は今と同じ `live-qa-dev-secret`） |
 | realm role | `HOST` のみ（参加者は Keycloak に作らない） |
-| 自己登録 | Keycloak UI は `registrationAllowed: false`。アプリのメール登録は `POST /api/auth/register`（未。[#122](https://github.com/muscat2356/live-qa-app/issues/122)） |
+| 自己登録 | Keycloak UI は `registrationAllowed: false`。アプリのメール登録は `POST /api/auth/register`（実装済み。[#122](https://github.com/muscat2356/live-qa-app/issues/122)。フロント入力欄は未） |
 | Keycloak | `http://localhost:8080` |
 | backend（ホスト起動） | `http://localhost:8081`（KC と 8080 が被る） |
 | 正の JSON | [`keycloak/live-qa-realm.json`](../../keycloak/live-qa-realm.json)（compose はこのファイルだけを import。旧 `Librashare-realm.json` はマウントしない） |

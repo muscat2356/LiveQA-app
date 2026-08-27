@@ -91,7 +91,7 @@ public class SecurityConfig {
                         "/swagger-ui/**",
                         "/swagger-ui.html"
                 ).permitAll()
-                .requestMatchers("/api/auth/guest").permitAll()
+                .requestMatchers("/api/auth/guest", "/api/auth/register").permitAll()
                 .requestMatchers("/api/events/*/questions").permitAll()
                 .requestMatchers("/api/events/*/polls").permitAll()
                 .requestMatchers("/api/polls/*/responses").permitAll()
@@ -119,7 +119,7 @@ public class SecurityConfig {
                 .csrfTokenRepository(csrfRepo)
                 .csrfTokenRequestHandler(csrfHandler)
                 // 発行専用。状態変更を伴わないので検証しない（Cookie は Handler が載せる）
-                .ignoringRequestMatchers("/api/auth/guest")
+                .ignoringRequestMatchers("/api/auth/guest", "/api/auth/register")
             )
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint(authenticationEntryPoint())

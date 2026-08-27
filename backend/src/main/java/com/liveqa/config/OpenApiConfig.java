@@ -55,7 +55,7 @@ public class OpenApiConfig {
 
                                 認証: Cookie `SESSION`（Keycloak OIDC → Spring Session + Redis）。
                                 状態変更（POST / PATCH / DELETE）はヘッダ `X-XSRF-TOKEN` が必要（Cookie `XSRF-TOKEN` と突合）。
-                                例外: `POST /api/auth/guest` は CSRF 検証しない（応答で `XSRF-TOKEN` が載る）。
+                                例外: `POST /api/auth/guest` と `POST /api/auth/register` は CSRF 検証しない（応答で `XSRF-TOKEN` が載る）。
 
                                 南京錠は Cookie が要る operation だけ（公開 GET / guest 発行には付かない）。
 
