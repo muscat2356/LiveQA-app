@@ -89,6 +89,11 @@ export default function Home() {
                   参加コードを持っている
                   <RiArrowRightLine className="size-4" />
                 </Button>
+                <Button
+                  render={<Link href="/register" />}
+                >
+                  はじめてHOSTとして開催する方
+                </Button>
               </CardContent>
             </Card>
             <LogoutToast />
