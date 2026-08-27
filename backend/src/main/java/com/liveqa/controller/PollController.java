@@ -20,6 +20,8 @@ import com.liveqa.dto.request.PollRespondRequest;
 import com.liveqa.dto.request.PollStatusRequest;
 import com.liveqa.dto.response.PollResponse;
 import com.liveqa.service.PollService;
+import com.liveqa.websocket.PollEventPublisher;
+import com.liveqa.websocket.PollEventType;
 
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
@@ -39,9 +41,14 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 public class PollController {
 
     private final PollService pollService;
+    private final PollEventPublisher pollEventPublisher;
 
-    public PollController(PollService pollService) {
+    public PollController(
+            PollService pollService,
+            PollEventPublisher pollEventPublisher
+    ) {
         this.pollService = pollService;
+        this.pollEventPublisher = pollEventPublisher;
     }
 
     /**
@@ -131,11 +138,14 @@ public class PollController {
             HttpSession session,
             @Valid @RequestBody PollRespondRequest request
     ) {
-        return ResponseEntity.ok(
-                pollService.respond(
-                        pollId,
-                        request,
-                        VoterKeySources.form(oidc, session)));
+        final PollResponse response = pollService.respond(
+                pollId,
+                request,
+                VoterKeySources.form(oidc, session));
+
+        pollEventPublisher.publish(PollEventType.POLL_UPDATED, response);
+
+        return ResponseEntity.ok(response);
     }
 
     /**
