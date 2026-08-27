@@ -179,6 +179,8 @@ NEXT_PUBLIC_URL=http://localhost:3000
 
 バックの `GET /api/events/{id}` は一覧と同じ Cookie SSR。ポール GET の Lazy とは別件（詳細は polls を呼ばない）。
 
+Issue: [#114](https://github.com/muscat2356/live-qa-app/issues/114)（front。env 追加 / headers フォールバック / error.tsx）。
+
 ## Q. `findByJoinCode` の `@Transactional(readOnly = true)` は要るか？（#94）
 
 **必須ではない。** レビュー指摘どおり、ここは参照1本（`findByJoinCodeAndStatusNot`）で、DTO は `id` / `title` / `status` だけ。`host`（LAZY）は触らない。

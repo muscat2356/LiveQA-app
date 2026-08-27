@@ -8,6 +8,8 @@
 flowchart TD
     subgraph host [主催者フロー]
         Login["ログイン導線"] -->|Keycloakへリダイレクト| KC[Keycloak SSO]
+        Register["HOST メール登録"] -->|POST /api/auth/register| API[Spring]
+        API -->|Admin API + 設定メール| KC
         KC -->|コールバック→セッション発行| Dash[主催者ダッシュボード]
         Dash --> Create[イベント作成画面]
         Create --> Manage["イベント運営画面 (質問+参加URL+開閉)"]
@@ -26,8 +28,10 @@ flowchart TD
 ```mermaid
 flowchart TD
     Start([アクセス]) --> Auth{ログイン済み?}
-    Auth -->|No| Login["ログイン導線 (主催者としてログイン)"]
-    Login -->|GET /oauth2/authorization/keycloak| KC[Keycloak SSO ログイン]
+    Auth -->|No| Home["トップ（ログイン / 登録）"]
+    Home -->|GET /oauth2/authorization/keycloak| KC[Keycloak SSO ログイン]
+    Home -->|メール送信 POST /api/auth/register| Mail[パスワード設定メール]
+    Mail --> KC
     KC -->|"コールバック /login/oauth2/code/keycloak → セッション発行"| Dash[主催者ダッシュボード]
     Auth -->|Yes| Dash
     Dash -->|新規作成| Create[イベント作成画面]
@@ -40,7 +44,7 @@ flowchart TD
     Manage -->|"ルーム開始/締切/再開 (DRAFT→OPEN⇔CLOSED)"| Manage
 ```
 
-- ログイン導線: 未ログイン時のみ表示。「主催者としてログイン」でKeycloak(SSO)へリダイレクト。専用ログインフォームは持たない
+- ログイン導線: 未ログイン時のみ表示。「主催者としてログイン」でKeycloak(SSO)へリダイレクト。**パスワード入力フォームは持たない**（メールだけの HOST 登録は `POST /api/auth/register`）
 - コールバック後にCookieセッションが発行され、以降はセッションで認証
 - 主催者ダッシュボード: 自分のイベント一覧（`GET /api/events`）。名称変更（`PATCH /api/events/{id}`）と削除（`DELETE /api/events/{id}`）もここまたは運営画面から行う
 - イベント作成画面: タイトル入力 → `POST /api/events` → joinCode発行（`DRAFT`）→ 運営画面へ

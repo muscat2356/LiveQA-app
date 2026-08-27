@@ -10,7 +10,7 @@
 
 ## Member A — Next.js（フロント）
 
-- Next.js全画面（イベント一覧 / 詳細 / 参加ページ / 質問投稿 / ログイン導線・SSR）
+- Next.js全画面（イベント一覧 / 詳細 / 参加ページ / 質問投稿 / ログイン導線・HOST メール登録 UI・SSR）
 - ライブ質問リストUI（人気順のリアルタイム更新、STOMPクライアント受信）
 - 主催者ダッシュボード（回答済み / アーカイブ操作のUI、ルーム開始/締切）
 - TanStack Query、Tailwind CSS + shadcn/ui、Zod
@@ -21,7 +21,7 @@
 - Spring Security + Spring Session(Redis) + Cookieセッション / RBAC / CSRF
 - KeycloakのOIDCログイン連携（`oauth2Login`）→ ログイン成功後にセッションへ橋渡し（LibraShareのSSO資産を再利用）
 - OIDCクレーム(`sub`)からのユーザーJITプロビジョニング、RP-initiated logout
-- 主催者ログイン、参加者の匿名セッション（1人1票の識別キー）
+- 主催者ログイン、**HOST メール登録**（Admin API で Keycloak ユーザーを作り、パスワード設定リンクを発行。パスワードは Spring が持たない）、参加者の匿名セッション（1人1票の識別キー）
 - イベント・質問・いいねの主要CRUD API、ルーム状態遷移
 - QueryDSLによる軽めの動的クエリ（質問の並び替え / フィルタ）
 - 質問ステータス変更API（回答済み / アーカイブ）

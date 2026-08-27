@@ -2,21 +2,25 @@
 
 F-09 寄りの作業メモ。認証の学習は [f01-auth.md](f01-auth.md)。Compose の正はリポジトリルート。
 
-## Keycloak（LibraShare realm 相乗り）
+## Keycloak（専用 realm `live-qa`）
 
-専用 realm は作らない。**同じ realm に client `live-qa-app` を足す**（SSO・資産再利用）。
+LibraShare 相乗りはやめる。**このアプリ用の薄い realm だけを import**する。名簿・社員ロール・`back-admin` は載せない。SMTP のパスワードは JSON に書かない（Admin で入れる）。
 
 | 項目 | 値 |
 |------|-----|
-| realm | `LibraShare` |
-| client | `live-qa-app`（confidential） |
+| realm | `live-qa` |
+| client | `live-qa-app`（confidential、secret は今と同じ `live-qa-dev-secret`） |
+| realm role | `HOST` のみ（参加者は Keycloak に作らない） |
+| 自己登録 | Keycloak UI は `registrationAllowed: false`。アプリのメール登録は `POST /api/auth/register`（未。[#122](https://github.com/muscat2356/live-qa-app/issues/122)） |
 | Keycloak | `http://localhost:8080` |
 | backend（ホスト起動） | `http://localhost:8081`（KC と 8080 が被る） |
-| 正の JSON | [`keycloak/Librashare-realm.json`](../../keycloak/Librashare-realm.json) |
+| 正の JSON | [`keycloak/live-qa-realm.json`](../../keycloak/live-qa-realm.json)（compose はこのファイルだけを import。旧 `Librashare-realm.json` はマウントしない） |
 
-追加したもの: client、realm role `HOST`、`admin_test@example.com` に HOST、`roles` mapper で **ID token に realm roles**。
+`--import-realm` は **初回のみ**。既存ボリュームがあるときは JSON を置いても入らない。差し替え時は `docker compose down -v`（Postgres のアプリデータも消える）。
 
-`--import-realm` は **初回のみ**。既存ボリュームがあるときは JSON 変更だけでは入らない。
+IdToken の `realm_access.roles` は **client `live-qa-app` の protocolMapper** で載せる（Client scopes の `roles` を触らなくても 403 を避ける）。確認は Admin → Clients → live-qa-app → Client scopes タブではなく Dedicated mappers。
+
+最初の HOST ユーザーは JSON に含めない。Admin で 1 人作るか、登録 API のあと。
 
 ### URL が 2 種類ある理由
 
@@ -31,7 +35,18 @@ F-09 寄りの作業メモ。認証の学習は [f01-auth.md](f01-auth.md)。Com
 
 `KC_HOSTNAME` はフル URL。healthcheck は `"status": "UP"`（大文字）。
 
-IdToken に `realm_access` が無い → Client scopes（Clients の中ではない）→ `roles` → `realm roles` → Add to ID token ON。403 の定番。
+### ローカル差し替え（この順）
+
+1. `keycloak/live-qa-realm.json` が入っている。compose は **このファイルだけ** を import する（旧 `Librashare-realm.json` はフォルダに残っていても載らない）。不要なら手元で `.json.old` にリネームしてよい。
+2. `application.yml` の `issuer-uri` と `application-docker.yml` の 4 URI は `realms/live-qa`。`compose.yml` のコメントも専用 realm。
+3. `docker compose down -v` → `docker compose up -d --build`（volume 作り直し。イベントデータは消える）。まだならここから。
+4. Admin `http://localhost:8080` → realm `live-qa` があること。Users で HOST 1 人を作る（Email as username、role `HOST`、パスワード設定）。
+5. トップのログイン → `/dashboard` → `GET /api/me` が `role: HOST`。
+6. Realm settings → Email で SMTP → Test / Send test email。JSON には書かない。
+
+デプロイでは JSON・client・role はそのまま。変えるのは `KC_HOSTNAME`、redirect URI に `APP_HOST`、yml のホスト部分、Cookie `Secure`。
+
+IdToken に `realm_access` が無い → Clients → `live-qa-app` → Dedicated mappers の `realm roles` で Add to ID token ON。403 の定番。Client scopes の `roles` を触る必要は、client mapper が入っていれば無い。
 
 ### Q. OCI 無料枠で Keycloak + Redis ごと Compose、SSO は通る？
 

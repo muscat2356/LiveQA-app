@@ -3,7 +3,7 @@
 scope: Keycloak OIDC → Cookie Session（Redis）→ `/api/me` / logout / CSRF / JIT。  
 正: [openapi-notes](../api/openapi-notes.md) / [architecture](../architecture.md)。  
 深いカタログ（Filter 列・型）: [05-security-config.md](05-security-config.md) / [06-me-controller.md](06-me-controller.md) / [26-securityconfig-data-flow.md](26-securityconfig-data-flow.md)。  
-Keycloak realm 相乗り・URL 2種: [ops.md](ops.md)。
+Keycloak realm 専用 `live-qa`・URL 2種: [ops.md](ops.md)。
 
 ## 到達点
 
@@ -11,6 +11,7 @@ Keycloak realm 相乗り・URL 2種: [ops.md](ops.md)。
 |------|------|
 | oauth2Login / mapper 差し込み / CSRF / Session+Redis | あり。guest POST は ignore（#104 / [f04](f04-guest.md)） |
 | JIT（`provisionHost`） | あり |
+| `POST /api/auth/register`（HOST メール発行） | **未**（[#122](https://github.com/muscat2356/live-qa-app/issues/122)。契約は [openapi-notes](../api/openapi-notes.md)。ローカル SMTP・専用 realm は済み） |
 | `GET /api/me`（ローカル PK + `currentHost` + `@PreAuthorize HOST`） | あり |
 | `POST /api/auth/logout` | あり |
 | ログイン後 → フロント `/dashboard` | あり（`successHandler`） |
@@ -96,6 +97,67 @@ Spring 標準 `OidcUserService` への**委譲**。トークン検証・クレ�
 ## Q. 応答の `role: UNKNOWN`？
 
 現行は DB `users.role` を返す。ソースに `"UNKNOWN"` は無い。旧実装（authorities から探す）の名残。認可不足はだいたい **403**。IdToken に `realm_access` が無いと mapper が `ROLE_HOST` を足せない → Client scopes → `roles` → `realm roles` → **Add to ID token ON**。
+
+## Q. 未ログインで `/dashboard` を直打ちすると `/login` で止まる？（#115）
+
+**Next が存在しない `/login` に 302 している。** 一覧 SSR が `GET /api/events` の 401 で `redirect("/login")`。フロントにそのページは無い。正の導線はトップ `/` の Keycloak ボタン（`/oauth2/authorization/keycloak`）。専用ログインフォームは持たない。
+
+詳細・Q&A は `/login` に行かず 401 を throw する（別経路）。改善は 401 なら `redirect("/")` に揃える。Issue: [#115](https://github.com/muscat2356/live-qa-app/issues/115)。
+
+## Q. メールだけで主催者登録するか？（方針・2026-08-27）
+
+**やる。Keycloak にユーザーを作り、Spring にパスワードを持たない。** scope の「自前の登録画面は持たない」は「Spring が会員マスタ＋パスワード検証を持たない」の意味。メール入力はフロント（A）、発行は `POST /api/auth/register`（B / Admin API）。
+
+一次パスワードを `temporary: true` で入れる方式は採らない。execute-actions-email（`UPDATE_PASSWORD`）でリンクだけ送る。
+
+realm `live-qa` は `registrationAllowed: false`。Keycloak の公開自己登録は使わない。参加者は Keycloak に作らない。公開 API なので、メールを知っている人は HOST になれる（招待コードは今は外す）。
+
+登録は HOST のみ。ローカルで専用 realm `live-qa` を通してから OCI に載せる。登録 API は [#122](https://github.com/muscat2356/live-qa-app/issues/122)。
+
+JSON・yml・volume は [ops.md](ops.md) の「専用 realm `live-qa`」。compose は `live-qa-realm.json` だけを import する。
+
+### Q. デプロイ手順の「2. SMTP を入れて Admin からテストメール」とは？
+
+**Keycloak が郵便を出せるようにする作業。アプリのコードではない。** パスワード設定リンクは Spring ではなく Keycloak が送る。送り先の郵便局（SMTP）が空だと、登録 API が成功してもメールは届かない。
+
+いまの import JSON は `"smtpServer" : { }`（空）。Admin の Realm settings → Email にホスト・ポート・From・認証を書く。Save のあと **Test connection** / **Send test email** で、自分のアドレスに1通来れば 2 は完了。
+
+ローカルと OCI で同じ口（Gmail など）を使うと、載せたあとに郵便局だけ変えなくて済む。Mailhog は受け専用の素振り。クラウドが 25 番を塞いでいることが多いので **587（STARTTLS）** を使う。
+
+### Q. Keycloak の SMTP は画面のどこに何を入れる？（2026-08-27）
+
+**JSON には書かない。** Admin の Realm settings → Email。保存先は Keycloak の DB（volume）。`docker compose down -v` すると消えるので、作り直したら入れ直す。
+
+1. `http://localhost:8080` → 左上 realm を **`live-qa`**
+2. **Realm settings → Email**
+3. 保存 → **Test connection** → **Send test email**（自分のアドレス）
+
+Gmail の例（ローカル＝本番で同じ口にするとき）:
+
+| 欄 | 値 |
+|----|-----|
+| From | その Gmail アドレス（From が違うと拒否されやすい） |
+| Host | `smtp.gmail.com` |
+| Port | `587` |
+| Enable StartTLS | ON |
+| Enable Authentication | ON |
+| Username | 同じ Gmail アドレス |
+| Password | **アプリパスワード**（アカウントのログインパスワードではない） |
+
+アプリパスワード: Google アカウント → セキュリティ → 2段階認証が ON → 「アプリ パスワード」。16 文字をスペース無しで貼る。
+
+完了の合図: テストメールが 1 通、受信箱（または迷惑メール）に来る。
+
+よくある失敗:
+
+| 症状 | 見ること |
+|------|----------|
+| Authentication failed | 普通のパスワードを入れている。アプリパスワードにする |
+| Could not convert socket to TLS | 587 なのに SSL 側を ON にしている。StartTLS だけ |
+| Connection refused / timeout | 25 番を使っている。587 にする。Keycloak **コンテナ**から外へ出られるか |
+| テストは成功、登録メールが来ない | From 未設定。ユーザーの Email が空 |
+
+Mailhog で受けるだけなら Host は compose のサービス名（例 `mailhog`）、Port `1025`、認証オフ。いまの `compose.yml` には Mailhog は無い。外に届く口が要るなら Gmail 側で足りる。
 
 ## 疎通（SESSION。Bearer では `/api/me` は通らない）
 

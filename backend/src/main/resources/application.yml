@@ -62,4 +62,4 @@ spring:
       client:
         provider:
           keycloak:
-            issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8080/realms/LibraShare}
+            issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8080/realms/live-qa}
