@@ -24,6 +24,8 @@ export default function statusChangeDialog({
 
     const nextStatus = nextStatusMap[status];
     const actionLabel = actionLabelMap[status];
+    // 操作の意味に応じてトリガーの色を出し分け（公開=プライマリ / 終了=デンジャー / 再開=ニュートラル）
+    const triggerVariant = status === "OPEN" ? "destructive" : status === "DRAFT" ? "default" : "outline";
 
     async function handleConfirm(){
             setPending(true)
@@ -58,7 +60,7 @@ export default function statusChangeDialog({
 
     return(
         <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger render={<Button variant="outline" size="sm"/>}>
+            <DialogTrigger render={<Button variant={triggerVariant} size="sm"/>}>
                 {actionLabel}
             </DialogTrigger>
             <DialogContent>

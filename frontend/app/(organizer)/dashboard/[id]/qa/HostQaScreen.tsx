@@ -37,7 +37,7 @@ export default  function HostQaScreen({
                 </Button>
             </header>
 
-            <div className="mb-4">
+            <div className="mb-4 flex flex-wrap items-center gap-2">
                 <SortTab
                     value={sort}
                     onChange={setSort}

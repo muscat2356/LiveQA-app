@@ -13,18 +13,21 @@ export default function PollTypeSelect({
 }){
 
     return(
-    <div>
+    <div className="space-y-1.5">
         <Label>回答方式</Label>
 
+        <div className="flex gap-2">
             {(["SINGLE", "MULTI"] as const).map((t) => (
                 <Button
                     key={t}
                     type="button"
                     variant={value === t ? "default" : "outline"}
                     onClick={() => onChange(t)}
+                    className="flex-1"
                 >
                 {t ==="SINGLE" ? "単一選択": "複数選択"}
                 </Button>
             ))}
+        </div>
     </div>
     )}
