@@ -45,7 +45,7 @@ export default  function HostQaScreen({
                 <StatusTab
                     value={filter}
                     onChange={setFilter}
-                    isHost={false}
+                    isHost={true}
                 />
             </div>
 
