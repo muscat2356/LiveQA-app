@@ -90,7 +90,10 @@ export default function Home() {
                   <RiArrowRightLine className="size-4" />
                 </Button>
                 <Button
+                  variant="ghost"
+                  nativeButton={false}
                   render={<Link href="/register" />}
+                  className="h-11 w-full text-sm text-muted-foreground"
                 >
                   はじめてHOSTとして開催する方
                 </Button>
