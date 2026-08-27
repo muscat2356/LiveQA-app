@@ -2,7 +2,8 @@
 
 import { getGuestSession } from "@/lib/api/guestSession";
 import { fetchGetPoll } from "@/lib/api/pollApi";
-import { PollDto } from "@/types/poll/poll";
+import { PollDto, PollEvent } from "@/types/poll/poll";
+import { Client } from "@stomp/stompjs";
 import { useCallback, useEffect, useState } from "react";
 
 export default function usePoll(id: number) {
@@ -27,6 +28,36 @@ export default function usePoll(id: number) {
     }, [id]);
 
     useEffect(() => { load(); }, [load]);
+
+    useEffect(() => {
+        const client = new Client({
+            brokerURL: "ws://localhost:8081/ws",
+            reconnectDelay: 5000,
+
+            onConnect: () => {
+                client.subscribe(
+                    `/topic/events/${id}/polls`,
+                    (message) => {
+                        const pollEvent: PollEvent = JSON.parse(message.body);
+
+                        setPoll(previousPolls =>
+                            previousPolls.map(previousPoll =>
+                                previousPoll.id === pollEvent.poll.id
+                                    ? { ...previousPoll, ...pollEvent.poll }
+                                    : previousPoll
+                            )
+                        );
+                    }
+                );
+            },
+        });
+
+        client.activate();
+
+        return () => {
+            client.deactivate();
+        };
+    }, [id]);
 
     return { poll, pending, error, load };
 }
