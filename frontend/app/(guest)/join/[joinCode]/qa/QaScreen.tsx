@@ -13,6 +13,8 @@ import usePoll from "@/components/poll/usePoll";
 import GuestPollCard from "@/components/guest/GuestPollCard";
 import StatusTab from "@/components/question/StatusTab";
 import { QuestionStatusBadge } from "@/components/question/questionStatusBadge";
+import { Avatar } from "@/components/common/Avatar";
+import relativeTime from "@/lib/utils/relativeTime";
 
 
 export default function QaScreen({ event, nickname }: { event: JoinEvent; nickname: string}) {
@@ -67,11 +69,18 @@ export default function QaScreen({ event, nickname }: { event: JoinEvent; nickna
 
             <ul className="space-y-3">
                 {questions.map((q) => (
-                    <li key={q.id} className="rounded-2xl border bg-card p-4 shadow-sm ring-1 ring-foreground/5">
-                        <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">{q.body}</p>
-                        <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-                            <span>{q.displayName ?? "匿名"}</span>
-                            <span aria-hidden className="text-muted-foreground/40">·</span>
+                    <li key={q.id} className="flex gap-3 rounded-2xl border bg-card p-4 shadow-sm ring-1 ring-foreground/5">
+                        <div className="min-w-0 flex-1">
+                            <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">{q.body}</p>
+                            <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+                                <Avatar name={q.displayName ?? "匿名"} />
+                                <span>{q.displayName ?? "匿名"}</span>
+                                <span aria-hidden className="text-muted-foreground/40">·</span>
+                                <span>{relativeTime(q.createdAt)}</span>
+                                <QuestionStatusBadge status={q.status} />
+                            </div>
+                        </div>
+                        <div className="shrink-0">
                             <VoteButton
                                 questionId={q.id}
                                 upvoteCount={q.upvoteCount}
@@ -79,7 +88,6 @@ export default function QaScreen({ event, nickname }: { event: JoinEvent; nickna
                                 applyVote={applyVote}
                                 onSync={guestLoad}
                             />
-                            <QuestionStatusBadge status={q.status} />
                         </div>
                     </li>
                 ))}

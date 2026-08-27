@@ -3,6 +3,7 @@
 import { readCookie } from "@/components/cookie";
 import { Button } from "@/components/ui/button";
 import { VoteResponse } from "@/types/question/question";
+import { RiHeart3Fill, RiHeart3Line } from "@remixicon/react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -64,16 +65,17 @@ export default function VoteButton({
         }
     }
     return(
-        <div>
-            <Button
-                onClick={handleVote}
-                disabled={pending}
-                size="sm"
-                variant={votedByMe ? "default" : "outline"}
-                className="gap-1 tabular-nums"
-            >
-                {votedByMe ? "♥" : "♡"} {upvoteCount}
-            </Button>
-        </div>
+        <Button
+            onClick={handleVote}
+            disabled={pending}
+            variant={votedByMe ? "default" : "outline"}
+            aria-pressed={votedByMe}
+            aria-label={votedByMe ? "いいねを取り消す" : "いいね"}
+            className="flex h-auto w-16 flex-col items-center justify-center gap-0.5 rounded-xl px-0 py-2.5 tabular-nums"
+        >
+            {votedByMe ? <RiHeart3Fill className="size-5" /> : <RiHeart3Line className="size-5" />}
+            <span className="text-lg font-bold leading-none">{upvoteCount}</span>
+            <span className="text-[10px] font-normal">いいね</span>
+        </Button>
     );
 }
