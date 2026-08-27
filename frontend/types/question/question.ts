@@ -19,6 +19,8 @@ export type QuestionStatus = "OPEN" | "ANSWERED" | "ARCHIVED";
 
 export type Sort = "popular" | "newest";
 
+export type QuestionFilter = "ALL" | QuestionStatus;
+
 export const nextQuestionStatusMap: Record<QuestionStatus, readonly QuestionStatus[]> = {
   OPEN: ["ANSWERED", "ARCHIVED"],
   ANSWERED: ["ARCHIVED"],
@@ -39,6 +41,13 @@ export const questionStatusLabel: Record<QuestionStatus, string > = {
     OPEN: "未回答",
     ANSWERED: "回答済み",
     ARCHIVED: "非表示",
+}
+
+export const questionFilterLabel: Record<QuestionFilter, string> = {
+    ALL: "すべて",
+    OPEN: "未回答",
+    ANSWERED: "回答済み",
+    ARCHIVED: "非表示"
 }
 
 
