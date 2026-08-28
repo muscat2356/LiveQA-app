@@ -43,6 +43,27 @@ services:
     ports:
       - "3000:3000"
 
+  caddy:
+    image: caddy:2
+    profiles: ["production"]
+    environment:
+      APP_HOST: ${APP_HOST:-localhost}
+      AUTH_HOST: ${AUTH_HOST:-auth.localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      frontend:
+        condition: service_started
+      backend:
+        condition: service_started
+      keycloak:
+        condition: service_healthy
+
   postgres:
     image: postgres:16
     environment:
@@ -126,3 +147,5 @@ services:
 volumes:
   postgres_data:
   keycloak_realm_import:
+  caddy_data:
+  caddy_config:
