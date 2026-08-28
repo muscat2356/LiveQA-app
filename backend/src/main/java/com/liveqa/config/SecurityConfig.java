@@ -59,6 +59,7 @@ public class SecurityConfig {
     private final ClientRegistrationRepository clientRegistrationRepository;
     private final String loginSuccessRedirectUri;
     private final String postLogoutRedirectUri;
+    private final String endSessionUri;
     private final List<String> corsAllowedOrigins;
 
     public SecurityConfig(ObjectMapper objectMapper,
@@ -66,6 +67,7 @@ public class SecurityConfig {
                         ClientRegistrationRepository clientRegistrationRepository,
                         @Value("${app.login.success-redirect-uri}") String loginSuccessRedirectUri,
                         @Value("${app.logout.post-logout-redirect-uri}") String postLogoutRedirectUri,
+                        @Value("${app.logout.end-session-uri}") String endSessionUri,
                         @Value("${app.cors.allowed-origins}") List<String> corsAllowedOrigins
     ) {
         this.objectMapper = objectMapper;
@@ -73,6 +75,7 @@ public class SecurityConfig {
         this.clientRegistrationRepository = clientRegistrationRepository;
         this.loginSuccessRedirectUri = loginSuccessRedirectUri;
         this.postLogoutRedirectUri = postLogoutRedirectUri;
+        this.endSessionUri = endSessionUri;
         this.corsAllowedOrigins = corsAllowedOrigins;
     }
 
@@ -225,11 +228,14 @@ public class SecurityConfig {
     }
 
     private LogoutSuccessHandler oidcLogoutSuccessHandler() {
+        final ClientRegistrationRepository registrations =
+                new EndSessionClientRegistrationRepository(
+                        clientRegistrationRepository,
+                        endSessionUri);
         final OidcClientInitiatedLogoutSuccessHandler handler =
-            new OidcClientInitiatedLogoutSuccessHandler(clientRegistrationRepository);
-
-            handler.setPostLogoutRedirectUri(postLogoutRedirectUri);
-            return handler;
+                new OidcClientInitiatedLogoutSuccessHandler(registrations);
+        handler.setPostLogoutRedirectUri(postLogoutRedirectUri);
+        return handler;
     }
 
     @Bean

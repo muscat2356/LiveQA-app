@@ -1,6 +1,7 @@
 # Compose 内の backend 用（コンテナから Keycloak は hostname "keycloak"）
 # realm は live-qa（専用。LibraShare 相乗りはやめる）
 # ブラウザ向け認可 URL は localhost、トークン／JWK は Docker ネットワーク名を使う
+# issuer-uri は使わない。logout URL はブラウザ向け（app.logout.end-session-uri）
 
 spring:
   security:
@@ -16,6 +17,8 @@ spring:
             user-name-attribute: preferred_username
 
 app:
+  logout:
+    end-session-uri: ${KEYCLOAK_END_SESSION_URI:http://localhost:8080/realms/live-qa/protocol/openid-connect/logout}
   keycloak:
     admin:
       base-url: ${KEYCLOAK_ADMIN_BASE_URL:http://keycloak:8080}

@@ -10,6 +10,8 @@ app:
     success-redirect-uri: ${LOGIN_SUCCESS_REDIRECT_URI:http://localhost:3000/dashboard}
   logout:
     post-logout-redirect-uri: ${POST_LOGOUT_REDIRECT_URI:http://localhost:3000/}
+    # ブラウザが踏む Keycloak logout。docker は issuer-uri が無いので Handler が metadata に載せる
+    end-session-uri: ${KEYCLOAK_END_SESSION_URI:http://localhost:8080/realms/live-qa/protocol/openid-connect/logout}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
   keycloak:
