@@ -26,6 +26,7 @@ export default  function HostQaScreen({
     const { poll, pending: pollPending, error: pollError, load: pollLoad } = usePoll(event.id);
 
     return(
+        <div className="brand-wash min-h-[calc(100vh-4rem)]">
         <div className="app-container max-w-2xl py-6">
             <header className="mb-4 flex items-start justify-between gap-3">
                 <div className="min-w-0 space-y-2">
@@ -95,6 +96,7 @@ export default  function HostQaScreen({
                 ))}
             </ul>
             <PollCreateForm eventId={event.id} load={pollLoad} />
+        </div>
         </div>
     );
 }
