@@ -2,6 +2,7 @@
 
 import { getGuestSession } from "@/lib/api/guestSession";
 import { fetchGetPoll } from "@/lib/api/pollApi";
+import { getWebSocketBrokerUrl } from "@/lib/websocket";
 import { PollDto, PollEvent } from "@/types/poll/poll";
 import { Client } from "@stomp/stompjs";
 import { useCallback, useEffect, useState } from "react";
@@ -31,7 +32,7 @@ export default function usePoll(id: number) {
 
     useEffect(() => {
         const client = new Client({
-            brokerURL: "ws://localhost:8081/ws",
+            brokerURL: getWebSocketBrokerUrl(),
             reconnectDelay: 5000,
 
             onConnect: () => {
