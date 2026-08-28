@@ -1,6 +1,6 @@
 "use client"
 
-import { readCookie } from "@/components/cookie";
+import { readCookie } from "@/lib/http/cookie";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react"

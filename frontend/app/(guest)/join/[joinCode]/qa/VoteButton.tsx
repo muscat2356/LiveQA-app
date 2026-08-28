@@ -1,6 +1,6 @@
 "use client"
 
-import { readCookie } from "@/components/cookie";
+import { readCookie } from "@/lib/http/cookie";
 import { Button } from "@/components/ui/button";
 import { VoteResponse } from "@/types/question/question";
 import { RiHeart3Fill, RiHeart3Line } from "@remixicon/react";

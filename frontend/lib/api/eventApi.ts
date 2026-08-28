@@ -1,4 +1,4 @@
-import { readCookie } from "@/components/cookie";
+import { readCookie } from "@/lib/http/cookie";
 import { JoinEvent } from "@/types/event/event";
 
 export async function fetchJoinEvent(joinCode: string): Promise<JoinEvent | null>{

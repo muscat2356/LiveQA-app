@@ -1,4 +1,4 @@
-import { readCookie } from "@/components/cookie";
+import { readCookie } from "@/lib/http/cookie";
 
 let guestId: Promise<void> | null = null;
 

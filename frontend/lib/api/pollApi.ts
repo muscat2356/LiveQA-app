@@ -1,4 +1,4 @@
-import { readCookie } from "@/components/cookie";
+import { readCookie } from "@/lib/http/cookie";
 import { PollCreateRequest, PollDto} from "@/types/poll/poll";
 
 export async function fetchPostPoll(
