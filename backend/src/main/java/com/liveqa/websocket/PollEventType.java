@@ -7,7 +7,13 @@ package com.liveqa.websocket;
  */
 public enum PollEventType {
 
+    /** ポールの回答受付が開始された */
+    POLL_OPENED,
+
     /** ポールの集計結果が更新された */
-    POLL_UPDATED
+    POLL_UPDATED,
+
+    /** ポールの回答受付が終了した */
+    POLL_CLOSED
 
 }

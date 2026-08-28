@@ -6,8 +6,9 @@ import static org.mockito.Mockito.verify;
 
 import java.util.List;
 
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -33,8 +34,9 @@ class PollEventPublisherTest {
     @InjectMocks
     PollEventPublisher publisher;
 
-    @Test
-    void publish_正しい宛先とポールイベントを送信する() {
+    @ParameterizedTest
+    @EnumSource(PollEventType.class)
+    void publish_正しい宛先とポールイベントを送信する(PollEventType eventType) {
         final PollResponse response = new PollResponse(
                 5L,
                 10L,
@@ -47,7 +49,7 @@ class PollEventPublisherTest {
                 3,
                 List.of(31L));
 
-        publisher.publish(PollEventType.POLL_UPDATED, response);
+        publisher.publish(eventType, response);
 
         final ArgumentCaptor<PollEvent> eventCaptor =
                 ArgumentCaptor.forClass(PollEvent.class);
@@ -56,7 +58,7 @@ class PollEventPublisherTest {
                 eventCaptor.capture());
 
         final PollEvent actualEvent = eventCaptor.getValue();
-        assertThat(actualEvent.type()).isEqualTo(PollEventType.POLL_UPDATED);
+        assertThat(actualEvent.type()).isEqualTo(eventType);
         assertThat(actualEvent.poll()).isEqualTo(PollEventPayload.from(response));
     }
 }

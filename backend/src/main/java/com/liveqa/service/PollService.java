@@ -154,7 +154,6 @@ public class PollService {
         }
         poll.changeStatus(status);
         pollRepository.save(poll);
-        // 配信（POLL_OPENED / POLL_CLOSED）は C。今は口だけ
         return formWithVotes(poll, source);
     }
 

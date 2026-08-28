@@ -113,12 +113,21 @@ public class PollController {
             @Valid @RequestBody PollStatusRequest request,
             HttpSession session
     ) {
-        return ResponseEntity.ok(
-                pollService.updateStatus(
-                        pollId,
-                        request.status(),
-                        oidc,
-                        VoterKeySources.form(oidc, session)));
+        final PollResponse response = pollService.updateStatus(
+                pollId,
+                request.status(),
+                oidc,
+                VoterKeySources.form(oidc, session));
+
+        final PollEventType eventType = switch (response.status()) {
+            case OPEN -> PollEventType.POLL_OPENED;
+            case CLOSED -> PollEventType.POLL_CLOSED;
+            case DRAFT -> throw new IllegalStateException(
+                    "更新後のポール状態にDRAFTは指定できません。");
+        };
+        pollEventPublisher.publish(eventType, response);
+
+        return ResponseEntity.ok(response);
     }
 
     /**

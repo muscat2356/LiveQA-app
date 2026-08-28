@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
@@ -21,6 +22,8 @@ import org.springframework.web.socket.server.support.HttpSessionHandshakeInterce
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final List<String> corsAllowedOrigins;
+    private final WebSocketSessionHandshakeInterceptor sessionHandshakeInterceptor;
+    private final StompInboundAuthorizationInterceptor stompAuthorizationInterceptor;
 
     /**
      * WebSocket接続を許可するフロントエンドURLを受け取る。
@@ -28,8 +31,12 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
      * @param corsAllowedOrigins WebSocket接続を許可するオリジン一覧
      */
     public WebSocketConfig(
-            @Value("${app.cors.allowed-origins}") List<String> corsAllowedOrigins) {
+            @Value("${app.cors.allowed-origins}") List<String> corsAllowedOrigins,
+            WebSocketSessionHandshakeInterceptor sessionHandshakeInterceptor,
+            StompInboundAuthorizationInterceptor stompAuthorizationInterceptor) {
         this.corsAllowedOrigins = corsAllowedOrigins;
+        this.sessionHandshakeInterceptor = sessionHandshakeInterceptor;
+        this.stompAuthorizationInterceptor = stompAuthorizationInterceptor;
     }
 
     /**
@@ -42,8 +49,20 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
-                .addInterceptors(new HttpSessionHandshakeInterceptor())
+                .addInterceptors(
+                        sessionHandshakeInterceptor,
+                        new HttpSessionHandshakeInterceptor())
                 .setAllowedOrigins(corsAllowedOrigins.toArray(String[]::new));
+    }
+
+    /**
+     * クライアントから届くSTOMPメッセージへ認可処理を適用する。
+     *
+     * @param registration クライアント受信チャンネルの設定
+     */
+    @Override
+    public void configureClientInboundChannel(ChannelRegistration registration) {
+        registration.interceptors(stompAuthorizationInterceptor);
     }
 
     /**

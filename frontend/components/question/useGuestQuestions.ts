@@ -41,6 +41,7 @@ export default function useGuestQuestions(eventId: number, sort: Sort, filter: Q
     }, [eventId, sort, filter]);
 
     useEffect(() => {
+        let active = true;
         const client = new Client({
             brokerURL: getWebSocketBrokerUrl(),
             reconnectDelay: 5000,
@@ -99,10 +100,23 @@ export default function useGuestQuestions(eventId: number, sort: Sort, filter: Q
             },
         });
 
-        client.activate();
+        const activate = async () => {
+            try {
+                await getGuestSession();
+                if (active) {
+                    client.activate();
+                }
+            } catch (e) {
+                if (active) {
+                    setError(e instanceof Error ? e.message : "WebSocket接続に失敗しました");
+                }
+            }
+        };
+        void activate();
 
         return () => {
-            client.deactivate();
+            active = false;
+            void client.deactivate();
         };
     }, [eventId, sort, filter]);
 
