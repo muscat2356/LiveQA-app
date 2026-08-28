@@ -14,7 +14,7 @@ Keycloak realm 専用 `live-qa`・URL 2種: [ops.md](ops.md)。
 | JIT（`provisionHost`） | あり |
 | `POST /api/auth/register`（HOST メール発行） | **あり**（[#122](https://github.com/muscat2356/live-qa-app/issues/122)。フロントの入力欄は未。ローカル SMTP・専用 realm は済み） |
 | `GET /api/me`（ローカル PK + `currentHost` + `@PreAuthorize HOST`） | あり |
-| `POST /api/auth/logout` | あり |
+| `POST /api/auth/logout` | あり。docker は `end_session_endpoint` を yml から載せる（[#135](https://github.com/muscat2356/live-qa-app/issues/135)） |
 | ログイン後 → フロント `/dashboard` | あり（`successHandler`） |
 | 401/403 JSON | SecurityConfig（Filter）。業務例外は GlobalExceptionHandler |
 
@@ -80,6 +80,26 @@ Spring 標準 `OidcUserService` への**委譲**。トークン検証・クレ�
 | ログアウト後 | `http://localhost:3000/` |
 
 `{baseUrl}` は **backend オリジン**。フロントへ戻すなら設定値で分ける。Keycloak の Valid post logout redirect URIs にもフロントを許可する。
+
+## Q. ログアウトしても SESSION が残る？（2026-08-28）
+
+**Cookie の名前が残ることと、HOST の箱が残ることは別。** まず `GET /api/me` が 401 ならログアウトは成功。DevTools に `SESSION` があるだけでは失敗ではない。
+
+流れ: `POST /api/auth/logout`（CSRF）→ HttpSession 無効化（Redis の HOST 箱を消す）→ Keycloak end-session へ 302 → フロント `/`。`SecurityConfig` に `deleteCookies("SESSION")` は無い。Spring Session の expire が応答に乗らない／着地後の次リクエストが空の箱を再発行すると、同じ名前の Cookie が残って見える。
+
+見分け: Cookie の値がログアウト前と同じ UUID で Redis の `live-qa:sessions:{そのUUID}` もある → 無効化未到達。値が変わっている／`/api/me` が 401 → 再発行。
+
+## Q. ログアウト後にログインボタンで画面を飛ばして入れる？（2026-08-28）
+
+**原因は Keycloak の SSO が残っていること。** Spring の SESSION（Redis）を消しても、ブラウザの `localhost:8080` にある `KEYCLOAK_SESSION` / `KEYCLOAK_IDENTITY` が残ると、次の `/oauth2/authorization/keycloak` でパスワード画面を出さずコードを返す。
+
+Compose（`SPRING_PROFILES_ACTIVE=docker`）では `application-docker.yml` が **issuer-uri を置かない**（token は `keycloak:8080`、認可は localhost）。`OidcClientInitiatedLogoutSuccessHandler` は discovery の `end_session_endpoint` だけを見る。それが無いと Keycloak の logout へ 302 せず、`/` へ戻るだけ。Redis の HOST 箱は消えるのでトップのログインボタンは出る。SSO は生きている。
+
+確認: ログアウトの Network で Location が `.../protocol/openid-connect/logout` か。無ければこの穴。Application で `localhost:8080` の Keycloak Cookie が残っているか。ホスト `mvn`（issuer-uri あり）では end-session に飛ぶので、同じ症状なら 302 がブラウザに届いているかを見る。
+
+採らない: ログインに `prompt=login` だけ足す。issuer-uri を docker に戻す。
+
+**直し方（#135・実装済み）:** `app.logout.end-session-uri`（ブラウザ向け）を `EndSessionClientRegistrationRepository` が metadata に載せる。`OidcClientInitiatedLogoutSuccessHandler` はそのまま。token-uri は `keycloak` のまま。discovery に既にあるホスト `mvn` は上書きしない。
 
 ## Q. HTTPS にすると Cookie / SSO はどうなる？
 
