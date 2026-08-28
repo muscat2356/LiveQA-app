@@ -1,6 +1,6 @@
 "use client"
 
-import { getGuestSession } from "@/lib/api/guestSession";
+import { getGuestSession } from "@/lib/api/client/guestSession";
 import { fetchGetPoll } from "@/lib/api/pollApi";
 import { PollDto, PollEvent } from "@/types/poll/poll";
 import { Client } from "@stomp/stompjs";
