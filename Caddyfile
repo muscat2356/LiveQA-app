@@ -1,0 +1,28 @@
+{$APP_HOST:localhost} {
+	encode gzip
+
+	handle /ws* {
+		reverse_proxy backend:8080
+	}
+
+	handle /api/* {
+		reverse_proxy backend:8080
+	}
+
+	handle /oauth2/* {
+		reverse_proxy backend:8080
+	}
+
+	handle /login/oauth2/* {
+		reverse_proxy backend:8080
+	}
+
+	handle {
+		reverse_proxy frontend:3000
+	}
+}
+
+{$AUTH_HOST:auth.localhost} {
+	encode gzip
+	reverse_proxy keycloak:8080
+}
