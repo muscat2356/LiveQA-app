@@ -7,6 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Logo } from "@/components/brand/Logo";
 import { RiArrowRightLine, RiLoginBoxLine } from "@remixicon/react";
 import Link from "next/link";
 
@@ -18,10 +19,28 @@ import Link from "next/link";
 export default function Home() {
   const LOGIN_URL =
     process.env.NEXT_PUBLIC_KEYCLOAK_LOGIN_URL ??
-    "http:localhost:8081/oauth2/authorization/keycloak";
+    "http://localhost:8081/oauth2/authorization/keycloak";
 
   return (
     <div className="flex min-h-screen flex-col">
+      {/* Header */}
+      <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur">
+        <div className="app-container flex h-16 items-center justify-between">
+          <Link href="/" aria-label="LiveQA ホーム">
+            <Logo size={34} />
+          </Link>
+          <nav className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              nativeButton={false}
+              render={<Link href="/join" />}
+            >
+              コードで参加
+            </Button>
+          </nav>
+        </div>
+      </header>
+
       {/* Hero */}
       <main className="app-container flex flex-1 items-center py-12 sm:py-20">
         <div className="grid w-full items-center gap-12 lg:grid-cols-2">
