@@ -16,12 +16,12 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
       KEYCLOAK_ADMIN_BASE_URL: http://keycloak:8080
       # ブラウザが見る URL（箱の中の token-uri は yml の keycloak:8080 のまま）
-      KEYCLOAK_AUTHORIZATION_URI: ${KEYCLOAK_AUTHORIZATION_URI:-http://localhost:8080/realms/live-qa/protocol/openid-connect/auth}
-      KEYCLOAK_END_SESSION_URI: ${KEYCLOAK_END_SESSION_URI:-http://localhost:8080/realms/live-qa/protocol/openid-connect/logout}
-      LOGIN_SUCCESS_REDIRECT_URI: ${LOGIN_SUCCESS_REDIRECT_URI:-http://localhost:3000/dashboard}
-      POST_LOGOUT_REDIRECT_URI: ${POST_LOGOUT_REDIRECT_URI:-http://localhost:3000/}
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
-      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      KEYCLOAK_AUTHORIZATION_URI: ${KEYCLOAK_AUTHORIZATION_URI}
+      KEYCLOAK_END_SESSION_URI: ${KEYCLOAK_END_SESSION_URI}
+      LOGIN_SUCCESS_REDIRECT_URI: ${LOGIN_SUCCESS_REDIRECT_URI}
+      POST_LOGOUT_REDIRECT_URI: ${POST_LOGOUT_REDIRECT_URI}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE}
     ports:
       - "8081:8080"
     depends_on:
@@ -34,12 +34,16 @@ services:
 
   frontend:
     container_name: Live-qa-frontend
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_KEYCLOAK_LOGIN_URL: ${NEXT_PUBLIC_KEYCLOAK_LOGIN_URL}
+        NEXT_PUBLIC_URL: ${NEXT_PUBLIC_URL}
     environment:
       # コンテナ間通信 → サービス名 + コンテナ側ポート
       API_BASE_URL: http://backend:8080
-      # ブラウザが踏む URL → localhost + ホスト側ポート
-      NEXT_PUBLIC_KEYCLOAK_LOGIN_URL: http://localhost:8081/oauth2/authorization/keycloak
+      NEXT_PUBLIC_KEYCLOAK_LOGIN_URL: ${NEXT_PUBLIC_KEYCLOAK_LOGIN_URL}
+      NEXT_PUBLIC_URL: ${NEXT_PUBLIC_URL}
     ports:
       - "3000:3000"
 
@@ -47,8 +51,8 @@ services:
     image: caddy:2
     profiles: ["production"]
     environment:
-      APP_HOST: ${APP_HOST:-localhost}
-      AUTH_HOST: ${AUTH_HOST:-auth.localhost}
+      APP_HOST: ${APP_HOST}
+      AUTH_HOST: ${AUTH_HOST}
     ports:
       - "80:80"
       - "443:443"
@@ -73,8 +77,6 @@ services:
       KC_DB_NAME: ${KC_DB_NAME}
       KC_DB_USER: ${KC_DB_USER}
       KC_DB_PASSWORD: ${KC_DB_PASSWORD}
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/keycloak/init:/docker-entrypoint-initdb.d
@@ -86,8 +88,6 @@ services:
 
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
 
   # realm JSON のプレースホルダを env で埋めてから Keycloak が import する
   keycloak-realm:
@@ -113,7 +113,7 @@ services:
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.0
-    command: ["start-dev", "--import-realm"]
+    command: ["start", "--import-realm"]
     environment:
       KC_HEALTH_ENABLED: "true"
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN}
@@ -123,9 +123,11 @@ services:
       KC_DB_USERNAME: ${KC_DB_USER}
       KC_DB_PASSWORD: ${KC_DB_PASSWORD}
       # ブラウザは KC_HOSTNAME、コンテナ間は keycloak:8080（フル URL 必須）
-      KC_HOSTNAME: ${KC_HOSTNAME:-http://localhost:8080}
+      KC_HOSTNAME: ${KC_HOSTNAME}
       KC_HOSTNAME_STRICT: "false"
       KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_PROXY_HEADERS: xforwarded
+      KC_HTTP_ENABLED: "true"
     # Keycloak 26 の /health/ready は "status": "UP"（大文字）。小文字 up だと永遠に unhealthy → backend が Waiting のまま
     healthcheck:
       test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000; printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3; grep -q '\"status\": \"UP\"' <&3"]
