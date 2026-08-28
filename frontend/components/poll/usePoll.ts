@@ -31,6 +31,7 @@ export default function usePoll(id: number) {
     useEffect(() => { load(); }, [load]);
 
     useEffect(() => {
+        let active = true;
         const client = new Client({
             brokerURL: getWebSocketBrokerUrl(),
             reconnectDelay: 5000,
@@ -40,6 +41,11 @@ export default function usePoll(id: number) {
                     `/topic/events/${id}/polls`,
                     (message) => {
                         const pollEvent: PollEvent = JSON.parse(message.body);
+
+                        if (pollEvent.type === "POLL_OPENED") {
+                            void load();
+                            return;
+                        }
 
                         setPoll(previousPolls =>
                             previousPolls.map(previousPoll =>
@@ -53,12 +59,25 @@ export default function usePoll(id: number) {
             },
         });
 
-        client.activate();
+        const activate = async () => {
+            try {
+                await getGuestSession();
+                if (active) {
+                    client.activate();
+                }
+            } catch (e) {
+                if (active) {
+                    setError(e instanceof Error ? e.message : "WebSocket接続に失敗しました");
+                }
+            }
+        };
+        void activate();
 
         return () => {
-            client.deactivate();
+            active = false;
+            void client.deactivate();
         };
-    }, [id]);
+    }, [id, load]);
 
     return { poll, pending, error, load };
 }

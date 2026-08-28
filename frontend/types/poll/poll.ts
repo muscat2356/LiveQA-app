@@ -16,9 +16,14 @@ export type PollEventPayload = Pick<
 >;
 
 export type PollEvent = {
-    type: "POLL_UPDATED";
+    type: PollEventType;
     poll: PollEventPayload;
 }
+
+export type PollEventType =
+    | "POLL_OPENED"
+    | "POLL_UPDATED"
+    | "POLL_CLOSED";
 
 export type PollType = "SINGLE" | "MULTI";
 

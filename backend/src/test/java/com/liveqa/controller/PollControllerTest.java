@@ -175,17 +175,18 @@ class PollControllerTest {
 
     @Test
     void updateStatus_HOSTなら200() throws Exception {
+        final PollResponse response = new PollResponse(
+                5L,
+                10L,
+                "次のテーマは？",
+                PollType.SINGLE,
+                PollStatus.OPEN,
+                List.of(new PollOptionResponse(31L, "AI", 0)),
+                0,
+                List.of()
+        );
         when(pollService.updateStatus(eq(5L), eq(PollStatus.OPEN), any(OidcUser.class), any()))
-                .thenReturn(new PollResponse(
-                        5L,
-                        10L,
-                        "次のテーマは？",
-                        PollType.SINGLE,
-                        PollStatus.OPEN,
-                        List.of(new PollOptionResponse(31L, "AI", 0)),
-                        0,
-                        List.of()
-                ));
+                .thenReturn(response);
 
         mockMvc.perform(patch("/api/polls/5/status")
                         .with(oidcLogin()
@@ -196,6 +197,36 @@ class PollControllerTest {
                         .content("{\"status\":\"OPEN\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("OPEN"));
+
+        verify(pollEventPublisher).publish(PollEventType.POLL_OPENED, response);
+    }
+
+    @Test
+    void updateStatus_CLOSEDなら終了イベントを配信する() throws Exception {
+        final PollResponse response = new PollResponse(
+                5L,
+                10L,
+                "次のテーマは？",
+                PollType.SINGLE,
+                PollStatus.CLOSED,
+                List.of(new PollOptionResponse(31L, "AI", 2)),
+                2,
+                List.of()
+        );
+        when(pollService.updateStatus(eq(5L), eq(PollStatus.CLOSED), any(OidcUser.class), any()))
+                .thenReturn(response);
+
+        mockMvc.perform(patch("/api/polls/5/status")
+                        .with(oidcLogin()
+                                .authorities(new SimpleGrantedAuthority("ROLE_HOST"))
+                                .idToken(id -> id.subject("sub-1")))
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"CLOSED\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CLOSED"));
+
+        verify(pollEventPublisher).publish(PollEventType.POLL_CLOSED, response);
     }
 
     @Test
