@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { deleteEvent } from "@/lib/api/server/eventApi"
+import { deleteEvent } from "@/lib/api/client/eventApi";
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
