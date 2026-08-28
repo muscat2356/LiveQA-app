@@ -9,18 +9,18 @@ LibraShare 相乗りはやめる。**このアプリ用の薄い realm だけを
 | 項目 | 値 |
 |------|-----|
 | realm | `live-qa` |
-| client | `live-qa-app`（confidential、secret は今と同じ `live-qa-dev-secret`） |
+| client | `live-qa-app`（confidential。secret は env `KEYCLOAK_CLIENT_SECRET`。JSON には書かない） |
 | realm role | `HOST` のみ（参加者は Keycloak に作らない） |
 | 自己登録 | Keycloak UI は `registrationAllowed: false`。アプリのメール登録は `POST /api/auth/register`（実装済み。[#122](https://github.com/muscat2356/live-qa-app/issues/122)。フロント入力欄は未） |
 | Keycloak | `http://localhost:8080` |
 | backend（ホスト起動） | `http://localhost:8081`（KC と 8080 が被る） |
-| 正の JSON | [`keycloak/live-qa-realm.json`](../../keycloak/live-qa-realm.json)（compose はこのファイルだけを import。旧 `Librashare-realm.json` はマウントしない） |
+| 正の JSON | [`keycloak/live-qa-realm.json`](../../keycloak/live-qa-realm.json)（テンプレ。compose の `keycloak-realm` が env を埋めて import。旧 `Librashare-realm.json` はマウントしない） |
 
 `--import-realm` は **初回のみ**。既存ボリュームがあるときは JSON を置いても入らない。差し替え時は `docker compose down -v`（Postgres のアプリデータも消える）。
 
 IdToken の `realm_access.roles` は **client `live-qa-app` の protocolMapper** で載せる（Client scopes の `roles` を触らなくても 403 を避ける）。確認は Admin → Clients → live-qa-app → Client scopes タブではなく Dedicated mappers。
 
-初期 HOST は JSON に 1 人（`host@example.com` / パスワード `live-qa-dev-host`、realm role `HOST`）。SMTP のアプリパスワードは載せない。本番ではこのパスワードを変えるか、登録 API の人だけ使う。
+初期 HOST は JSON に 1 人（`host@example.com`、realm role `HOST`）。パスワードは env `KEYCLOAK_DEV_HOST_PASSWORD`（JSON にはプレースホルダだけ）。SMTP のアプリパスワードは載せない。本番リポでは `.env` を載せない。登録 API の人だけ使う運用でもよい。
 
 ### URL が 2 種類ある理由
 
@@ -37,24 +37,67 @@ IdToken の `realm_access.roles` は **client `live-qa-app` の protocolMapper**
 
 ### ローカル差し替え（この順）
 
-1. `keycloak/live-qa-realm.json` が入っている。compose は **このファイルだけ** を import する（旧 `Librashare-realm.json` はフォルダに残っていても載らない）。不要なら手元で `.json.old` にリネームしてよい。
+1. `keycloak/live-qa-realm.json` が入っている。compose は **テンプレを env で埋めてから** import する（旧 `Librashare-realm.json` はフォルダに残っていても載らない）。不要なら手元で `.json.old` にリネームしてよい。
 2. `application.yml` の `issuer-uri` と `application-docker.yml` の 4 URI は `realms/live-qa`。`compose.yml` のコメントも専用 realm。
 3. `docker compose down -v` → `docker compose up -d --build`（volume 作り直し。イベントデータは消える）。まだならここから。
 4. Admin `http://localhost:8080` → realm `live-qa` → Users に `host@example.com` があること。
-5. トップのログイン（`host@example.com` / `live-qa-dev-host`）→ `/dashboard` → `GET /api/me` が `role: HOST`。
+5. トップのログイン（`host@example.com` / `.env` の `KEYCLOAK_DEV_HOST_PASSWORD`。未設定なら compose 既定）→ `/dashboard` → `GET /api/me` が `role: HOST`。
 6. Realm settings → Email で SMTP → Test / Send test email。JSON には書かない。
 
 デプロイでは JSON・client・role はそのまま。変えるのは `KC_HOSTNAME`、redirect URI に `APP_HOST`、yml のホスト部分、Cookie `Secure`。
 
+### Q. 本番は JSON import できない？
+
+**初回はできる。** `start-dev` 専用ではない。載せ手順は `command: ["start", "--import-realm"]`（TLS は Caddy。Keycloak 自身は箱の中で HTTP）。
+
+できないのは **二度目の上書き**。realm が DB にあると JSON を直しても入らない。ローカルと同じ。`down -v` は本番では使わない（質問も HOST も消える）。
+
+```text
+初回 up
+  → keycloak-realm がプレースホルダを env で埋める
+  → /opt/keycloak/data/import/live-qa-realm.json を読む
+  → realm live-qa / client / HOST ロール / 開発用 host@example.com が入る
+  → 以降の再起動は JSON を無視（DB が正）
+
+JSON に無い／載せてはいけない
+  → client secret（`KEYCLOAK_CLIENT_SECRET`）
+  → 初期 HOST のパスワード（`KEYCLOAK_DEV_HOST_PASSWORD`）
+  → SMTP のアプリパスワード（Admin → Realm settings → Email）
+  → https の redirect（Admin で APP_HOST を足す。JSON は localhost のまま残してよい）
+
+JSON のあと必ず手で
+  → 本番では開発用ホストを使わず、登録 API の人だけ使うのが安全
+  → client secret を変えるなら Spring の KEYCLOAK_CLIENT_SECRET も揃える
+  → 既存 volume があるとき JSON/env を変えても入らない。入れ直すなら `down -v`
+```
+
+Admin から空の realm を手で作っても動く。このリポは **初回だけ JSON、住所と郵便局は画面** が正。Terraform / `kcadm` での継続同期は今やらなくてよい。
+
+### Q. インスタンス再起動のたびに import や門をやり直す？
+
+**やり直さない。** 門（ポート）と realm import は別物。
+
+| 何 | 初回 | VM / コンテナを止めて起動し直したとき |
+|----|------|----------------------------------------|
+| Security Group（クラウドの門） | 80/443（と22）を開ける | **残る。** VPC 側の設定 |
+| firewalld `--permanent` | 同じ番号 | **残る。** OS 再起動後も |
+| Keycloak 8080 をインターネットに出す | 本番本線では **開けない** | 開けないまま |
+| `--import-realm` | volume が空の初回だけ | **走らない。** Postgres に realm がある |
+| Admin の SMTP / https redirect | 初回のあと1回 | **残る。** Keycloak の DB（volume） |
+
+毎回やる必要があるのは、インスタンスや volume を **消した**とき。`down -v`、VM の終了（削除）、新しい机、は初回と同じ。
+
+一時停止（stop）でパブリック IP が変わることがある。そのときは `YOUR_IP` / sslip.io の名前と `KC_HOSTNAME` を直す。realm の作り直しではない。
+
 IdToken に `realm_access` が無い → Clients → `live-qa-app` → Dedicated mappers の `realm roles` で Add to ID token ON。403 の定番。Client scopes の `roles` を触る必要は、client mapper が入っていれば無い。
 
-### Q. OCI 無料枠で Keycloak + Redis ごと Compose、SSO は通る？
+### Q. クラウド1台で Keycloak + Redis ごと Compose、SSO は通る？
 
 **通る。マネージド IdP は不要。** ブラウザが見る URL を `localhost` から公開 IP（またはドメイン）に揃えるのが本体。トークン交換は今どおり `keycloak:8080` のまま。
 
-手順の正本は [#44 の手順コメント 1本](https://github.com/muscat2356/live-qa-app/issues/44#issuecomment-5422566268) と [deploy-oci.md](deploy-oci.md)。
+**正は [#44](https://github.com/muscat2356/live-qa-app/issues/44)。クラウドは AWS（EC2）。** 読み替えメモは [deploy-oci.md](deploy-oci.md)（ファイル名は古い。門=Security Group、VM=EC2）。
 
-無料枠は **Ampere A1（`VM.Standard.A1.Flex`、目安 2 OCPU / 12GB 以上）** を使う。x86 の Always Free Micro（1GB）は Keycloak 26 + Postgres + Redis + Java 21 + Next で足りない。
+#44 のコード側コメントは EC2 / `t3.medium` 前提。RDS や Secrets Manager はコメントどおり **今やらなくてよい**。Compose を1台に置く。
 
 SSO の役割分担（ローカルと同じ）:
 
@@ -81,15 +124,15 @@ SSO の役割分担（ローカルと同じ）:
 
 `--import-realm` はボリューム初回だけ。redirect を後から足すなら Admin Console か、`postgres_data` を消して再 import（データも消える）。
 
-無料枠デモでやってよい割り切り:
+HTTP 逃げデモでやってよい割り切り:
 
 - Keycloak は当面 `start-dev` のまま（`start` + HTTPS は後）
 - Cookie `Secure=false`（HTTP）。HTTPS にしたら `true`
 - フロントは `npm run dev` のまま（重いが追加作業が少ない）
 
-無料枠でも閉じること:
+デモでも閉じること:
 
-- Security List は **3000 / 8081 / 8080** だけ（SSO に Keycloak の 8080 はブラウザが踏むので必要）
+- Security Group は **3000 / 8081 / 8080** だけ（SSO に Keycloak の 8080 はブラウザが踏むので必要。HTTPS 本線では 80/443 だけ）
 - **5432 / 6379 は publish しない**（または 0.0.0.0 に出さない）
 - Keycloak Admin と client secret はデフォルトのまま公開しない
 - Redis は volume が無いと再起動で SESSION が消える。デモが続くなら `appendonly` + volume を足す
@@ -110,6 +153,10 @@ SSO の役割分担（ローカルと同じ）:
 | Let's Encrypt | 使えない（HTTP-01 は入口だけ） | Caddy が自動更新しやすい |
 
 設計 docs も Cookie は `HttpOnly` / `Secure` / `SameSite`（[architecture](../architecture.md)）。いまのコードはローカル HTTP 用に **`Secure=false` であえて外している**。
+
+### Q. Caddy は必須？（2026-08-28）
+
+**ローカル Compose では要らない。インターネットへ HTTPS で出すときに受付が要る。** 中の Next / Spring / Keycloak は HTTP のまま。証明書は受付（Caddy）1つ。nginx でも同じ役割。Caddy は Let's Encrypt を設定ファイルだけで回しやすい、が採用理由。`http://YOUR_IP:3000` の逃げデモでは使わない。
 
 #### データの流れ（無料枠の推奨形）
 
@@ -135,7 +182,7 @@ Redis / Postgres / token-uri（`keycloak:8080`）は **変えない**。
 
 | どこ | 変更 | 理由 |
 |------|------|------|
-| OCI Security List | **80 と 443 だけ**公開。3000/8081/8080/5432/6379 は閉じる | 証明書とアプリはプロキシ経由。DB を出さない |
+| AWS Security Group | **80 と 443 だけ**公開。3000/8081/8080/5432/6379 は閉じる | 証明書とアプリはプロキシ経由。DB を出さない |
 | 新規 `caddy` サービス | TLS 終端。Let's Encrypt か、まず自己署名 | コンテナ3つに証明書を配らない |
 | `SessionConfig` | `setUseSecureCookie(true)` | `Secure` 付き Cookie は HTTPS でしか送れない。HTTP のまま true にするとログインしても SESSION が乗らない |
 | CSRF Cookie | リクエストが secure なら付く。プロキシの `X-Forwarded-Proto` が必要 | `request.isSecure()` が false のままだと `XSRF-TOKEN` も Secure にならず、または不一致 |
@@ -259,6 +306,12 @@ on:
 | `pull_request` | `main` / `develop` 向けの PR を開く・更新する（feature ブランチへの push で PR が更新されても走る） |
 | `push` | `main` / `develop` 自体へ直接 push / merge したとき |
 
+### Q. リリース前のブランチ構成はどこ？（2026-08-28）
+
+**GitHub のデフォルトブランチは `develop`。** 作業は `front|back|infra` / `feature|bug|refactor|…` / 機能番号。PR の向け先は慣例どおり `develop`。`main` もある。CI は両方（`.github/workflows/ci.yml`）。ブランチ保護ルールは API 上ついていない（architecture は「保護する」と書いてあるが設定は未）。`release/` ブランチはリポに無い。CD は MVP 必須ではない。
+
+正: Issue テンプレ（命名）/ `docs/schedule.md`（休暇前は develop へマージ）/ architecture の CI 節。
+
 流れ:
 
 ```text
@@ -284,3 +337,19 @@ Cursor と同じルール 6 本を Codex で使う手順は [`docs/codex.md`](..
 ## `.vscode/settings.json` の個人パス
 
 リポジトリに自分のホームパスを置かない。User 設定へ移すか、ワークスペースは相対・変数にする。チームの Java 設定（formatter 等）だけ残す。
+
+## Q. バックエンドの主な穴（2026-08-28 確認）
+
+SQL インジェクションやパスワード保管は見当たらない（JPA / QueryDSL はプレースホルダ、パスワードは Keycloak）。残るのは **公開面と本番の閉じ忘れ**。
+
+| 重大 | 何 | いま |
+|------|-----|------|
+| 本番で要対応 | Cookie `Secure` は env 済み（3-G） | ローカルは `false`。EC2 の HTTPS 本線で `SESSION_COOKIE_SECURE=true` を入れる |
+| 本番で要対応 | `POST /api/auth/register` が公開・CSRF なし・レート制限なし | 誰でも HOST 発行を依頼できる。#122 の仕様。本番では招待制か制限が必要 |
+| 中 | STOMP の `/topic` へクライアントから SEND できる | inbound 制限が無い。画面上の偽 `QUESTION_CREATED` が可能。DB には残らない |
+| 中 | Swagger と `anyRequest().permitAll()` | `/swagger-ui.html` が公開。vote 等は意図した公開だが、将来の API も公開になりやすい |
+| 中 | yml 既定の `live-qa-dev-secret` | env を忘れると開発 secret のまま |
+| 低 | 質問 POST にレート制限なし | 1 SESSION で連投できる。UNIQUE はいいね側 |
+| 低 | register 409 でメール存在が分かる | Issue で採った仕様 |
+
+やらなくてよい（今の契約どおり）: 質問 GET の公開、`/ws` のゲスト接続、参加コード 8 文字（`SecureRandom`）。XSS は React が本文をエスケープする前提。

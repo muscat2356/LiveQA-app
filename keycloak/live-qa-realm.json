@@ -28,7 +28,7 @@
       "enabled": true,
       "protocol": "openid-connect",
       "publicClient": false,
-      "secret": "live-qa-dev-secret",
+      "secret": "__KEYCLOAK_CLIENT_SECRET__",
       "clientAuthenticatorType": "client-secret",
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": false,
@@ -76,7 +76,7 @@
       "credentials": [
         {
           "type": "password",
-          "value": "live-qa-dev-host",
+          "value": "__KEYCLOAK_DEV_HOST_PASSWORD__",
           "temporary": false
         }
       ],

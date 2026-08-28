@@ -14,6 +14,9 @@ app:
     end-session-uri: ${KEYCLOAK_END_SESSION_URI:http://localhost:8080/realms/live-qa/protocol/openid-connect/logout}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+  cookie:
+    # ローカル HTTP は false。EC2 の HTTPS 本線だけ SESSION_COOKIE_SECURE=true
+    secure: ${SESSION_COOKIE_SECURE:false}
   keycloak:
     admin:
       base-url: ${KEYCLOAK_ADMIN_BASE_URL:http://localhost:8080}
