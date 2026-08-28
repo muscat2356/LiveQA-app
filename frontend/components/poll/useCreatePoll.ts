@@ -1,6 +1,6 @@
 "use client"
 
-import { fetchPostPoll } from "@/lib/api/pollApi";
+import { fetchPostPoll } from "@/lib/api/client/pollApi";
 import { PollCreateRequest, PollDto } from "@/types/poll/poll";
 import { useState } from "react";
 

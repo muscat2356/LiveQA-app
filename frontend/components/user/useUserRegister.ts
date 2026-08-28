@@ -1,6 +1,6 @@
 "use client"
 
-import { fetchPostUserRegister } from "@/lib/api/userApi"
+import { fetchPostUserRegister } from "@/lib/api/client/userApi"
 import { useCallback, useRef, useState } from "react";
 
 export default function useUserRegister(){

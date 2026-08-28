@@ -1,7 +1,7 @@
 "use client"
 
 import { getGuestSession } from "@/lib/api/client/guestSession";
-import { fetchGetPoll } from "@/lib/api/pollApi";
+import { fetchGetPoll } from "@/lib/api/client/pollApi";
 import { PollDto, PollEvent } from "@/types/poll/poll";
 import { Client } from "@stomp/stompjs";
 import { useCallback, useEffect, useState } from "react";

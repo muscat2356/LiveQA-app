@@ -1,6 +1,6 @@
 "use client"
 
-import { fetchPostPollResponse } from "@/lib/api/pollApi";
+import { fetchPostPollResponse } from "@/lib/api/client/pollApi";
 import { useState } from "react";
 
 export default function useAnswerPoll(pollId: number){

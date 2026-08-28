@@ -1,7 +1,7 @@
 "use client"
 
 import { getGuestSession } from "@/lib/api/client/guestSession";
-import { fetchGetQuestion } from "@/lib/api/questionApi";
+import { fetchGetQuestion } from "@/lib/api/client/questionApi";
 import { QuestionEvent, QuestionFilter, QuestionResponse, Sort } from "@/types/question/question";
 import { useEffect, useState } from "react";
 import { Client } from "@stomp/stompjs";
