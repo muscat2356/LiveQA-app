@@ -1,7 +1,7 @@
 "use client"
 
-import { getGuestSession } from "@/lib/api/guestSession";
-import { fetchGetPoll } from "@/lib/api/pollApi";
+import { getGuestSession } from "@/lib/api/client/guestSession";
+import { fetchGetPoll } from "@/lib/api/client/pollApi";
 import { getWebSocketBrokerUrl } from "@/lib/websocket";
 import { PollDto, PollEvent } from "@/types/poll/poll";
 import { Client } from "@stomp/stompjs";

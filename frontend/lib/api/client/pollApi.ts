@@ -47,7 +47,7 @@ export async function fetchPatchPollStatus(
 
     return apiClient<PollDto>(`/api/polls/${pollId}/status`,{
             method: "PATCH",
-            body: status,
+            body: {status},
     })
 }
 
