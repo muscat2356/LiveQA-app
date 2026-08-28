@@ -1,6 +1,6 @@
 import { StatusBadge } from "@/components/event/statusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { fetchJoinEvent } from "@/lib/api/eventApi";
+import { fetchJoinEvent } from "@/lib/api/server/eventApi";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import EnterForm from "./EnterForm";

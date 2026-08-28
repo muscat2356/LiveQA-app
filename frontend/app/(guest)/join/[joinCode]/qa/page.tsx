@@ -1,4 +1,4 @@
-import { fetchJoinEvent } from "@/lib/api/eventApi";
+import { fetchJoinEvent } from "@/lib/api/server/eventApi";
 import { notFound, redirect } from "next/navigation";
 import QaScreen from "./QaScreen";
 import { cookies } from "next/headers";
