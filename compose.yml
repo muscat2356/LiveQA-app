@@ -50,9 +50,12 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
-      - frontend
-      - backend
-      - keycloak
+      frontend:
+        condition: service_started
+      backend:
+        condition: service_started
+      keycloak:
+        condition: service_healthy
 
   postgres:
     image: postgres:16
