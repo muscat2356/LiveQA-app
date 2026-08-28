@@ -1,12 +1,19 @@
 "use client"
 
-import { readCookie } from "@/lib/http/cookie";
 import { Button } from "@/components/ui/button";
 import { VoteResponse } from "@/types/question/question";
 import { RiHeart3Fill, RiHeart3Line } from "@remixicon/react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { fetchVote } from "@/lib/api/client/voteApi";
+import { ApiError } from "@/lib/http/apiError";
 
+/**
+ * いいねボタンUI
+ * fetchVote->votebymeのPOST/DELETE
+ * @param 
+ * @returns 
+ */
 export default function VoteButton({
     questionId,
     upvoteCount,
@@ -28,38 +35,19 @@ export default function VoteButton({
 
         try{
 
-            const xsrfToken = readCookie("XSRF-TOKEN");
-            const res = await fetch(`/api/questions/${questionId}/vote`, {
-                    method: votedByMe ? "DELETE" : "POST",
-                    headers:  { 
-                        ...(xsrfToken ? { "X-XSRF-TOKEN": xsrfToken } : {}),
-                    },
-                    credentials: "same-origin",
-            });
+            const voted : VoteResponse = await fetchVote(questionId, votedByMe);
 
-            if(!res.ok){
-                const problem = await res.json().catch(() => null);
-
-                if(res.status === 401){
-                toast.error("セッションが切れました。ページを読み込みください")
-                }
-
-                if(res.status === 409){
-                    toast.error(problem?.message ?? "既に投票済みです")
-                    onSync?.();
-                    return;
-                }
-                
-            }
-
-            
-
-            const voted : VoteResponse = await res.json();
             applyVote(voted.questionId, voted.upvoteCount, voted.votedByMe);
-            toast.success(votedByMe ? "いいねを取り消しました" : "いいねを押しました" );
+            toast.success(
+                voted.votedByMe ? "いいねを押しました" : "いいねを取り消しました" );
 
         }catch (e){
-            toast.error(e instanceof Error ? e.message : "エラーが発生ました");
+            if(e instanceof ApiError && e.status === 409){
+                onSync();
+            }
+
+            toast.error(e instanceof Error ? e.message : "エラーが発生しました");
+
         }finally{
             setPending(false);
         }

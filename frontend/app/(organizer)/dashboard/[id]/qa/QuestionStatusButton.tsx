@@ -4,7 +4,12 @@ import { readCookie } from "@/lib/http/cookie";
 import { Button } from "@/components/ui/button";
 import { nextQuestionStatusMap, questionActionLabelMap, QuestionStatus } from "@/types/question/question";
 import { useState } from "react";
-
+import { fetchPatchQuestionStatus } from "@/lib/api/client/questionApi";
+/**
+ * 質問ステータス更新ボタンUI
+ * @param param0 
+ * @returns 
+ */
 export default function QuestionStatusButton({
     questionId, 
     status, 
@@ -26,23 +31,8 @@ export default function QuestionStatusButton({
         setPending(true);
         setErrorMessage(null);
         try{
-            const xsrfToken = readCookie("XSRF-TOKEN");
-            const res = await fetch(`/api/questions/${questionId}/status`, {
-                method: "PATCH",
-                headers:  { 
-                    "Content-Type": "application/json",
-                    ...(xsrfToken ? { "X-XSRF-TOKEN": xsrfToken } : {}),
-                },
-                credentials: "same-origin",
-                body: JSON.stringify({ status: target }),
-            });
-
-            if(!res.ok){
-                const problem = await res.json().catch(() => null)
-                throw new Error(problem?.message ?? "ステータス更新のエラーが発生しました")
-            }
-
-            load();
+            await fetchPatchQuestionStatus(questionId, target)
+            load(); 
 
         }catch (e){
             console.error(e);
