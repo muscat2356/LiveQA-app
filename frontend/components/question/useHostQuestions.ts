@@ -1,6 +1,7 @@
 "use client"
 
 import { fetchGetQuestion } from "@/lib/api/questionApi";
+import { getWebSocketBrokerUrl } from "@/lib/websocket";
 import { QuestionEvent, QuestionFilter, QuestionResponse, Sort } from "@/types/question/question";
 import { Client } from "@stomp/stompjs";
 import { useEffect, useState } from "react";
@@ -38,7 +39,7 @@ export default function useHostQuestions(eventId: number, sort: Sort, filter: Qu
 
     useEffect(() => {
         const client = new Client({
-            brokerURL: "ws://localhost:8081/ws",
+            brokerURL: getWebSocketBrokerUrl(),
             reconnectDelay: 5000,
 
             onConnect: () => {
