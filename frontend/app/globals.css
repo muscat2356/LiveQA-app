@@ -154,3 +154,8 @@
     color-mix(in oklch, var(--primary) 88%, black) 100%
   );
 }
+
+/* 淡い青の背景ウォッシュ（青地に白カードを際立たせる／light・dark両対応） */
+@utility brand-wash {
+  background-color: color-mix(in oklch, var(--primary) 10%, var(--background));
+}

@@ -25,6 +25,7 @@ export default function QaScreen({ event, nickname }: { event: JoinEvent; nickna
     const { poll: polls, pending: pollPending, error: pollError, load: pollLoad } = usePoll(event.eventId);
 
     return(
+        <div className="brand-wash min-h-[calc(100vh-4rem)]">
         <div className="app-container max-w-2xl py-6">
             <header className="mb-4 flex items-start justify-between gap-3">
                 <div className="min-w-0 space-y-2">
@@ -99,6 +100,7 @@ export default function QaScreen({ event, nickname }: { event: JoinEvent; nickna
             <div className="mt-6">
                 <PostForm eventId={event.eventId} nickname={nickname} onPosted={guestLoad} />
             </div>
+        </div>
         </div>
     )
 }
