@@ -1,5 +1,6 @@
 package com.liveqa.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.session.data.redis.config.annotation.web.http.EnableRedisHttpSession;
@@ -15,12 +16,17 @@ import org.springframework.session.web.http.DefaultCookieSerializer;
 @EnableRedisHttpSession(redisNamespace = "live-qa")
 public class SessionConfig {
 
+    private final boolean cookieSecure;
+
+    public SessionConfig(@Value("${app.cookie.secure:false}") boolean cookieSecure) {
+        this.cookieSecure = cookieSecure;
+    }
+
     @Bean
     public CookieSerializer cookieSerializer() {
         DefaultCookieSerializer serializer = new DefaultCookieSerializer();
         serializer.setCookieName("SESSION");
-        // ローカル HTTP。本番 HTTPS では true へ
-        serializer.setUseSecureCookie(false);
+        serializer.setUseSecureCookie(this.cookieSecure);
         serializer.setSameSite("Lax");
         serializer.setUseHttpOnlyCookie(true);
         return serializer;

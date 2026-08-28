@@ -14,6 +14,7 @@
 | [f04-guest.md](f04-guest.md) | **F-04** 匿名セッション / `voter_key` |
 | [f05-questions.md](f05-questions.md) | **F-05** 質問投稿・いいね |
 | [f06-querydsl.md](f06-querydsl.md) | **F-06** 動的クエリ（QueryDSL・人気順/新着順） |
+| [f07-websocket.md](f07-websocket.md) | **F-07** STOMP 質問ライブ（CREATED / UPVOTED / ANSWERED） |
 | [f08-status.md](f08-status.md) | **F-08** 質問ステータス（回答済み / アーカイブ） |
 | [f10-polls.md](f10-polls.md) | **F-10** ポール作成・開閉（MVP-B） |
 | [f11-polls.md](f11-polls.md) | **F-11** ポール回答・集計（MVP-B） |
@@ -26,11 +27,11 @@
 |----------|------|
 | [java.md](java.md) | 三層・DTO record・JPA・Javadoc 粒度・`var`・UNIQUE・削除・テスト |
 | [ops.md](ops.md) | Keycloak 専用 realm `live-qa`・CI・Docker・Swagger UI |
-| [deploy-oci.md](deploy-oci.md) | OCI 無料枠 Compose の作業手順（たとえ・図・手でやること）。正本は [#44](https://github.com/muscat2356/live-qa-app/issues/44)。他メンバー AI 用命令文は [同 Issue コメント](https://github.com/muscat2356/live-qa-app/issues/44#issuecomment-5422781734) |
+| [deploy-oci.md](deploy-oci.md) | クラウド1台へ Compose（読み替えメモ）。**正は [#44](https://github.com/muscat2356/live-qa-app/issues/44)**（AWS EC2）。ファイル名の OCI は古い |
 | [handoff.md](handoff.md) | B 全体確認・総評・コーディング癖・よく出た質問・ルール6本（次回持ち込み） |
 | [java-learning-pair-skill.md](java-learning-pair-skill.md) | 次回 Cursor 用 Skill のコピー原稿（`~/.cursor/skills/` へ） |
 
-F-07 は実装が始まったら同型で `f07-*.md` を足す。
+F-07 は [f07-websocket.md](f07-websocket.md)。
 
 ## ラボ移植アーカイブ（深いカタログ）
 

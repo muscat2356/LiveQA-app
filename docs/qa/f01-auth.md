@@ -17,6 +17,8 @@ Keycloak realm 専用 `live-qa`・URL 2種: [ops.md](ops.md)。
 | `POST /api/auth/logout` | あり。docker は `end_session_endpoint` を yml から載せる（[#135](https://github.com/muscat2356/live-qa-app/issues/135)） |
 | ログイン後 → フロント `/dashboard` | あり（`successHandler`） |
 | 401/403 JSON | SecurityConfig（Filter）。業務例外は GlobalExceptionHandler |
+| `authorization-uri` / Cookie `Secure` の env 化 | **あり**（[#44](https://github.com/muscat2356/live-qa-app/issues/44) の 1-C / 3-G）。token / JWK は `keycloak:8080` のまま |
+| realm JSON の秘密 | **あり**。client secret / 初期 HOST パスワードは env。JSON はプレースホルダ |
 
 ## データの流れ
 
@@ -135,13 +137,13 @@ Compose（`SPRING_PROFILES_ACTIVE=docker`）では `application-docker.yml` が 
 
 realm `live-qa` は `registrationAllowed: false`。Keycloak の公開自己登録は使わない。参加者は Keycloak に作らない。公開 API なので、メールを知っている人は HOST になれる（招待コードは今は外す）。
 
-登録は HOST のみ。ローカルで専用 realm `live-qa` を通してから OCI に載せる。登録 API は [#122](https://github.com/muscat2356/live-qa-app/issues/122)。
+登録は HOST のみ。ローカルで専用 realm `live-qa` を通してからクラウド（AWS EC2。正は [#44](https://github.com/muscat2356/live-qa-app/issues/44)）に載せる。登録 API は [#122](https://github.com/muscat2356/live-qa-app/issues/122)。
 
-JSON・yml・volume は [ops.md](ops.md) の「専用 realm `live-qa`」。compose は `live-qa-realm.json` だけを import する。
+JSON・yml・volume は [ops.md](ops.md) の「専用 realm `live-qa`」。compose はテンプレ JSON を env で埋めてから import する。
 
 ### Q. import JSON の初期ユーザーは誰？
 
-**開発用 HOST 1 人。** `host@example.com` / `live-qa-dev-host`、realm role `HOST`。ログインして JIT すればローカル `users` ができる。SMTP の秘密は載せない。既存 volume には入らないので、入れるときは `docker compose down -v`。本番ではパスワードを変えるか、登録 API の人だけ使う。
+**開発用 HOST 1 人。** `host@example.com`、realm role `HOST`。パスワードは env `KEYCLOAK_DEV_HOST_PASSWORD`（JSON には `__KEYCLOAK_DEV_HOST_PASSWORD__` だけ）。ログインして JIT すればローカル `users` ができる。SMTP の秘密は載せない。既存 volume には入らないので、入れるときは `docker compose down -v`。本番リポでは `.env` を載せない。登録 API の人だけ使う運用でもよい。
 
 ### Q. デプロイ手順の「2. SMTP を入れて Admin からテストメール」とは？
 
@@ -149,7 +151,7 @@ JSON・yml・volume は [ops.md](ops.md) の「専用 realm `live-qa`」。compo
 
 いまの import JSON は `"smtpServer" : { }`（空）。Admin の Realm settings → Email にホスト・ポート・From・認証を書く。Save のあと **Test connection** / **Send test email** で、自分のアドレスに1通来れば 2 は完了。
 
-ローカルと OCI で同じ口（Gmail など）を使うと、載せたあとに郵便局だけ変えなくて済む。Mailhog は受け専用の素振り。クラウドが 25 番を塞いでいることが多いので **587（STARTTLS）** を使う。
+ローカルと本番（AWS EC2）で同じ口（Gmail など）を使うと、載せたあとに郵便局だけ変えなくて済む。Mailhog は受け専用の素振り。クラウドが 25 番を塞いでいることが多いので **587（STARTTLS）** を使う。
 
 ### Q. Keycloak の SMTP は画面のどこに何を入れる？（2026-08-27）
 
@@ -552,3 +554,16 @@ flowchart LR
 4. 202 → 受信箱に設定リンク → トップから OIDC → `GET /api/me` で `role: HOST`
 
 テスト: `HostRegistrationServiceTest`（Client Mock）、`HostRegistrationControllerTest`（202/400/409）、`HostRegistrationControllerCsrfTest`（ignore）。
+
+## Q. authorization-uri と Cookie Secure を env にする？（#44 の 1-C / 3-G）
+
+**ブラウザが見るものだけ実行時に差し替える。箱の中は変えない。** EC2 の公開 URL を yml にベタ書きしない。
+
+| 地図 | 誰が見る | env | デフォルト（ローカル） |
+|------|----------|-----|------------------------|
+| 1-C | ブラウザ（Keycloak のログイン画面へ飛ぶ） | `KEYCLOAK_AUTHORIZATION_URI` | `http://localhost:8080/realms/live-qa/protocol/openid-connect/auth` |
+| 3-G | ブラウザ（SESSION Cookie） | `SESSION_COOKIE_SECURE` | `false`（HTTP）。HTTPS 本線だけ `true` |
+
+トークン交換・JWK・Redis は `keycloak` / `redis` のまま。Compose の `environment` に載せないと、ルート `.env` はコンテナに入らない。logout の `KEYCLOAK_END_SESSION_URI`・戻り先・CORS・`KC_HOSTNAME` も同じ口。
+
+HTTP のまま `SESSION_COOKIE_SECURE=true` にすると SESSION が乗らない。ローカル Compose は触らなくてよい（デフォルト false）。

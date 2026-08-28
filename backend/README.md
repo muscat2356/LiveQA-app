@@ -27,7 +27,7 @@ cp .env.example .env   # 値を環境に合わせる
 mvn spring-boot:run -Dspring-boot.run.arguments=--server.port=8081
 ```
 
-- ログイン開始: `http://localhost:8081/oauth2/authorization/keycloak`（開発 HOST は `host@example.com` / `live-qa-dev-host`。JSON 初回 import 時だけ入る）
+- ログイン開始: `http://localhost:8081/oauth2/authorization/keycloak`（開発 HOST は `host@example.com`。パスワードは `KEYCLOAK_DEV_HOST_PASSWORD`。JSON 初回 import 時だけ入る）
 - `GET /api/me`（SESSION Cookie）
 - `POST /api/auth/guest`（CSRF 検証なし。応答で `XSRF-TOKEN` Cookie が載る）
 - Swagger UI: `http://localhost:8081/swagger-ui.html`（OpenAPI JSON は `/v3/api-docs`）

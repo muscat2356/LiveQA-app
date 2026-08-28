@@ -1,11 +1,69 @@
-# OCI 無料枠へ Compose ごと載せる（かみ砕き）
+# Compose をクラウド1台へ載せる（かみ砕き）
 
-正本は **このファイル1つ** と GitHub [#44 の手順コメント](https://github.com/muscat2356/live-qa-app/issues/44#issuecomment-5422566268)（同じ本文）。設定の短い対応は [ops.md](ops.md)。  
-他メンバーの Codex / Claude Code へ貼る命令文: [#44 の AI コメント](https://github.com/muscat2356/live-qa-app/issues/44#issuecomment-5422781734)。
+> **正は [GitHub #44](https://github.com/muscat2356/live-qa-app/issues/44)。クラウドは AWS（EC2 + Compose）。**  
+> このファイルは以前 OCI 向けに書いた読み替えメモ。食い違ったら **#44 を採る。**  
+> 読み替え: VM = EC2 ／ 門 = Security Group ／ 内鍵 = その OS の firewall。Ampere・OCI コンソールの固有手順は使わない。
 
-## デプロイ手順（正本・1本）
+設定の短い対応は [ops.md](ops.md)。
 
-**読み順:** 時間割 → たとえ → 図 → ステップ 0 → 1 → 2 → 3 → やらなくていい → 役割。  
+## AWS 読み替え（このファイルの OCI 名）
+
+| このファイルに書いてある | AWS での正 |
+|--------------------------|------------|
+| OCI コンソール / Ampere A1 | EC2（#44 は `t3.medium` 目安） |
+| Security List / VCN | **Security Group**（門）。VPC は机の区画 |
+| Oracle Linux + firewalld | Amazon Linux なら firewalld が無いことがある。門は SG が本体 |
+| sslip.io | ドメインが無ければ使ってよい（OCI 専用ではない） |
+
+下の「0-A インスタンスを作る」は OCI 画面のまま残っている。**手は #44 と AWS コンソールに合わせる。** Compose・Caddy・ブラウザ URL と箱の中の話はこのファイルのまま使える。
+
+## 3分で地図（先にここ）
+
+**やること:** 今の Compose を AWS の EC2 1台に置く。中の呼び名（`backend` / `keycloak` / `redis`）は変えない。変えるのは **ブラウザが見る住所** だけ。
+
+覚えなくていい: Kubernetes、マネージド DB、フロントと API でホストを分けること。
+
+| 番号 | 何をする | たとえ | 主 |
+|------|----------|--------|-----|
+| **0** | 机を借りる（VM・門・内鍵・Docker） | 弁当箱を置く場所 | C |
+| **1** | お客さんの住所を公開側にする | 名刺と名簿を同じ店名にする | C、B は Spring の URL |
+| **2** | DB と Redis をインターネットに出さない | 倉庫の裏口を通りに出さない | C |
+| **3** | HTTPS の受付1つにする | 部屋番号直打ちをやめて受付 | C、B は Cookie Secure |
+
+**本線:** `https://APP_HOST`（画面）と `https://AUTH_HOST`（Keycloak）。`http://YOUR_IP:3000` は逃げだけ。完成扱いにしない。
+
+**9:00 に Issue へ3行:**
+
+```text
+YOUR_IP   =
+APP_HOST  = qa.x.x.x.x.sslip.io   （ドメインがあればそれを）
+AUTH_HOST = auth.x.x.x.x.sslip.io
+```
+
+**触ってよい URL / 触ってはいけない URL**
+
+| 誰が見る | 変える |
+|----------|--------|
+| ブラウザ（ログインボタン、Keycloak 画面、戻り先、CORS） | 公開ホストへ |
+| 箱の中（token / JWK / Redis / Postgres） | **変えない**（`keycloak` / `redis` / `postgres`） |
+
+**B の先回り（VM 待ちのあいだ）:** `authorization-uri` の env 化（1-C）、Cookie Secure の env 化（3-G）。いま両方とも localhost / `false` 固定。
+
+**失敗の見方（短い）**
+
+| 見た目 | 先に見る |
+|--------|----------|
+| 接続タイムアウト | 門（Security Group）と内鍵（OS の firewall。Amazon Linux は SG だけで足りることが多い） |
+| ログインが自分の PC の localhost | お客さんの住所が残っている（1 / 3-E） |
+| `invalid redirect` | Keycloak Admin の許可リスト（1-D / 3-I） |
+| SESSION が乗らない | HTTP のまま Cookie Secure=true にした |
+| 証明書が取れない | DNS / sslip.io の書き方、門の 80 |
+
+下の「デプロイ手順」はコピペ用の詳細。地図と食い違ったら **地図の本線（https）を採る**。
+
+## デプロイ手順（詳細・コピペ）
+
+**読み順:** 上の地図 → 時間割 → たとえ → 図 → ステップ 0 → 1 → 2 → 3 → やらなくていい → 役割。  
 方針は **1日で 0〜3 全部**。番号は依存の順（箱 → 住所 → 裏口を閉じる → 受付）。日付を分けない。
 
 | ステップ | 一言 | 1日コースでの扱い |
@@ -49,7 +107,7 @@ Let's Encrypt はこういう名前でも取れることが多い。DNS 浸透�
 
 | 記号 | 意味 | いつ決める |
 |------|------|------------|
-| `YOUR_IP` | OCI の公開 IP | 0-B（朝） |
+| `YOUR_IP` | EC2 の公開 IP | 0-B（朝） |
 | `APP_HOST` | 画面のホスト | 9:00（ドメイン or sslip.io） |
 | `AUTH_HOST` | Keycloak のホスト | 9:00（上と同じ方式） |
 
@@ -73,7 +131,7 @@ Let's Encrypt はこういう名前でも取れることが多い。DNS 浸透�
 | **HTTPS / TLS** | 封筒に封をする。中身を覗きにくくする |
 | **証明書 / Let's Encrypt** | 「この建物は本物です」という印。**ドメイン名が必要** |
 | **`X-Forwarded-Proto`** | 受付が後ろの部屋へ「お客さんは封をした入口から来た」と伝える紙 |
-| **Security List** | クラウド側の門。どの番号の呼び鈴をインターネットに出すか |
+| **Security Group** | クラウド側の門。どの番号の呼び鈴をインターネットに出すか。このファイルの「Security List」は同じ意味 |
 | **firewalld / ufw** | VM 自身の内鍵。門を開けても内鍵が閉まっていると届かない |
 | **ポート** | 部屋番号。3000=画面、8081=API、8080=窓口、80/443=受付、5432=倉庫 |
 | **`localhost`** | 「このパソコン自身」。クラウドに載せてブラウザから見ると、お客さんの PC を指す |
@@ -111,7 +169,7 @@ flowchart TB
   B -->|"http://YOUR_IP:3000"| F[frontend]
   B -->|"http://YOUR_IP:8081"| S[backend]
   B -->|"http://YOUR_IP:8080"| K[Keycloak]
-  subgraph vm["OCI の1台"]
+  subgraph vm["EC2 の1台"]
     F --> S
     S -->|"keycloak:8080 のまま"| K
     S --> R[Redis]
@@ -127,7 +185,7 @@ flowchart TB
   B["お客さんのブラウザ"]
   B -->|"https://APP_HOST"| C[Caddy 受付]
   B -->|"https://AUTH_HOST"| C
-  subgraph vm["OCI の1台"]
+  subgraph vm["EC2 の1台"]
     C --> F[frontend:3000]
     C --> S[backend:8080]
     C --> K[Keycloak:8080]
@@ -164,9 +222,24 @@ sequenceDiagram
 **たとえ:** 弁当箱を置く机を借りる。中身のレシピはまだ変えない。  
 **誰:** C。他の人は `YOUR_IP` が Issue に載るまで待つ。
 
-### 0-A. インスタンスを作る（OCI コンソール）
+### 0 の前. アカウントと SSH 鍵
 
-**画面:** Compute → インスタンスの作成
+インスタンス作成の画面に入る前に、これだけ用意する。
+
+1. **AWS アカウント**（チームのアカウントに入れてもらう）
+2. **自分の PC で SSH 鍵**（EC2 のキーペアに登録。秘密鍵は git / Issue に出さない）
+
+```bash
+ssh-keygen -t ed25519 -C "live-qa-aws" -f ~/.ssh/live-qa-aws
+```
+
+公開鍵は `~/.ssh/live-qa-aws.pub`。秘密鍵は `live-qa-aws`（`.pub` が付いていない方）。
+
+### 0-A. インスタンスを作る（AWS では EC2。下の Ampere 手順は使わない）
+
+**AWS の手:** EC2 → インスタンスを起動。目安は #44 の `t3.medium`。パブリック IP あり。OS は Ubuntu か Amazon Linux。Ampere / Always Free / Oracle Linux の画面は使わない。
+
+**画面（参考・OCI 当時）:** Compute → インスタンスの作成
 
 **手:**
 
@@ -194,10 +267,10 @@ SSH ユーザー = opc    （Ubuntu なら ubuntu）
 
 **完了の合図:** Issue に数字が見える。A/B は次を待たなくてよい（ステップ 1 のファイル準備は先にできる）。
 
-### 0-C. クラウドの門（Security List）
+### 0-C. クラウドの門（Security Group）
 
 **たとえ:** マンションの門の呼び鈴。  
-**画面:** その VCN のセキュリティ・リスト（または NSG）
+**画面（AWS）:** その EC2 の Security Group。インバウンドに TCP を足す。
 
 **手:** イングレス（入ってくる通信）に TCP を足す。ソースは学習デモなら `0.0.0.0/0`（誰でも）。22 だけ自分の IP に絞れるとよい。
 
@@ -216,7 +289,7 @@ SSH ユーザー = opc    （Ubuntu なら ubuntu）
 
 ### 0-D. VM の内鍵（OS ファイアウォール）
 
-**たとえ:** 門は開いたが、部屋のドアチェーンが掛かっている状態。OCI の Oracle Linux でありがち。
+**たとえ:** 門は開いたが、部屋のドアチェーンが掛かっている状態。Amazon Linux は firewalld が無いことが多い。Ubuntu なら ufw。門（SG）だけで足りるか先に見る。
 
 SSH で入る:
 
@@ -749,7 +822,7 @@ Caddy のログに Let's Encrypt の成功（証明書を取れた）が出る�
 
 ## 「いまやらなくていい」
 
-- Keycloak / Postgres を OCI のマネージドにする  
+- Keycloak / Postgres を AWS のマネージド（RDS など）にする。今はやらなくてよい  
 - OpenAPI yaml の手書き  
 - フロントと API でホストを分ける  
 - ステップ 1 の途中で `Secure=true`  
@@ -762,7 +835,7 @@ Caddy のログに Let's Encrypt の成功（証明書を取れた）が出る�
 
 | 番号 | ファイル / 画面 | 主 |
 |------|-----------------|----|
-| 0-A〜0-E | OCI、門、内鍵、Docker、`.env` | C |
+| 0-A〜0-E | EC2、門（SG）、内鍵、Docker、`.env` | C |
 | 1-A | `compose.yml` の `NEXT_PUBLIC_…` | A / C |
 | 1-B | `KC_HOSTNAME` | C |
 | 1-C | `application-docker.yml` + env | B / C |

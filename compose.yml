@@ -15,6 +15,13 @@ services:
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
       KEYCLOAK_ADMIN_BASE_URL: http://keycloak:8080
+      # ブラウザが見る URL（箱の中の token-uri は yml の keycloak:8080 のまま）
+      KEYCLOAK_AUTHORIZATION_URI: ${KEYCLOAK_AUTHORIZATION_URI:-http://localhost:8080/realms/live-qa/protocol/openid-connect/auth}
+      KEYCLOAK_END_SESSION_URI: ${KEYCLOAK_END_SESSION_URI:-http://localhost:8080/realms/live-qa/protocol/openid-connect/logout}
+      LOGIN_SUCCESS_REDIRECT_URI: ${LOGIN_SUCCESS_REDIRECT_URI:-http://localhost:3000/dashboard}
+      POST_LOGOUT_REDIRECT_URI: ${POST_LOGOUT_REDIRECT_URI:-http://localhost:3000/}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
     ports:
       - "8081:8080"
     depends_on:
@@ -61,6 +68,28 @@ services:
     ports:
       - "6379:6379"
 
+  # realm JSON のプレースホルダを env で埋めてから Keycloak が import する
+  keycloak-realm:
+    image: alpine:3.21
+    environment:
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-live-qa-dev-secret}
+      KEYCLOAK_DEV_HOST_PASSWORD: ${KEYCLOAK_DEV_HOST_PASSWORD:-live-qa-dev-host}
+    volumes:
+      - ./keycloak/live-qa-realm.json:/template.json:ro
+      - keycloak_realm_import:/import
+    command:
+      - /bin/sh
+      - -c
+      - |
+        sed -e "s#__KEYCLOAK_CLIENT_SECRET__#$${KEYCLOAK_CLIENT_SECRET}#g" \
+            -e "s#__KEYCLOAK_DEV_HOST_PASSWORD__#$${KEYCLOAK_DEV_HOST_PASSWORD}#g" \
+            /template.json > /import/live-qa-realm.json
+        if grep -q '__KEYCLOAK_' /import/live-qa-realm.json; then
+          echo 'realm JSON のプレースホルダが残っている' >&2
+          exit 1
+        fi
+    restart: "no"
+
   keycloak:
     image: quay.io/keycloak/keycloak:26.0
     command: ["start-dev", "--import-realm"]
@@ -72,8 +101,8 @@ services:
       KC_DB_URL: jdbc:postgresql://postgres:5432/${KC_DB_NAME}
       KC_DB_USERNAME: ${KC_DB_USER}
       KC_DB_PASSWORD: ${KC_DB_PASSWORD}
-      # ブラウザは localhost:8080、コンテナ間は keycloak:8080（フル URL 必須）
-      KC_HOSTNAME: http://localhost:8080
+      # ブラウザは KC_HOSTNAME、コンテナ間は keycloak:8080（フル URL 必須）
+      KC_HOSTNAME: ${KC_HOSTNAME:-http://localhost:8080}
       KC_HOSTNAME_STRICT: "false"
       KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
     # Keycloak 26 の /health/ready は "status": "UP"（大文字）。小文字 up だと永遠に unhealthy → backend が Waiting のまま
@@ -84,13 +113,16 @@ services:
       retries: 30
       start_period: 40s
     volumes:
-      # 専用 realm だけ import。同じフォルダの旧 JSON は載せない
-      - ./keycloak/live-qa-realm.json:/opt/keycloak/data/import/live-qa-realm.json
+      # 埋め済み JSON（テンプレを直接マウントしない）
+      - keycloak_realm_import:/opt/keycloak/data/import
     ports:
       - "8080:8080"
     depends_on:
       postgres:
         condition: service_healthy
+      keycloak-realm:
+        condition: service_completed_successfully
 
 volumes:
   postgres_data:
+  keycloak_realm_import:
