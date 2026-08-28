@@ -1,4 +1,4 @@
-import { fetchPatchPollStatus } from "@/lib/api/pollApi";
+import { fetchPatchPollStatus } from "@/lib/api/client/pollApi";
 import { PollStatus } from "@/types/poll/poll";
 import { useState } from "react";
 import { Button } from "../ui/button";
@@ -24,14 +24,11 @@ export default function PollStatusButton({
 
             await fetchPatchPollStatus(pollId, next);
 
-            load();
-
         }catch(e){
             setError(e instanceof Error ? e.message: "エラーが発生しました");
-            load();
         }finally{
-
             setPending(false);
+            load();
         }
     }
 

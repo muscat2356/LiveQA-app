@@ -3,7 +3,7 @@
 import { actionLabelMap, EventStatus, nextStatusMap, statusLabel } from "@/types/event/event";
 
 import { useState } from "react";
-import { readCookie } from "../cookie";
+import { readCookie } from "../../lib/http/cookie";
 import { useRouter } from "next/navigation";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog";
 import { Button } from "../ui/button";

@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { fetchJoinEvent } from "@/lib/api/eventApi";
+import { fetchJoinEvent } from "@/lib/api/server/eventApi";
 
 export type EnterState = {
   error?: string;

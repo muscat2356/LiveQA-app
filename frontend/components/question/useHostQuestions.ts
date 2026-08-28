@@ -1,6 +1,6 @@
 "use client"
 
-import { fetchGetQuestion } from "@/lib/api/questionApi";
+import { fetchGetQuestion } from "@/lib/api/client/questionApi";
 import { getWebSocketBrokerUrl } from "@/lib/websocket";
 import { QuestionEvent, QuestionFilter, QuestionResponse, Sort } from "@/types/question/question";
 import { Client } from "@stomp/stompjs";
