@@ -1,9 +1,6 @@
-import { readCookie } from "@/lib/http/cookie";
-import { EventDetailResponse, JoinEvent } from "@/types/event/event";
-import { apiClient } from "../../http/apiClient";
-
+import { JoinEvent } from "@/types/event/event";
 /**
- * サーバコンポーネントで活用するため別途リファクタリング
+ * 参加コードからイベントを取得する　Server component ServerActions用
  * @param joinCode 
  * @returns 
  */

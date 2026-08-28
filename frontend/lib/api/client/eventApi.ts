@@ -2,6 +2,11 @@ import { apiClient } from "@/lib/http/apiClient";
 import { EventDetailResponse } from "@/types/event/event";
 
 /**
+ * イベント/クライアント用API
+ * @author furuyama
+ */
+
+/**
  * イベント名更新API　
  * @param title 変更するタイトル名
  * @param eventId 該当のイベントId
