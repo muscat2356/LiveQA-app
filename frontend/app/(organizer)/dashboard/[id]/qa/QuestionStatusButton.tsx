@@ -1,6 +1,5 @@
 "use client"
 
-import { readCookie } from "@/lib/http/cookie";
 import { Button } from "@/components/ui/button";
 import { nextQuestionStatusMap, questionActionLabelMap, QuestionStatus } from "@/types/question/question";
 import { useState } from "react";
