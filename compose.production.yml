@@ -1,0 +1,14 @@
+services:
+  postgres:
+    # 本番環境ではデータベースをホストへ公開しない
+    ports: !reset []
+
+  redis:
+    # 本番環境ではRedisをホストへ公開しない
+    ports: !reset []
+
+  keycloak:
+    command: ["start", "--import-realm"]
+    environment:
+      KC_PROXY_HEADERS: xforwarded
+      KC_HTTP_ENABLED: "true"
