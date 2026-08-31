@@ -8,6 +8,12 @@ export type EnterState = {
   error?: string;
 };
 
+/**
+ * イベントルーム参加入力処理
+ * @param _prev 
+ * @param formData 
+ * @returns 
+ */
 export async function enterRoom(
   _prev: EnterState,
   formData: FormData

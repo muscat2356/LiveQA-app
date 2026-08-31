@@ -6,25 +6,20 @@ import EventRow from "./eventRow";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import LogoutButton from "./LogoutButton";
+import { fetchGetEvent } from "@/lib/api/server/eventApi";
 
+/**
+ * 主催者イベントダッシュボード画面
+ * 該当ユーザーのイベント全件表示
+ * @returns 
+ */
 export default async function DashBoard(){
-    
-    const cookieStore = await cookies();
 
-    const res = await fetch (`${process.env.API_BASE_URL}/api/events`, {
-        headers: { Cookie : cookieStore.toString() },
-        cache: "no-store",
-    });
+    const events:EventListResponse[]| null = await fetchGetEvent();
 
-    if (res.status === 401) {
+    if (!events) {
         redirect("/");
     }
-
-    if(!res.ok){
-        throw new Error(`API error: ${res.status}`);
-    }
-
-    const events: EventListResponse[] = await res.json();
 
     return (
         <div className="app-container py-8 sm:py-12">

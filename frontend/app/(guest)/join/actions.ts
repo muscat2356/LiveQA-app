@@ -1,11 +1,18 @@
 "use server";
 
+import { fetchJoinEvent } from "@/lib/api/server/eventApi";
 import { redirect } from "next/navigation";
 
 export type JoinState = {
     error?: string
 };
 
+/**
+ * 確認コードの入力確認
+ * @param _prev 
+ * @param formData 
+ * @returns 
+ */
 export async function verifyJoinCode(
     _prev: JoinState,
     formData: FormData
@@ -17,18 +24,14 @@ export async function verifyJoinCode(
             error: "参加コードを入力してください。"
         };
     }
+    try{
+        const event = await fetchJoinEvent(joinCode);
 
-    const res = await fetch(
-  `${process.env.API_BASE_URL}/api/join/${encodeURIComponent(joinCode)}`,
-  { cache: "no-store", headers: { Accept: "application/json" } }
-    );
-
-    if(res.status === 404){
-        return { error: "該当するルームがありません"};
-    }
-
-    if(!res.ok){
-        return{ error: "参加コードが不正です"};
+        if(!event){
+            return{error: "該当するルームがありません"}
+        }
+    }catch{
+        return{error: "参加コードが不正です"}
     }
 
      redirect(`/join/${joinCode}`);

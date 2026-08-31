@@ -7,7 +7,13 @@ import { readCookie } from "../../lib/http/cookie";
 import { useRouter } from "next/navigation";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog";
 import { Button } from "../ui/button";
+import { patchEventStatus } from "@/lib/api/client/eventApi";
 
+/**
+ * ステータス更新時表示ダイアログUI
+ * @param param0 
+ * @returns 
+ */
 export default function statusChangeDialog({
     eventId,
     title,
@@ -31,27 +37,11 @@ export default function statusChangeDialog({
             setPending(true)
             setErrorMessage(null);
             try{
-                const xsrfToken = readCookie("XSRF-TOKEN");
-                const res = await fetch(`/api/events/${eventId}/status`, {
-                    method: "PATCH",
-                    headers:  { 
-                        "Content-Type": "application/json",
-                        ...(xsrfToken ? { "X-XSRF-TOKEN": xsrfToken } : {}),
-                    },
-                    credentials: "same-origin",
-                    body: JSON.stringify({ status: nextStatus }),
-                });
-    
-                if(!res.ok){
-                    // 本文にエラー情報が入っている場合はここで読む
-                    const problem = await res.json().catch(() => null)
-                    throw new Error(problem?.message ?? "エラーが発生しました");
-                }
-    
+                await patchEventStatus(eventId, nextStatus);
+
                 setOpen(false);
                 router.refresh();
             }catch (e) {
-                console.error(e);
                 setErrorMessage(e instanceof Error ? e.message : "エラーが発生しました");
             }finally{
                 setPending(false);

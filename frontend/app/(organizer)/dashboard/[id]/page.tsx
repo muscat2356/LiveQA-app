@@ -9,7 +9,13 @@ import { notFound } from "next/navigation";
 import UpdateEventNameForm from "./UpdateEventNameForm";
 import DeleteButton from "./DeleteButton";
 import formDateTime from "@/lib/utils/date";
+import { fetchGetEventDetail } from "@/lib/api/server/eventApi";
 
+/**
+ * イベント詳細画面ページ
+ * @param param0 
+ * @returns 
+ */
 export default async function detailPage({
     params,
 }:{
@@ -17,26 +23,15 @@ export default async function detailPage({
 }){
 
     const { id } = await params;
-    const cookieStore = await cookies();
 
-    const baseURL = process.env.NEXT_PUBLIC_URL ?? "http://localhost:3000";
+    const event = await fetchGetEventDetail(id);
 
-    const hostUrlpath = `${baseURL}/dashboard/${id}/qa`;
-
-    const res = await fetch (`${process.env.API_BASE_URL}/api/events/${id}`, {
-            headers: { Cookie : cookieStore.toString() },
-            cache: "no-store",
-        });
-
-    if (res.status === 404 || res.status === 403) 
+    if (!event) 
         notFound();
     
     //開発者向けのステータス発行
-    if (!res.ok) 
-        throw new Error(`イベント情報の取得に失敗しました: ${res.status}`);
-
-    const event: EventDetailResponse = await res.json();
-
+    const baseURL = process.env.NEXT_PUBLIC_URL ?? "http://localhost:3000";
+    const hostUrlpath = `${baseURL}/dashboard/${id}/qa`;
     const participantUrl = baseURL + "/join/" + event.joinCode;
 
     return(

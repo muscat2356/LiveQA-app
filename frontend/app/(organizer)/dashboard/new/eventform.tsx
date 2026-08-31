@@ -6,8 +6,12 @@ import { Label } from "@/components/ui/label";
 import { EventCreateRequest, SubmitState } from "@/types/event/event";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { readCookie } from "@/lib/http/cookie";
+import { postEvent } from "@/lib/api/client/eventApi";
 
+/**
+ * イベント作成入力フォームUI
+ * @returns 
+ */
 export default function EventForm(){
     const [title, setTitle] = useState("");
     const [state, setState] = useState<SubmitState>("idle");
@@ -28,25 +32,10 @@ export default function EventForm(){
         };
 
         try{
-            const xsrfToken = readCookie("XSRF-TOKEN");
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/events`, {
-                method: "POST",
-                headers: { 
-                    "Content-Type": "application/json",
-                    ...(xsrfToken ? { "X-XSRF-TOKEN": xsrfToken } : {}),
-                 },
-                 credentials:"include",
-                body: JSON.stringify(payload)
-            });
-
-            if(!res.ok){
-                const problem = await res.json().catch(() => null)
-                throw new Error(problem?.detail ?? `HTTP ${res.status}`)
-            }
+            await postEvent(payload);
 
             router.push(`/dashboard`);
         }catch(e){
-            console.error(e);
             setError(e instanceof Error ? e.message: "エラー発生しています")
             setState("idle")
         }
