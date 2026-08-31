@@ -17,7 +17,7 @@ import Link from "next/link";
  */
 
 export default function Home() {
-  const LOGIN_URL =
+  const loginUrl =
     process.env.NEXT_PUBLIC_KEYCLOAK_LOGIN_URL ??
     "http://localhost:8081/oauth2/authorization/keycloak";
 
@@ -73,7 +73,7 @@ export default function Home() {
                 <Button
                   size="lg"
                   nativeButton={false}
-                  render={<a href={LOGIN_URL} />}
+                  render={<a href={loginUrl} />}
                   className="h-12 w-full text-base"
                 >
                   <RiLoginBoxLine className="size-4" />
