@@ -43,7 +43,7 @@ export async function fetchPostQuestion(
     return apiClient(`/api/events/${eventId}/questions`, {
                 method: "POST",
                 body:{ 
-                    trimmedBody,
+                    body: trimmedBody,
                     nickname: nickname || null 
                 },
                 errorMessage:{
