@@ -1,4 +1,4 @@
-const LOCAL_WEBSOCKET_URL = "ws://localhost:8081/ws";
+const LOCAL_WEBSOCKET_URL = process.env.NEXT_PUBLIC_WEBSOCKET_URL;
 
 function websocketUrlFrom(baseUrl: string): string {
     const websocketUrl = new URL("/ws", baseUrl);
