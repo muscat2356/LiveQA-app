@@ -57,11 +57,11 @@ export async function postEvent(payload: EventCreateRequest):Promise<void>{
  * @param nextStatus リクエストに活用（次のステータス）
  * @returns 
  */
-export async function patchEventStatus(eventId: number, nextStatus: string):Promise<void>{
+export async function patchEventStatus(eventId: number, status: string):Promise<void>{
 
     return apiClient<void>(`/api/events/${eventId}/status`,{
         method: "PATCH",
-        body: {nextStatus}
+        body: {status}
     });
 }
 

@@ -26,12 +26,13 @@ export default  function PostForm({
 
     async function handlePost(){
 
-        const trimmedBody = body.trim();
-
-        if(trimmedBody){
+  
+        if(!body.trim()){
             setErrorMessage("質問を入力してください。")
             return;
         }
+
+        const trimmedBody = body.trim();
 
         setPending(true);
         setErrorMessage(null);

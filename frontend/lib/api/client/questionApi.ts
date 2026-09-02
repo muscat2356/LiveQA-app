@@ -35,15 +35,15 @@ export async function fetchGetQuestion(
  */
 export async function fetchPostQuestion(
     eventId: number, 
-    body: string,
     nickname: string,
+    trimmedBody: string,
 ):
     Promise<QuestionResponse>
 {
     return apiClient(`/api/events/${eventId}/questions`, {
                 method: "POST",
                 body:{ 
-                    body,
+                    trimmedBody,
                     nickname: nickname || null 
                 },
                 errorMessage:{
@@ -60,12 +60,12 @@ export async function fetchPostQuestion(
  */
 export async function fetchPatchQuestionStatus(
     questionId: number,
-    target: QuestionStatus,
+    status: QuestionStatus,
 ):
     Promise<void>
 {
     return apiClient(`/api/questions/${questionId}/status`,{
         method: "PATCH",
-        body: { target },
+        body: {status},
     });
 }
