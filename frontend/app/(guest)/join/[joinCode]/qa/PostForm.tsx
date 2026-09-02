@@ -1,11 +1,16 @@
 "use client"
 
-import { readCookie } from "@/lib/http/cookie";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react"
 import { toast } from "sonner";
+import { fetchPostQuestion } from "@/lib/api/client/questionApi";
 
+/**
+ * 質問入力フォームUI
+ * @param 該当イベントID
+ * @param 質問入力者名
+ */
 export default  function PostForm({
     eventId,
     nickname,
@@ -21,30 +26,19 @@ export default  function PostForm({
 
     async function handlePost(){
 
+  
         if(!body.trim()){
             setErrorMessage("質問を入力してください。")
             return;
         }
 
+        const trimmedBody = body.trim();
+
         setPending(true);
         setErrorMessage(null);
 
         try{
-            const xsrfToken = readCookie("XSRF-TOKEN");
-            const res = await fetch(`/api/events/${eventId}/questions`, {
-                method: "POST",
-                headers:  { 
-                    "Content-Type": "application/json",
-                    ...(xsrfToken ? { "X-XSRF-TOKEN": xsrfToken } : {}),
-                },
-                credentials: "same-origin",
-                body: JSON.stringify({ body: body.trim(), nickname: nickname || null }),
-            });
-        
-            if (!res.ok) {
-                const problem = await res.json().catch(() => null);
-                throw new Error(problem?.message ?? "再度実行してください");
-            }
+            await fetchPostQuestion(eventId, nickname, trimmedBody);
             
             setBody("");
             onPosted();

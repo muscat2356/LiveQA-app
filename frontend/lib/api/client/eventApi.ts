@@ -1,5 +1,5 @@
 import { apiClient } from "@/lib/http/apiClient";
-import { EventDetailResponse } from "@/types/event/event";
+import { EventCreateRequest, EventDetailResponse } from "@/types/event/event";
 
 /**
  * イベント/クライアント用API
@@ -37,3 +37,31 @@ export async function deleteEvent(eventId: number): Promise<void>{
         }
     });
 }
+
+/**
+ * イベント作成API
+ * @param payload 
+ * @returns 
+ */
+export async function postEvent(payload: EventCreateRequest):Promise<void>{
+
+    return apiClient<void>(`/api/events`, {
+                method: "POST",
+                body: payload
+    });
+}
+
+/**
+ * イベントステータス更新API
+ * @param eventId 
+ * @param nextStatus リクエストに活用（次のステータス）
+ * @returns 
+ */
+export async function patchEventStatus(eventId: number, status: string):Promise<void>{
+
+    return apiClient<void>(`/api/events/${eventId}/status`,{
+        method: "PATCH",
+        body: {status}
+    });
+}
+
