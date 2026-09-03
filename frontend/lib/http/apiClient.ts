@@ -66,10 +66,15 @@ export async function apiClient<T>(
         throw new ApiError(res.status, message);
     }
 
-    //204の場合に値を変換しないため
-    if(res.status === 204){
+    // 204 / 202 などボディ無し成功は JSON にしない（register は 202 空）
+    if (res.status === 204 || res.status === 202) {
         return undefined as unknown as T;
     }
 
-    return res.json() as Promise<T>;
+    const text = await res.text();
+    if (!text) {
+        return undefined as unknown as T;
+    }
+
+    return JSON.parse(text) as T;
 }
