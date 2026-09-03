@@ -8,11 +8,11 @@ import { QuestionFilter, Sort } from "@/types/question/question";
 import { useState } from "react";
 import QuestionStatusButton from "./QuestionStatusButton";
 import { QuestionStatusBadge } from "@/components/question/questionStatusBadge";
-import useHostQuestions from "@/components/question/useHostQuestions";
 import { OrganizerChart } from "@/components/poll/organizerChart";
 import usePoll from "@/components/poll/usePoll";
 import PollCreateForm from "@/components/poll/PollCreateForm";
 import StatusTab from "@/components/question/StatusTab";
+import useQuestions from "@/features/question/useQuestions";
 
 export default  function HostQaScreen({
      event 
@@ -22,7 +22,7 @@ export default  function HostQaScreen({
 
     const [ sort, setSort ] = useState<Sort>("popular");
     const [ filter, setFilter ] = useState<QuestionFilter>("ALL");
-    const { questions, loading, error, hostLoad } = useHostQuestions(event.id, sort, filter);
+    const { questions, loading, error, load } = useQuestions(event.id, sort, filter, true);
     const { poll, pending: pollPending, error: pollError, load: pollLoad } = usePoll(event.id);
 
     return(
@@ -33,7 +33,7 @@ export default  function HostQaScreen({
                     <h1 className="truncate text-xl font-bold tracking-tight sm:text-2xl">{event.title}</h1>
                     <StatusBadge status={event.status}/>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => {hostLoad(); pollLoad();}} disabled={loading || pollPending} className="shrink-0">
+                <Button variant="outline" size="sm" onClick={() => {load(); pollLoad();}} disabled={loading || pollPending} className="shrink-0">
                     更新
                 </Button>
             </header>
@@ -90,7 +90,7 @@ export default  function HostQaScreen({
                         <QuestionStatusButton
                             questionId={q.id}
                             status={q.status}
-                            load={hostLoad}
+                            load={load}
                         />
                     </li>
                 ))}
