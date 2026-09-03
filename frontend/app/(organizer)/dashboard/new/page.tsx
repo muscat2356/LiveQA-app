@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import EventForm from "./eventform";
+import EventForm from "./Eventform";
 
 export default function CreateNewEvent(){
 

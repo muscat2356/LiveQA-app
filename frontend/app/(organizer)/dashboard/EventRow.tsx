@@ -1,7 +1,4 @@
-"use client";
-
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";import { Card, CardContent } from "@/components/ui/card";
 import {
   EventListResponse,
   EventStatus,
@@ -10,7 +7,7 @@ import {
 
 
 import Link from "next/link";
-import StatusChangeDialog from "@/components/event/statusChangeDialog";
+import StatusChangeDialog from "@/components/event/StatusChangeDialog";
 import CopyButton from "@/components/event/CopyButton";
 import formDateTime from "@/lib/utils/date";
 import { RiTimeLine } from "@remixicon/react";

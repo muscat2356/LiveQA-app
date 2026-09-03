@@ -10,10 +10,10 @@ import { FormEvent, useState } from "react";
 
 export default function UpdateEventNameForm({
     eventId, 
-    cuurentName,
+    currentName,
 }: {
     eventId: number;
-    cuurentName: string;
+    currentName: string;
 }){
 
     const [ name, setName ] = useState("");
@@ -30,7 +30,7 @@ export default function UpdateEventNameForm({
             return;
         }
 
-        if(name.trim() === cuurentName){
+        if(name.trim() === currentName){
             setError("変更するイベント名を入力してください")
             return;
         }

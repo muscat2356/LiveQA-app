@@ -3,7 +3,7 @@
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { OptionInput } from "./usePollForm"
+import { OptionInput } from "../../features/poll/usePollForm"
 
 export default function PollOptionInputs({
     options,

@@ -1,8 +1,8 @@
 "use client"
 
 import { PollDto } from "@/types/poll/poll";
-import PollStatusButton from "./pollStatusButton";
-import { PollResultChart } from "../guest/PollResultChart";
+import PollStatusButton from "./PollStatusButton";
+import { PollResultChart } from "./PollResultChart";
 
 
 export function OrganizerChart({

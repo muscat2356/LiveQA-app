@@ -13,7 +13,7 @@ import { patchEventStatus } from "@/lib/api/client/eventApi";
  * @param param0 
  * @returns 
  */
-export default function statusChangeDialog({
+export default function StatusChangeDialog({
     eventId,
     title,
     status,

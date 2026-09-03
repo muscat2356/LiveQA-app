@@ -1,4 +1,4 @@
-import { StatusBadge } from "@/components/event/statusBadge";
+import { StatusBadge } from "@/components/event/StatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { fetchJoinEvent } from "@/lib/api/server/eventApi";
 import { cookies } from "next/headers";

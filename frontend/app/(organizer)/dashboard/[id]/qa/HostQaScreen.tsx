@@ -1,15 +1,15 @@
 "use client"
 
 import SortTab from "@/components/question/SortTab";
-import { StatusBadge } from "@/components/event/statusBadge";
+import { StatusBadge } from "@/components/event/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { EventDetailResponse } from "@/types/event/event";
 import { QuestionFilter, Sort } from "@/types/question/question";
 import { useState } from "react";
 import QuestionStatusButton from "./QuestionStatusButton";
-import { QuestionStatusBadge } from "@/components/question/questionStatusBadge";
-import { OrganizerChart } from "@/components/poll/organizerChart";
-import usePoll from "@/components/poll/usePoll";
+import { QuestionStatusBadge } from "@/components/question/QuestionStatusBadge";
+import { OrganizerChart } from "@/components/poll/OrganizerChart";
+import usePoll from "@/features/poll/usePoll";
 import PollCreateForm from "@/components/poll/PollCreateForm";
 import StatusTab from "@/components/question/StatusTab";
 import useQuestions from "@/features/question/useQuestions";
