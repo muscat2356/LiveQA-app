@@ -1,31 +1,12 @@
 import { QuestionEvent} from "@/types/question/question";
 import { Client } from "@stomp/stompjs";
+import { resolveBrokerUrl } from "@/lib/stomp/brokerUrl";
 
 /**
  * 購読解除関数
  */
 export type Unsubscribe = () => void;
 
-/**
- * 接続先の解決
- * 
- * 環境変数が入っている場合に、環境変数の値から組み立て
- * 未設定の場合に現在のオリジンから設定
- * HTTPSの場合に、wssになるため、設定
- * @returns 
- */
-function resolveBrokerUrl(): string {
-
-    const configured = process.env.NEXT_PUBLIC_WS_URL;
-
-    if(configured){
-        return configured;
-    }
-
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-
-    return `${protocol}//${window.location.host}/ws`;
-}
 /**
  * 指定イベントの質問トピックの購読登録処理
  * 呼び出しの共通化

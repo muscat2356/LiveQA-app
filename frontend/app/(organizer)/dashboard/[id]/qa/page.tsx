@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import HostQaScreen from "./HostQaScreen";
 import { fetchGetEventDetail } from "@/lib/api/server/eventApi";
@@ -14,7 +13,7 @@ export default async function HostQaPage({
     const event:EventDetailResponse | null = await fetchGetEventDetail(id);
 
     if(!event){
-        throw new Error ("エラーが発生");
+        notFound();
     }
 
     return(
