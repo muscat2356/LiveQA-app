@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { subscribeQuestions } from "@/lib/stomp/questionStomp";
 import { receiveEvent } from "@/lib/domain/question/questionEvent";
 
-export default function useGuestQuestions(eventId: number, sort: Sort, filter: QuestionFilter) {
+export default function useQuestions(eventId: number, sort: Sort, filter: QuestionFilter, isHost: boolean) {
 
     const [questions, setQuestions] = useState<QuestionResponse[]>([]);
     const [loading, setLoading] = useState(true);
@@ -19,14 +19,16 @@ export default function useGuestQuestions(eventId: number, sort: Sort, filter: Q
         );
     }
 
-    async function guestLoad() {
+    async function load() {
 
         setLoading(true);
         setError(null);
 
         try {
-            await getGuestSession();
-
+            if(!isHost){
+                await getGuestSession();
+            }
+            
             const data = await fetchGetQuestion(eventId, sort, filter);
             setQuestions(data);
         } catch (e) {
@@ -37,7 +39,7 @@ export default function useGuestQuestions(eventId: number, sort: Sort, filter: Q
     }
 
     useEffect(() => {
-        guestLoad();
+        load();
     }, [eventId, sort, filter]);
 
     const viewRef = useRef({sort, filter});
@@ -48,10 +50,10 @@ export default function useGuestQuestions(eventId: number, sort: Sort, filter: Q
                 const { sort, filter } = viewRef.current;
 
             setQuestions(previousQuestions => 
-                receiveEvent(previousQuestions, questionEvent, filter, sort, false)
+                receiveEvent(previousQuestions, questionEvent, filter, sort, isHost)
                 );
             });
     },[eventId]);
 
-    return { questions, loading, error, guestLoad, applyVote };
+    return { questions, loading, error, load, applyVote };
 }

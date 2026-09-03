@@ -4,7 +4,7 @@ import { JoinEvent } from "@/types/event/event";
 import { useState } from "react";
 import type { QuestionFilter, Sort } from "@/types/question/question";
 import { Button } from "@/components/ui/button";
-import useQuestions from "../../../../../components/question/useGuestQuestions";
+import useQuestions from "@/features/question/useQuestions";
 import { StatusBadge } from "@/components/event/statusBadge";
 import PostForm from "./PostForm";
 import VoteButton from "./VoteButton";
@@ -21,7 +21,7 @@ export default function QaScreen({ event, nickname }: { event: JoinEvent; nickna
 
     const [sort, setSort] = useState<Sort>("popular");
     const [ filter, setFilter ] = useState<QuestionFilter>("ALL");
-    const {questions, loading, error, guestLoad, applyVote} = useQuestions(event.eventId, sort, filter);
+    const {questions, loading, error, load, applyVote} = useQuestions(event.eventId, sort, filter, false);
     const { poll: polls, pending: pollPending, error: pollError, load: pollLoad } = usePoll(event.eventId);
 
     return(
@@ -32,7 +32,7 @@ export default function QaScreen({ event, nickname }: { event: JoinEvent; nickna
                     <h1 className="truncate text-xl font-bold tracking-tight sm:text-2xl">{event.title}</h1>
                     <StatusBadge status={event.status} />
                 </div>
-                <Button variant="outline" size="sm" onClick={() => { guestLoad(); pollLoad(); }} className="shrink-0">
+                <Button variant="outline" size="sm" onClick={() => { load(); pollLoad(); }} className="shrink-0">
                     {!error ? "更新" : "再更新"}
                 </Button>
             </header>
@@ -90,7 +90,7 @@ export default function QaScreen({ event, nickname }: { event: JoinEvent; nickna
                                 upvoteCount={q.upvoteCount}
                                 votedByMe={q.votedByMe}
                                 applyVote={applyVote}
-                                onSync={guestLoad}
+                                onSync={load}
                             />
                         </div>
                     </li>
@@ -98,7 +98,7 @@ export default function QaScreen({ event, nickname }: { event: JoinEvent; nickna
             </ul>
 
             <div className="mt-6">
-                <PostForm eventId={event.eventId} nickname={nickname} onPosted={guestLoad} />
+                <PostForm eventId={event.eventId} nickname={nickname} onPosted={load} />
             </div>
         </div>
         </div>
