@@ -5,14 +5,14 @@ import { useState } from "react";
 import type { QuestionFilter, Sort } from "@/types/question/question";
 import { Button } from "@/components/ui/button";
 import useQuestions from "@/features/question/useQuestions";
-import { StatusBadge } from "@/components/event/statusBadge";
+import { StatusBadge } from "@/components/event/StatusBadge";
 import PostForm from "./PostForm";
 import VoteButton from "./VoteButton";
 import SortTab from "../../../../../components/question/SortTab";
-import usePoll from "@/components/poll/usePoll";
-import GuestPollCard from "@/components/guest/GuestPollCard";
+import usePoll from "@/features/poll/usePoll";
+import GuestPollCard from "@/components/poll/GuestPollCard";
 import StatusTab from "@/components/question/StatusTab";
-import { QuestionStatusBadge } from "@/components/question/questionStatusBadge";
+import { QuestionStatusBadge } from "@/components/question/QuestionStatusBadge";
 import { Avatar } from "@/components/common/Avatar";
 import relativeTime from "@/lib/utils/relativeTime";
 

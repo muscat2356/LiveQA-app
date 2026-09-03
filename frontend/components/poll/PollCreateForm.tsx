@@ -1,8 +1,8 @@
 "use client"
 
 import { useState } from "react";
-import usePollForm from "./usePollForm";
-import useCreatePoll from "./useCreatePoll";
+import usePollForm from "../../features/poll/usePollForm";
+import useCreatePoll from "../../features/poll/useCreatePoll";
 import { Button } from "../ui/button";
 
 import { Textarea } from "../ui/textarea";

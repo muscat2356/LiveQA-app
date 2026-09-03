@@ -1,4 +1,4 @@
-import { LogoutToast } from "@/components/organizer/logoutToast";
+import { LogoutToast } from "@/components/user/LogoutToast";
 import { Button } from "@/components/ui/button";
 import {
   Card,

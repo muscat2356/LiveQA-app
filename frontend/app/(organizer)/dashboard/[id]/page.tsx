@@ -1,9 +1,7 @@
 import CopyButton from "@/components/event/CopyButton";
-import { StatusBadge } from "@/components/event/statusBadge";
-import StatusChangeDialog from "@/components/event/statusChangeDialog";
+import { StatusBadge } from "@/components/event/StatusBadge";
+import StatusChangeDialog from "@/components/event/StatusChangeDialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { EventDetailResponse } from "@/types/event/event";
-import { cookies } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import UpdateEventNameForm from "./UpdateEventNameForm";
@@ -16,7 +14,7 @@ import { fetchGetEventDetail } from "@/lib/api/server/eventApi";
  * @param param0 
  * @returns 
  */
-export default async function detailPage({
+export default async function DetailPage({
     params,
 }:{
     params: Promise<{ id: string}>
@@ -61,7 +59,7 @@ export default async function detailPage({
                     <div className="border-t pt-5">
                         <UpdateEventNameForm
                             eventId={event.id}
-                            cuurentName={event.title}
+                            currentName={event.title}
                         />
                     </div>
 

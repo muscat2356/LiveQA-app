@@ -1,6 +1,6 @@
 "use client"
 
-import useUserRegister from "@/components/user/useUserRegister";
+import useUserRegister from "@/features/user/useUserRegister";
 import { Button } from "@/components/ui/button";
 import {
     Card,

@@ -1,8 +1,8 @@
 "use client"
 
 import { PollDto } from "@/types/poll/poll";
-import usePollAnswer from "../poll/usePollAnswer";
-import useAnswerPoll from "./useAnswerPoll";
+import usePollAnswer from "../../features/poll/useSelectPoll";
+import useAnswerPoll from "../../features/poll/useSubmitPollAnswer";
 import { PollResultChart } from "./PollResultChart";
 import PollOptionSelect from "./PollOptionSelect";
 import { Button } from "../ui/button";
