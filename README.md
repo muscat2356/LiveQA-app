@@ -4,6 +4,24 @@
 参加者が質問を投稿し、「いいね」で人気の質問が上位に浮上、主催者がその場で回答を捌く。
 質問・いいね・ステータス変更はWebSocketでライブ反映される
 
+## クイックスタート
+
+必要なもの: Docker / Docker Compose
+
+    git clone https://github.com/muscat2356/live-qa-app.git
+    cd live-qa-app
+    docker compose up --build
+
+| URL | 用途 |
+|---|---|
+| http://localhost:3000 | アプリ |
+| http://localhost:8080 | Keycloak 管理画面（admin / admin） |
+
+主催者ログイン: `host@example.com` / `live-qa-dev-host`
+
+> `.env` の値はローカル開発専用です。
+> ポート 3000 / 8080 / 8081 / 5432 / 6379 を使います。
+
 ## 概要
 
 | 項目 | 内容 |
